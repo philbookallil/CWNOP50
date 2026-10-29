@@ -1,0 +1,268 @@
+@using Nop.Plugin.ExternalAuth.SSO.Components;
+@model Nop.Plugin.ExternalAuth.SSO.Models.ConfigurationModel
+
+@{
+    Layout = "_AdminLayout";
+    NopHtml.SetActiveMenuItemSystemName("ExternalAuth.SSO.Configure");
+
+    // Page behaviour (role picker, import, onboarding report, protocol visibility, test
+    // connection) lives in Content/Admin/Sso/sso-admin.js; it reads the .sso-configure-config div below.
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/ExternalAuth.SSO/Content/Admin/Sso/sso-admin.js");
+
+    var ssoConfigureResources = new Dictionary<string, string>
+    {
+        ["NoRoles"] = T("Admin.Customers.Customers.Fields.CustomerRoles.NoRoles").Text,
+        ["ImportNoInput"] = T("Plugins.ExternalAuth.SSO.IdpMetadata.Error.NoInput").Text,
+        ["Importing"] = T("Plugins.ExternalAuth.SSO.IdpMetadata.Importing").Text,
+        ["Imported"] = T("Plugins.ExternalAuth.SSO.IdpMetadata.Imported").Text,
+        ["ImportError"] = T("Plugins.ExternalAuth.SSO.IdpMetadata.Error.Generic").Text,
+        ["ReportLoading"] = T("Plugins.ExternalAuth.SSO.OnboardingReport.Loading").Text,
+        ["ReportError"] = T("Plugins.ExternalAuth.SSO.OnboardingReport.Error").Text,
+        ["TestRunning"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.Running").Text,
+        ["TestFailed"] = "Test connection request failed.",
+        ["HandshakeSkipped"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.HandshakeSkipped").Text,
+        ["HandshakeTitle"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.HandshakeTitle").Text,
+        ["CheckEntityId"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.Check.EntityId").Text,
+        ["CheckSsoUrl"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.Check.SsoUrl").Text,
+        ["CheckSloUrl"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.Check.SloUrl").Text,
+        ["CheckCertificate"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.Check.Certificate").Text,
+        ["MetadataThumbprints"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.MetadataThumbprints").Text
+    };
+}
+
+@*
+    Card order: General, OpenID Connect, Identity Provider (Azure AD / Entra), Send these to your
+    IdP team, Service Provider, Claim Mapping, User Provisioning, Bindings & Redirects, then — at
+    "All stores" only — Login Bypass and Audit Logging, then Test SSO Connection. The protocol
+    dropdown hides the cards that do not apply (sso-admin.js).
+*@
+@{
+    var customer = await workContext.GetCurrentCustomerAsync();
+
+    const string hideGeneralBlockAttributeName = "ExternalAuthSSOPage.HideCard.General";
+    var hideGeneralBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideGeneralBlockAttributeName);
+
+    const string hideOidcBlockAttributeName = "ExternalAuthSSOPage.HideCard.Oidc";
+    var hideOidcBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideOidcBlockAttributeName);
+
+    const string hideIdpBlockAttributeName = "ExternalAuthSSOPage.HideCard.Idp";
+    var hideIdpBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideIdpBlockAttributeName);
+
+    const string hideSendToIdpBlockAttributeName = "ExternalAuthSSOPage.HideCard.SendToIdp";
+    var hideSendToIdpBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideSendToIdpBlockAttributeName);
+
+    const string hideSpBlockAttributeName = "ExternalAuthSSOPage.HideCard.Sp";
+    var hideSpBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideSpBlockAttributeName);
+
+    const string hideClaimsBlockAttributeName = "ExternalAuthSSOPage.HideCard.Claims";
+    var hideClaimsBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideClaimsBlockAttributeName);
+
+    const string hideProvisioningBlockAttributeName = "ExternalAuthSSOPage.HideCard.Provisioning";
+    var hideProvisioningBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideProvisioningBlockAttributeName);
+
+    const string hideRedirectsBlockAttributeName = "ExternalAuthSSOPage.HideCard.Redirects";
+    var hideRedirectsBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideRedirectsBlockAttributeName);
+
+
+    const string hideBypassBlockAttributeName = "ExternalAuthSSOPage.HideCard.Bypass";
+    var hideBypassBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideBypassBlockAttributeName);
+
+    const string hideAuditBlockAttributeName = "ExternalAuthSSOPage.HideCard.Audit";
+    var hideAuditBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideAuditBlockAttributeName);
+
+    const string hideTestBlockAttributeName = "ExternalAuthSSOPage.HideCard.Test";
+    var hideTestBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideTestBlockAttributeName);
+
+    const string hideMockBlockAttributeName = "ExternalAuthSSOPage.HideCard.Mock";
+    var hideMockBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideMockBlockAttributeName);
+}
+
+<form asp-controller="@SsoAdminControllers.Configuration" asp-action="Configure" method="post">
+    <div class="sso-configure-config" style="display: none;"
+         data-import-url="@Url.Action("ImportIdpMetadata", SsoAdminControllers.Configuration)"
+         data-onboarding-report-url="@Url.Action("OnboardingReport", SsoAdminControllers.Configuration)"
+         data-test-connection-url="@Url.Action("TestConnection", SsoAdminControllers.Accounts)"
+         data-store-id="@Model.ActiveStoreScopeConfiguration"
+         data-has-roles="@(Model.AvailableCustomerRoles.Any() ? "true" : "false")"
+         data-resources="@System.Text.Json.JsonSerializer.Serialize(ssoConfigureResources)"></div>
+    @*
+        Action bar — Save in the upper-right corner (CLAUDE.md §9.4). A store's SSO settings are
+        deleted from the SSO Accounts list (Delete), so there is no Delete button here.
+    *@
+
+<div class="content-header clearfix">
+        <h1 class="float-left">
+            SSO External Authentication Configuration
+        </h1>
+    <div class="float-right">
+        <button type="submit" name="save" class="btn btn-primary">
+            <i class="far fa-floppy-disk"></i> @T("Admin.Common.Save")
+        </button>
+    </div>
+</div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="form-horizontal">
+                @*
+                    Standard nop store-scope picker. Drops the "All stores" + each-store
+                    dropdown at the top; changing it navigates to ?storeid={id}.
+                    IStoreContext.GetActiveStoreScopeConfigurationAsync reads the scope on
+                    the next request. When scope = 0 ("All stores") the view hides every
+                    per-store card so only the system-wide settings (Login Bypass, Audit
+                    Logging) render and the factory only saves SsoSystemSettings. When
+                    scope > 0 the per-store cards are visible (no override checkboxes —
+                    the override is implicit) and the factory saves only SsoConfigurationSettings
+                    for that store, with overrideForStore = true.
+                *@
+                @await Component.InvokeAsync(typeof(StoreScopeSSOViewComponent))
+
+                <div asp-validation-summary="All"></div>
+
+                <nop-cards id="ExternalAuthSSO-cards">
+
+                    @*
+                        Each card's body is a partial in Views/Configure/ (one per card); the
+                        <nop-card> wrappers stay here so the order and the per-admin collapse
+                        state live in one place.
+
+                        Per-store cards. Only rendered when a specific store is selected
+                        (ActiveStoreScopeConfiguration > 0). "All stores" mode skips this
+                        block entirely and shows only the system-wide cards further down.
+                    *@
+                    @if (Model.ActiveStoreScopeConfiguration > 0)
+                    {
+
+                    @* ---------------- 1. General ---------------- *@
+                    <nop-card asp-name="microsoft-general" asp-icon="fas fa-sliders-h"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.General")"
+                              asp-hide-block-attribute-name="@hideGeneralBlockAttributeName"
+                              asp-hide="@hideGeneralBlock" asp-advanced="false">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_General.cshtml", Model)
+                    </nop-card>
+
+                    @* ---------------- OpenID Connect (v2-only) ---------------- *@
+                    <nop-card asp-name="microsoft-oidc" asp-icon="fas fa-id-card"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.OpenIdConnect")"
+                              asp-hide-block-attribute-name="@hideOidcBlockAttributeName"
+                              asp-hide="@hideOidcBlock" asp-advanced="false">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_OpenIdConnect.cshtml", Model)
+                    </nop-card>
+
+                    @* ---------------- 2. Identity Provider (Azure AD / Entra) ---------------- *@
+                    <nop-card asp-name="microsoft-idp" asp-icon="fas fa-shield-halved"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.IdentityProvider")"
+                              asp-hide-block-attribute-name="@hideIdpBlockAttributeName"
+                              asp-hide="@hideIdpBlock" asp-advanced="false">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_IdentityProvider.cshtml", Model)
+                    </nop-card>
+
+                    @* ---------------- 3. Send these to your IdP team ---------------- *@
+                    <nop-card asp-name="microsoft-sendtoIdp" asp-icon="fas fa-paper-plane"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.SendToIdpTeam")"
+                              asp-hide-block-attribute-name="@hideSendToIdpBlockAttributeName"
+                              asp-hide="@hideSendToIdpBlock" asp-advanced="false">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_SendToIdpTeam.cshtml", Model)
+                    </nop-card>
+
+                    @* ---------------- 4. Service Provider (This Application) ---------------- *@
+                    <nop-card asp-name="microsoft-sp" asp-icon="fas fa-server"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.ServiceProvider")"
+                              asp-hide-block-attribute-name="@hideSpBlockAttributeName"
+                              asp-hide="@hideSpBlock" asp-advanced="true">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_ServiceProvider.cshtml", Model)
+                    </nop-card>
+
+                    @* ---------------- 5. Claim Mapping ---------------- *@
+                    <nop-card asp-name="microsoft-claims" asp-icon="fas fa-tags"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.ClaimMapping")"
+                              asp-hide-block-attribute-name="@hideClaimsBlockAttributeName"
+                              asp-hide="@hideClaimsBlock" asp-advanced="true">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_ClaimMapping.cshtml", Model)
+                    </nop-card>
+
+                    @* ---------------- 6. User Provisioning ---------------- *@
+                    <nop-card asp-name="microsoft-provisioning" asp-icon="fas fa-user-plus"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.UserProvisioning")"
+                              asp-hide-block-attribute-name="@hideProvisioningBlockAttributeName"
+                              asp-hide="@hideProvisioningBlock" asp-advanced="false">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_UserProvisioning.cshtml", Model)
+                    </nop-card>
+
+                    @* ---------------- 7. Bindings & Redirects ---------------- *@
+                    <nop-card asp-name="microsoft-redirects" asp-icon="fas fa-route"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.BindingsRedirects")"
+                              asp-hide-block-attribute-name="@hideRedirectsBlockAttributeName"
+                              asp-hide="@hideRedirectsBlock" asp-advanced="true">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_BindingsRedirects.cshtml", Model)
+                    </nop-card>
+
+                    } @* end @if (ActiveStoreScopeConfiguration > 0) — per-store cards 1-8 *@
+
+                    @*
+                        System-wide cards (Login Bypass + Audit Logging). Rendered ONLY when
+                        "All Stores" is selected (scope = 0). On a specific store these are
+                        hidden — the admin must switch the picker to "All Stores" to edit
+                        them. The factory still saves them at storeId=0 regardless.
+                    *@
+                    @if (Model.ActiveStoreScopeConfiguration == 0)
+                    {
+
+                    @* ---------------- 9. Login Bypass (System-wide) ---------------- *@
+                    <nop-card asp-name="microsoft-bypass" asp-icon="fas fa-key"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.LoginBypass")"
+                              asp-hide-block-attribute-name="@hideBypassBlockAttributeName"
+                              asp-hide="@hideBypassBlock" asp-advanced="true">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_LoginBypass.cshtml", Model)
+                    </nop-card>
+
+                    @* ---------------- 10. Audit Logging (System-wide) ---------------- *@
+                    <nop-card asp-name="microsoft-audit" asp-icon="fas fa-clipboard-list"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.AuditLogging")"
+                              asp-hide-block-attribute-name="@hideAuditBlockAttributeName"
+                              asp-hide="@hideAuditBlock" asp-advanced="true">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_AuditLogging.cshtml", Model)
+                    </nop-card>
+
+                    } @* end @if (ActiveStoreScopeConfiguration == 0) — system-wide cards *@
+
+                    @*
+                        Mock Mode + Test SSO Connection are per-store cards — only render when
+                        a specific store is selected.
+                    *@
+                    @if (Model.ActiveStoreScopeConfiguration > 0)
+                    {
+
+                    @* ---------------- Mock Mode (Dev only — DEBUG builds) ---------------- *@
+                    @* This card is rendered only when the plugin assembly was built with the    *@
+                    @* DEBUG symbol. Constant folding strips the @if block in Release builds, so *@
+                    @* admins on a Release deploy never see this UI and the EnableMockMode flag  *@
+                    @* has no effect (the MockSsoController is also #if DEBUG).                  *@
+                    if (Nop.Plugin.ExternalAuth.SSO.Constants.BuildInfo.IsDebugBuild)
+                    {
+                        <nop-card asp-name="microsoft-mock" asp-icon="fas fa-flask"
+                                  asp-title="@T("Plugins.ExternalAuth.SSO.Cards.MockMode")"
+                                  asp-hide-block-attribute-name="@hideMockBlockAttributeName"
+                                  asp-hide="@hideMockBlock" asp-advanced="false">
+                            @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_MockMode.cshtml", Model)
+                        </nop-card>
+                    }
+
+                    @* ---------------- 11. Test SSO Connection ---------------- *@
+                    <nop-card asp-name="microsoft-test" asp-icon="fas fa-bolt"
+                              asp-title="@T("Plugins.ExternalAuth.SSO.Cards.TestConnection")"
+                              asp-hide-block-attribute-name="@hideTestBlockAttributeName"
+                              asp-hide="@hideTestBlock" asp-advanced="false">
+                        @await Html.PartialAsync("~/Plugins/ExternalAuth.SSO/Views/Configure/_TestConnection.cshtml", Model)
+                    </nop-card>
+
+                    } @* end @if (ActiveStoreScopeConfiguration > 0) — Mock Mode + Test cards *@
+
+                </nop-cards>
+
+                @* Save button lives in the upper-right content-header above. *@
+            </div>
+        </div>
+    </section>
+</form>
+

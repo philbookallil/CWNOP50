@@ -231,3 +231,6 @@ Presentation/Nop.Web/Themes/Voyage/*
 # Personal Claude instructions (CLAUDE.md §0.10)
 /CLAUDE.local.md
 /.claude
+# SSO plugin: a real client SAML configuration and the old miniOrange vendor copy (CLAUDE.md 0.9)
+/Plugins/Nop.Plugin.ExternalAuth.SSO/SAMLSSOConfig_*.json
+/Plugins/Nop.Plugin.ExternalAuth.SSO/miniorange.saml/

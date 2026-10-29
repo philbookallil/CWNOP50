@@ -1,0 +1,136 @@
+@model Nop.Plugin.ExternalAuth.SSO.Models.SsoStoreSummarySearchModel
+
+@{
+    Layout = "_AdminLayout";
+    ViewBag.PageTitle = T("Plugins.ExternalAuth.SSO.SsoAccounts.PageTitle").Text;
+    NopHtml.SetActiveMenuItemSystemName("ExternalAuth.SSO.SsoAccounts");
+
+    // Grid renderers and the Test / Delete buttons live in Content/Admin/Sso/sso-admin.js; it reads
+    // the .sso-accounts-config div below.
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/ExternalAuth.SSO/Content/Admin/Sso/sso-admin.js");
+
+    var ssoAccountsResources = new Dictionary<string, string>
+    {
+        ["Test"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.TestButton").Text,
+        ["Edit"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.EditButton").Text,
+        ["Delete"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.DeleteButton").Text,
+        ["DeleteConfirm"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.DeleteConfirm").Text,
+        ["DeleteError"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.DeleteError").Text,
+        ["Deleted"] = "Deleted.",
+        ["CertExpired"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.Cert.ExpiredTooltip").Text,
+        ["CertNearExpiry"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.Cert.NearExpiryTooltip").Text,
+        ["HealthOk"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.Health.Ok").Text,
+        ["HealthWarning"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.Health.Warning").Text,
+        ["HealthFailure"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.Health.Failure").Text,
+        ["HealthOff"] = T("Plugins.ExternalAuth.SSO.SsoAccounts.Health.Off").Text,
+        ["TestFailed"] = "Test connection request failed.",
+        ["HandshakeSkipped"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.HandshakeSkipped").Text,
+        ["HandshakeTitle"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.HandshakeTitle").Text,
+        ["CheckEntityId"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.Check.EntityId").Text,
+        ["CheckSsoUrl"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.Check.SsoUrl").Text,
+        ["CheckSloUrl"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.Check.SloUrl").Text,
+        ["CheckCertificate"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.Check.Certificate").Text,
+        ["MetadataThumbprints"] = T("Plugins.ExternalAuth.SSO.Cards.TestConnection.MetadataThumbprints").Text
+    };
+}
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        <i class="fas fa-list"></i> @T("Plugins.ExternalAuth.SSO.SsoAccounts.PageTitle")
+    </h1>
+    <div class="float-right">
+        <a asp-action="AddSsoAccount" class="btn btn-primary">
+            <i class="fas fa-plus"></i> @T("Plugins.ExternalAuth.SSO.SsoAccounts.AddNewButton")
+        </a>
+        <a asp-controller="@SsoAdminControllers.Configuration" asp-action="Configure" class="btn btn-secondary ml-2">
+            <i class="fas fa-cog"></i> @T("Plugins.ExternalAuth.SSO.SsoAccounts.ConfigureButton")
+        </a>
+    </div>
+</div>
+
+<section class="content">
+    <div class="sso-accounts-config" style="display: none;"
+         data-edit-url="@Url.Action("ConfigureStore", SsoAdminControllers.Configuration)"
+         data-test-connection-url="@Url.Action("TestConnection", SsoAdminControllers.Accounts)"
+         data-delete-url="@Url.Action("DeleteSsoAccount", SsoAdminControllers.Accounts)"
+         data-resources="@System.Text.Json.JsonSerializer.Serialize(ssoAccountsResources)"></div>
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="card card-default">
+                <div class="card-body">
+                    @await Html.PartialAsync("Table", new DataTablesModel
+                    {
+                        Name = "ssoaccounts-grid",
+                        UrlRead = new DataUrl("SsoAccountsList", SsoAdminControllers.Accounts, null),
+                        Length = Model.PageSize,
+                        LengthMenu = Model.AvailablePageSizes,
+                        ColumnCollection = new List<ColumnProperty>
+                        {
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.DisplayOrder))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.DisplayOrder").Text,
+                                Width = "70"
+                            },
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.StoreName))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.StoreName").Text
+                            },
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.Protocol))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.Protocol").Text,
+                                Width = "100"
+                            },
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.IsEnabled))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.Enabled").Text,
+                                Width = "80",
+                                ClassName = NopColumnClassDefaults.CenterAll,
+                                Render = new RenderBoolean()
+                            },
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.HealthStatus))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.Health").Text,
+                                Width = "100",
+                                ClassName = NopColumnClassDefaults.CenterAll,
+                                Render = new RenderCustom("SsoAdmin.render.health")
+                            },
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.DateSetup))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.DateSetup").Text,
+                                Width = "150"
+                            },
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.NumberOfUsers))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.NumberOfUsers").Text,
+                                Width = "100",
+                                ClassName = NopColumnClassDefaults.CenterAll
+                            },
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.LastSuccessfulLogin))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.LastSuccessfulLogin").Text,
+                                Width = "150"
+                            },
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.CertificateNotAfter))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.CertificateNotAfter").Text,
+                                Width = "120",
+                                ClassName = NopColumnClassDefaults.CenterAll,
+                                Render = new RenderCustom("SsoAdmin.render.certExpiry")
+                            },
+                            new ColumnProperty(nameof(SsoStoreSummaryModel.StoreId))
+                            {
+                                Title = T("Plugins.ExternalAuth.SSO.SsoAccounts.Columns.Actions").Text,
+                                Width = "180",
+                                ClassName = NopColumnClassDefaults.CenterAll,
+                                Render = new RenderCustom("SsoAdmin.render.accountActions")
+                            }
+                        }
+                    })
+                </div>
+            </div>
+
+            <div id="ssoaccount-test-result" class="alert mt-3" style="display:none;"></div>
+        </div>
+    </div>
+</section>
+

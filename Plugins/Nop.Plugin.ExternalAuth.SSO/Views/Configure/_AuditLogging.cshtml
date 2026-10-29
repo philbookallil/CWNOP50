@@ -1,0 +1,63 @@
+@model Nop.Plugin.ExternalAuth.SSO.Models.ConfigurationModel
+@* Configure page, card "microsoft-audit" — the <nop-card> wrapper is in Views/Configure.cshtml.
+   Logging on/off and retention need ManageSsoSecurity (they decide what the log keeps); without it they
+   are shown read-only and the save keeps the stored values. *@
+
+<div class="card-body">
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        @Html.Raw(T("Plugins.ExternalAuth.SSO.Cards.AuditLogging.InfoBody"))
+    </div>
+    @if (Model.CanManageSecurity)
+    {
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="EnableAuditLogging" />
+            </div>
+            <div class="col-md-9">
+                <nop-editor asp-for="EnableAuditLogging" />
+                <span asp-validation-for="EnableAuditLogging"></span>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="AuditRetentionDays" />
+            </div>
+            <div class="col-md-9">
+                <nop-editor asp-for="AuditRetentionDays" />
+                <span asp-validation-for="AuditRetentionDays"></span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-secondary">
+            <i class="fas fa-lock"></i> @T("Plugins.ExternalAuth.SSO.Common.NeedsManageSecurity")
+        </div>
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="EnableAuditLogging" />
+            </div>
+            <div class="col-md-9">
+                <div class="form-text-row">@(Model.EnableAuditLogging ? T("Admin.Common.Yes") : T("Admin.Common.No"))</div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="AuditRetentionDays" />
+            </div>
+            <div class="col-md-9">
+                <div class="form-text-row">@Model.AuditRetentionDays</div>
+            </div>
+        </div>
+    }
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="CertificateWarningDays" />
+        </div>
+        <div class="col-md-9">
+            <nop-editor asp-for="CertificateWarningDays" />
+            <span asp-validation-for="CertificateWarningDays"></span>
+        </div>
+    </div>
+</div>

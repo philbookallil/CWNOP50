@@ -1,0 +1,32 @@
+namespace Nop.Plugin.ExternalAuth.SSO.Security;
+
+/// <summary>
+/// Permission <c>SystemName</c> constants for the ExternalAuth.SSO plugin.
+/// </summary>
+/// <remarks>
+/// Reference these constants from <c>[CheckPermission(...)]</c> attributes on admin actions —
+/// e.g. <c>[CheckPermission(ExternalAuthSSOPermissions.ACCESS_SSO_SETTINGS)]</c>.
+/// The corresponding <see cref="ExternalAuthSSOPermissionConfigManager"/> seeds the
+/// permission records into <c>PermissionRecord</c> with these system names.
+/// </remarks>
+public static class ExternalAuthSSOPermissions
+{
+    /// <summary>
+    /// Retired permission, never checked. Kept only so uninstall and update remove the record
+    /// from installs that still have it; do not use it on an action.
+    /// </summary>
+    public const string RETIRED_ACCESS_SSO_PLUGIN = "AccessSsoPlugin";
+
+    /// <summary>
+    /// Required to view or change the plugin's configuration (the Configure page and write operations).
+    /// </summary>
+    public const string ACCESS_SSO_SETTINGS = "AccessSsoSettings";
+
+    /// <summary>
+    /// Required, on top of <see cref="ACCESS_SSO_SETTINGS"/>, to change what decides who can get round SSO or
+    /// hide what happened: the bypass token, the roles allowed to sign in through the bypass link, audit
+    /// logging on/off, audit retention, and clearing the audit log. Without it the Configure page shows them
+    /// read-only and a save leaves them as stored.
+    /// </summary>
+    public const string MANAGE_SSO_SECURITY = "ManageSsoSecurity";
+}

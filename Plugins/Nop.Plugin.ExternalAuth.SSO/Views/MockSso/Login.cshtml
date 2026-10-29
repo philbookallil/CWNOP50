@@ -1,0 +1,129 @@
+@model Nop.Plugin.ExternalAuth.SSO.Models.MockLoginModel
+@{
+    // Standalone page — no admin/store layout. The mock IdP is meant to feel like
+    // an external authority, so we deliberately don't render storefront chrome.
+    Layout = null;
+
+    var protocol = (string)(ViewBag.Protocol ?? "saml");
+    var completePath = (string)(ViewBag.CompletePath ?? "/mocksso/saml/complete");
+    var protocolLabel = string.Equals(protocol, "oidc", System.StringComparison.OrdinalIgnoreCase)
+        ? "OpenID Connect"
+        : "SAML 2.0";
+}
+@*
+    Dev-only mock IdP login page. Rendered only when EnableMockMode is on AND the
+    assembly was built with DEBUG. See MockSsoController and References/SSO_Plugin_Reference.md §9.
+
+    The form posts directly to the mock complete endpoint with the protocol-derived
+    URL — there is no SAML XML forging, no JWT forging, no certificate handling.
+    The server constructs a ClaimsPrincipal from these fields and hands it to the
+    same ISsoUserProvisioningService.HandleAsync the real callbacks use.
+*@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mock IdP — Sign in (@protocolLabel)</title>
+    @* Layout = null: NopHtml never renders here, so the tags are written raw — nop's link/script tag helpers would capture them. *@
+    @Html.Raw($"<link rel=\"stylesheet\" href=\"{Url.Content("~/Plugins/ExternalAuth.SSO/Content/MockSso/mock-sso-login.css")}\" />")
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 24" aria-hidden="true">
+                <rect class="ms-logo-f" x="0" y="0" width="11" height="11" />
+                <rect class="ms-logo-g" x="12" y="0" width="11" height="11" />
+                <rect class="ms-logo-b" x="0" y="12" width="11" height="11" />
+                <rect class="ms-logo-y" x="12" y="12" width="11" height="11" />
+                <text x="28" y="17" font-family="Segoe UI,sans-serif" font-size="17" font-weight="600" fill="#5e5e5e">Microsoft</text>
+            </svg>
+        </div>
+
+        <h1>Sign in</h1>
+        <p class="subtitle">Mock IdP — @protocolLabel</p>
+
+        <div class="alert alert-warning">
+            <strong>MOCK MODE</strong> — This is a development-only test page that simulates the IdP.
+            No real authentication is performed. Enable/disable via the Configure page's Mock Mode card.
+        </div>
+
+        <form id="mockLoginForm" method="post" action="@completePath" autocomplete="off">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="@nameof(Model.ReturnUrl)" value="@Model.ReturnUrl" />
+
+            <fieldset class="scenario-selector">
+                <legend>Test scenario</legend>
+                <div class="scenario-options">
+                    <label class="scenario-option">
+                        <input type="radio" name="@nameof(Model.Scenario)" value="success-existing" checked
+                               data-hint="Use an email that already exists as a customer in nop for this store." />
+                        <span><strong>Existing user</strong> — link the SSO identity to a customer that already exists in nop.</span>
+                    </label>
+                    <label class="scenario-option">
+                        <input type="radio" name="@nameof(Model.Scenario)" value="success-new"
+                               data-hint="Use an email that does NOT exist yet — provisioning will auto-register." />
+                        <span><strong>New user</strong> — auto-register (requires AutoRegister = true).</span>
+                    </label>
+                    <label class="scenario-option">
+                        <input type="radio" name="@nameof(Model.Scenario)" value="success-with-groups"
+                               data-hint="Existing or new email. Group GUIDs below drive the role-mapping result." />
+                        <span><strong>With groups</strong> — assert one or more group GUIDs to test the group→role mapping pipeline.</span>
+                    </label>
+                    <label class="scenario-option">
+                        <input type="radio" name="@nameof(Model.Scenario)" value="failure"
+                               data-hint="Any value — the mock IdP will reject regardless of the email." />
+                        <span><strong>Failure</strong> — mock IdP rejects the user; verify the audit + redirect path.</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <div class="form-group">
+                <label for="mockEmail">Email</label>
+                <input type="email" id="mockEmail" name="@nameof(Model.Email)"
+                       placeholder="someone@example.com" required />
+                <div class="hint" id="emailHint">Use an email that already exists as a customer in nop for this store.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="mockFirstName">First name</label>
+                <input type="text" id="mockFirstName" name="@nameof(Model.FirstName)" value="Mock" />
+                <div class="hint">Used only when auto-registering a new user.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="mockLastName">Last name</label>
+                <input type="text" id="mockLastName" name="@nameof(Model.LastName)" value="User" />
+                <div class="hint">Used only when auto-registering a new user.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="mockSubject">Subject (NameID / oid)</label>
+                <input type="text" id="mockSubject" name="@nameof(Model.Subject)" placeholder="(defaults to email)" />
+                <div class="hint">Optional. IdP-side stable identifier — leave blank to default to the email above.</div>
+            </div>
+
+            <div class="form-group hidden" id="groupsGroup">
+                <label for="mockGroups">Groups (comma-separated GUIDs)</label>
+                <input type="text" id="mockGroups" name="@nameof(Model.Groups)"
+                       placeholder="00000000-0000-0000-0000-000000000001, 00000000-0000-0000-0000-000000000002" />
+                <div class="hint">Each value is asserted in the configured groups claim. Used by the With groups scenario only.</div>
+            </div>
+
+            <button type="submit" class="btn-primary">Sign in</button>
+
+            <div class="meta">
+                <strong>Protocol:</strong> @protocolLabel<br />
+                <strong>POST target:</strong> @completePath<br />
+                <strong>ReturnUrl:</strong> @(string.IsNullOrEmpty(Model.ReturnUrl) ? "(none)" : Model.ReturnUrl)
+            </div>
+        </form>
+
+        <div class="footer">
+            <span class="badge">MOCK</span> SSO testing environment
+        </div>
+    </div>
+
+    @Html.Raw($"<script src=\"{Url.Content("~/Plugins/ExternalAuth.SSO/Content/MockSso/mock-sso-login.js")}\"></script>")
+</body>
+</html>
