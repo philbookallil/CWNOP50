@@ -4,9 +4,11 @@ using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Tax;
 using Nop.Plugin.CW.Core.Domain.PackNames;
 using Nop.Plugin.CW.Core.Models.PackNames;
+using Nop.Plugin.CW.Core.Services.PackNames;
 using Nop.Services.Directory;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Validators;
+using Nop.Web.Models.Customer;
 using Nop.Web.Validators.Common;
 using Nop.Web.Validators.Customer;
 
@@ -34,6 +36,7 @@ public partial class PackNameRegisterValidator : BaseNopValidator<PackNameRegist
         When(x => x.AddCustomer, () =>
         {
             RuleFor(model => model.Customer).SetValidator(new CustomerInfoValidator(localizationService, stateProvinceService, customerSettings, taxSettings));
+            RuleFor(model => model.Customer).SetValidator(new AccountLengthValidator());
 
             //a new account's username, as nop's registration page checks it; the account validator checks it only
             //where customers may change theirs
@@ -46,5 +49,17 @@ public partial class PackNameRegisterValidator : BaseNopValidator<PackNameRegist
 
         //the lengths the database allows for the packname's text fields
         SetDatabaseValidationRules<PackName>();
+    }
+
+    /// <summary>
+    /// The lengths the database allows for the new account's text fields, as the Excel import checks them. Private, so
+    /// nop's validator scan does not register it for nop's own customer pages
+    /// </summary>
+    private sealed class AccountLengthValidator : BaseNopValidator<CustomerInfoModel>
+    {
+        public AccountLengthValidator()
+        {
+            SetDatabaseValidationRules<Customer>(PackNameServicesDefaults.ServerSuppliedCustomerFields);
+        }
     }
 }

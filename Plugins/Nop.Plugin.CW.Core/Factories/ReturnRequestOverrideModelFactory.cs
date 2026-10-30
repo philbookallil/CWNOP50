@@ -89,29 +89,37 @@ namespace Nop.Plugin.CW.Core.Factories
 
             var store = await _storeContext.GetCurrentStoreAsync();
 
-            //with Exchanges on, the reasons the store's rules offer (an inactive rule, or none, hides the reason)
+            //with Exchanges on, the store's rules decide the reasons and actions the page offers; with it off the page
+            //keeps nop's lists, which the base factory filled
             if (await _cwFeatureService.IsEnabledAsync(CWFeature.Exchanges, store.Id))
             {
+                //an inactive rule, or none, hides the reason
                 var activeReasonIds = await _exchangeService.GetActiveReasonIdsAsync(store.Id);
                 cwModel.AvailableReturnReasons = cwModel.AvailableReturnReasons.Where(reason => activeReasonIds.Contains(reason.Id)).ToList();
+
+                //the reason the page opens with (the first one when none is chosen yet), so its actions are listed from the start
+                if (cwModel.AvailableReturnReasons.All(reason => reason.Id != cwModel.ReturnRequestReasonId))
+                    cwModel.ReturnRequestReasonId = cwModel.AvailableReturnReasons.FirstOrDefault()?.Id ?? 0;
+
+                //return actions - same method the cascade calls, so both paths always agree
+                cwModel.AvailableReturnActions = await (await _exchangeService.GetActiveActionsByReasonIdAsync(cwModel.ReturnRequestReasonId, store.Id))
+                    .SelectAwait(async returnAction => new SubmitReturnRequestModel.ReturnRequestActionModel
+                    {
+                        Id = returnAction.Id,
+                        Name = await _localizationService.GetLocalizedAsync(returnAction, x => x.Name)
+                    })
+                    .ToListAsync();
+
+                //nothing can be sent when no reason is offered, or when the store has no active action at all (a reason
+                //without links offers every active action, so its own list is empty only then, or when its links all
+                //point at inactive actions - the reason-0 call answers which)
+                cwModel.NoReturnOptions = !cwModel.AvailableReturnReasons.Any()
+                    || !cwModel.AvailableReturnActions.Any() && !(await _exchangeService.GetActiveActionsByReasonIdAsync(0, store.Id)).Any();
             }
 
             cwModel.ReturnReasonItems = cwModel.AvailableReturnReasons
                 .Select(r => new SelectListItem { Text = r.Name, Value = r.Id.ToString() })
                 .ToList();
-
-            //the reason the page opens with (the first one when none is chosen yet), so its actions are listed from the start
-            if (cwModel.AvailableReturnReasons.All(reason => reason.Id != cwModel.ReturnRequestReasonId))
-                cwModel.ReturnRequestReasonId = cwModel.AvailableReturnReasons.FirstOrDefault()?.Id ?? 0;
-
-            //return actions - same method the cascade calls, so both paths always agree
-            cwModel.AvailableReturnActions = await (await _exchangeService.GetActiveActionsByReasonIdAsync(cwModel.ReturnRequestReasonId, store.Id))
-                .SelectAwait(async returnAction => new SubmitReturnRequestModel.ReturnRequestActionModel
-                {
-                    Id = returnAction.Id,
-                    Name = await _localizationService.GetLocalizedAsync(returnAction, x => x.Name)
-                })
-                .ToListAsync();
 
             cwModel.ReturnActionItems = cwModel.AvailableReturnActions
                 .Select(a => new SelectListItem { Text = a.Name, Value = a.Id.ToString() })

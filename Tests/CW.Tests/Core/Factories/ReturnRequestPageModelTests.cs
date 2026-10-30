@@ -18,8 +18,9 @@ using NUnit.Framework;
 namespace CW.Tests.Core.Factories;
 
 /// <summary>
-/// CW's return page keeps what nop 5.00 puts on it (the page's titles, the submit text, the withdrawal token), and opens
-/// with a reason chosen and only that reason's actions
+/// CW's return page keeps what nop 5.00 puts on it (the page's titles, the submit text, the withdrawal token). With
+/// Exchanges on, the store's rules decide its reasons and actions, and it opens with a reason chosen and only that
+/// reason's actions; with Exchanges off it keeps nop's lists
 /// </summary>
 [TestFixture]
 public class ReturnRequestPageModelTests
@@ -77,6 +78,12 @@ public class ReturnRequestPageModelTests
         TestObject.Set(_factory, "_returnRequestSettings", new ReturnRequestSettings { ReturnReasonsEnabled = true, ReturnActionsEnabled = true, ReturnRequestsAllowFiles = true });
     }
 
+    private void ExchangesOn(List<int> activeReasonIds)
+    {
+        _featureService.Setup(service => service.IsEnabledAsync(CWFeature.Exchanges, 1)).ReturnsAsync(true);
+        _exchangeService.Setup(service => service.GetActiveReasonIdsAsync(1)).ReturnsAsync(activeReasonIds);
+    }
+
     private async Task<CWSubmitReturnRequestModel> PageAsync(SubmitReturnRequestModel? model = null) =>
         (CWSubmitReturnRequestModel)await _factory.PrepareSubmitReturnRequestModelAsync(model ?? new SubmitReturnRequestModel(), Order);
 
@@ -97,6 +104,8 @@ public class ReturnRequestPageModelTests
     [Test]
     public async Task The_page_opens_with_the_first_reason_and_only_its_actions()
     {
+        ExchangesOn(activeReasonIds: [1, 2]);
+
         var page = await PageAsync();
 
         page.ReturnRequestReasonId.Should().Be(1);
@@ -106,6 +115,8 @@ public class ReturnRequestPageModelTests
     [Test]
     public async Task A_reason_already_chosen_keeps_its_actions()
     {
+        ExchangesOn(activeReasonIds: [1, 2]);
+
         var page = await PageAsync(new SubmitReturnRequestModel { ReturnRequestReasonId = 2 });
 
         page.ReturnRequestReasonId.Should().Be(2);
@@ -122,5 +133,41 @@ public class ReturnRequestPageModelTests
 
         page.ReturnReasonItems.Select(item => item.Text).Should().Equal("Damaged");
         page.ReturnRequestReasonId.Should().Be(2);
+    }
+
+    [Test]
+    public async Task With_exchanges_off_the_page_keeps_nops_reasons_and_actions()
+    {
+        var page = await PageAsync();
+
+        page.ReturnReasonItems.Select(item => item.Text).Should().Equal("Wrong size", "Damaged");
+        page.ReturnActionItems.Select(item => item.Text).Should().Equal("Repair", "Replace");
+        page.ReturnRequestReasonId.Should().Be(0);
+        page.NoReturnOptions.Should().BeFalse();
+        _exchangeService.Verify(service => service.GetActiveActionsByReasonIdAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Test]
+    public async Task With_exchanges_on_and_no_active_reason_no_return_can_be_requested()
+    {
+        ExchangesOn(activeReasonIds: []);
+
+        var page = await PageAsync();
+
+        page.ReturnReasonItems.Should().BeEmpty();
+        page.NoReturnOptions.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task With_exchanges_on_and_no_active_action_no_return_can_be_requested()
+    {
+        ExchangesOn(activeReasonIds: [1, 2]);
+        _exchangeService.Setup(service => service.GetActiveActionsByReasonIdAsync(It.IsAny<int>(), 1)).ReturnsAsync(new List<ReturnRequestAction>());
+
+        var page = await PageAsync();
+
+        page.ReturnReasonItems.Should().HaveCount(2);
+        page.ReturnActionItems.Should().BeEmpty();
+        page.NoReturnOptions.Should().BeTrue();
     }
 }

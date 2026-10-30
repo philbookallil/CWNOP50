@@ -36,6 +36,11 @@ public record CWSubmitReturnRequestModel : SubmitReturnRequestModel
     /// </summary>
     public IList<SelectListItem> ReturnActionItems { get; set; } = new List<SelectListItem>();
 
+    /// <summary>
+    /// Whether the store's return rules offer no reason or no action, so no return can be requested on the page
+    /// </summary>
+    public bool NoReturnOptions { get; set; }
+
     #endregion
 
     /// <summary>

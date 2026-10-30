@@ -37,6 +37,12 @@
                 @Model.Result
             </div>
         }
+        else if (useWizard && Model.NoReturnOptions)
+        {
+            <div class="result">
+                @T("Plugins.CW.Core.Exchanges.Wizard.Start.ReturnsUnavailable")
+            </div>
+        }
         else
         {
             @if (!ViewData.ModelState.IsValid)
@@ -238,12 +244,18 @@
 </div>
 <script asp-location="Footer">
     $(function () {
-        cwExchangesGather.initReasonCascade({
-            actionsForReasonUrl: '@Html.Raw(Url.Action("GetActionsForReason", "Exchanges"))',
-            storeId: @currentStore.Id,
-            reasonSelector: '.return-reasons',
-            actionSelector: '.return-actions'
-        });
+        @*with Exchanges on, the store's rules decide a reason's actions; with it off the lists are nop's and fixed*@
+        @if (features.Exchanges)
+        {
+            <text>
+            cwExchangesGather.initReasonCascade({
+                actionsForReasonUrl: '@Html.Raw(Url.Action("GetActionsForReason", "Exchanges"))',
+                storeId: @currentStore.Id,
+                reasonSelector: '.return-reasons',
+                actionSelector: '.return-actions'
+            });
+            </text>
+        }
         cwExchangesGather.submitOnce($('#return-start-form'));
     });
 </script>

@@ -498,7 +498,9 @@ database); changes 1–2 are covered by the runtime checks below.
    - **T2** the same packname: a keyword search lists only allocated products; with no AI recommendation plugin
      installed the search behaves as before;
    - **T3** a customer without a restriction: category page and search unchanged (they go through nop's own method);
-   - **T4** Exchanges on: nop's return post with a quantity above the shipped units is refused with CW's message;
+   - **T4** nop's return post with a quantity above the shipped units is refused with CW's message — with *Exchanges*
+     off, or on a guest's withdrawal link (with *Exchanges* on and no link, the filter sends nop's post back to the page
+     before the quantity check: the customer's way to return is the wizard);
    - **T5** a forked storefront view (*Order details*) and a forked admin view (*Customer edit*) render CW's version, and
      a CW page opened by path (*packname checkout*) loads — the view-location changes leave lookups as they were;
    - **T6** a manager's *Add packname* with an account, and an Excel import row, with a first name over 1000

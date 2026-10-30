@@ -1721,6 +1721,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             // Exchanges — return wizard: start page, checks, picker labels, summary totals, receipts
             ["Plugins.CW.Core.Exchanges.Wizard.Start.Step1"] = "<strong>Step 1 -</strong> Specify the items you want to return or exchange",
             ["Plugins.CW.Core.Exchanges.Wizard.Start.Step2"] = "<strong>Step 2 -</strong> Tell us why you are returning these items",
+            ["Plugins.CW.Core.Exchanges.Wizard.Start.ReturnsUnavailable"] = "Returns can't be requested online at the moment. Please contact us about returning items from this order.",
             ["Plugins.CW.Core.Exchanges.Wizard.SelectPlaceholder"] = "- Select -",
             ["Plugins.CW.Core.Exchanges.Wizard.Fees.PerItem"] = "{0} per item",
             ["Plugins.CW.Core.Exchanges.Wizard.Fees.PerItems"] = "{0} per {1} items",
