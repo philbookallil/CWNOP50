@@ -1,0 +1,52 @@
+@*
+    Shared transaction detail modal used by both the Payments and Failed Transactions reports.
+    Populated client-side from the NABXMLTransaction/Details action (see nab-reports.js).
+*@
+<div class="modal fade" id="view-transaction-details" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">@T("Plugins.Payments.NABGateway.Reports.Details.Title")</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body form-horizontal">
+                @{
+                    var rows = new (string Label, string Css)[]
+                    {
+                        ("Plugins.Payments.NABGateway.Reports.Fields.OrderGuid", "nab-order-guid"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.UserEmail", "nab-user-email"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.UserName", "nab-user-name"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.Approved", "nab-approved"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.Amount", "nab-amount"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.MessageId", "nab-message-id"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.TxnId", "nab-txn-id"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.AuthId", "nab-auth-id"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.ResponseCode", "nab-response-code"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.ResponseText", "nab-response-text"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.SettlementDate", "nab-settlement-date"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.MaskedPan", "nab-masked-pan"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.CardType", "nab-card-type"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.PurchaseOrderNo", "nab-purchase-order"),
+                        ("Plugins.Payments.NABGateway.Reports.Fields.CreatedOn", "nab-created-on")
+                    };
+                }
+                @foreach (var row in rows)
+                {
+                    <div class="form-group row">
+                        <div class="col-md-4"><div class="label-wrapper"><label class="col-form-label">@T(row.Label)</label></div></div>
+                        <div class="col-md-8"><div class="form-text-row details-value @row.Css"> - </div></div>
+                    </div>
+                }
+                <div class="form-group row">
+                    <div class="col-md-4"><div class="label-wrapper"><label class="col-form-label">@T("Plugins.Payments.NABGateway.Reports.Fields.RawResponse")</label></div></div>
+                    <div class="col-md-8">
+                        <pre class="nab-raw-xml" style="max-height: 400px; overflow: auto; padding: 1em;"> - </pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">@T("Plugins.Payments.NABGateway.Reports.Details.Close")</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,152 @@
+@model NABTransactionSearchModel
+
+@{
+    Layout = "_AdminLayout";
+
+    //page title
+    ViewBag.PageTitle = T("Plugins.Payments.NABGateway.Reports.Payments.Title").Text;
+
+    //active menu item (system name)
+    NopHtml.SetActiveMenuItemSystemName("Payments.NABGateway.Reports.Payments");
+}
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        @T("Plugins.Payments.NABGateway.Reports.Payments.Title")
+    </h1>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="cards-group">
+                <div class="card card-default card-search">
+                    <div class="card-body">
+                        <div class="row search-row opened">
+                            <div class="search-text">@T("Admin.Common.Search")</div>
+                            <div class="icon-search"><i class="fas fa-magnifying-glass"></i></div>
+                            <div class="icon-collapse"><i class="far fa-angle-up"></i></div>
+                        </div>
+                        <div class="search-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="StartDate" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="StartDate" /></div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="EndDate" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="EndDate" /></div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="UserEmail" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="UserEmail" /></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="UserName" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="UserName" /></div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="AuthId" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="AuthId" /></div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="TxnId" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="TxnId" /></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="text-center col-12">
+                                    <button type="button" id="search-payments" class="btn btn-primary btn-search">
+                                        <i class="fas fa-magnifying-glass"></i>
+                                        @T("Admin.Common.Search")
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-default">
+                    <div class="card-body">
+                        @await Html.PartialAsync("Table", new DataTablesModel
+                        {
+                            Name = "payments-grid",
+                            UrlRead = new DataUrl("PaymentsList", "NABXMLTransaction", null),
+                            SearchButtonId = "search-payments",
+                            Length = Model.PageSize,
+                            LengthMenu = Model.AvailablePageSizes,
+                            Filters = new List<FilterParameter>
+                            {
+                                new FilterParameter(nameof(Model.StartDate)),
+                                new FilterParameter(nameof(Model.EndDate)),
+                                new FilterParameter(nameof(Model.UserEmail)),
+                                new FilterParameter(nameof(Model.UserName)),
+                                new FilterParameter(nameof(Model.AuthId)),
+                                new FilterParameter(nameof(Model.TxnId))
+                            },
+                            ColumnCollection = new List<ColumnProperty>
+                            {
+                                new ColumnProperty(nameof(NABTransactionModel.OrderId))
+                                {
+                                    Title = T("Plugins.Payments.NABGateway.Reports.Fields.OrderId").Text,
+                                    Width = "90",
+                                    Render = new RenderCustom("renderOrderLink")
+                                },
+                                new ColumnProperty(nameof(NABTransactionModel.UserEmail))
+                                {
+                                    Title = T("Plugins.Payments.NABGateway.Reports.Fields.UserEmail").Text,
+                                    Render = new RenderCustom("renderCustomerLink")
+                                },
+                                new ColumnProperty(nameof(NABTransactionModel.UserFullName))
+                                {
+                                    Title = T("Plugins.Payments.NABGateway.Reports.Fields.UserName").Text
+                                },
+                                new ColumnProperty(nameof(NABTransactionModel.AuthId))
+                                {
+                                    Title = T("Plugins.Payments.NABGateway.Reports.Fields.AuthId").Text
+                                },
+                                new ColumnProperty(nameof(NABTransactionModel.TxnId))
+                                {
+                                    Title = T("Plugins.Payments.NABGateway.Reports.Fields.TxnId").Text
+                                },
+                                new ColumnProperty(nameof(NABTransactionModel.Amount))
+                                {
+                                    Title = T("Plugins.Payments.NABGateway.Reports.Fields.Amount").Text,
+                                    Width = "120"
+                                },
+                                new ColumnProperty(nameof(NABTransactionModel.CreatedOn))
+                                {
+                                    Title = T("Plugins.Payments.NABGateway.Reports.Fields.CreatedOn").Text,
+                                    Width = "150"
+                                },
+                                new ColumnProperty(nameof(NABTransactionModel.Id))
+                                {
+                                    Title = T("Admin.Common.View").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                    Render = new RenderCustom("renderViewButton")
+                                }
+                            }
+                        })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<partial name="NABXMLTransaction/_DetailsModal" />
+
+@* nop 5.00 moves both scripts into the footer; the grid is initialised on document ready, after them,
+   so the render functions exist by then. The src must be app-relative (~/): nop's script tag helper
+   strips its first character. *@
+<script asp-location="Footer">
+    var nabDetailsUrl = '@Html.Raw(Url.Action("Details", "NABXMLTransaction"))';
+    var nabOrderEditUrl = '@Html.Raw(Url.Action("Edit", "Order"))';
+    var nabCustomerEditUrl = '@Html.Raw(Url.Action("Edit", "Customer"))';
+</script>
+<script src="~/Plugins/Payments.NABGateway/Content/nab-reports.js" asp-location="Footer"></script>

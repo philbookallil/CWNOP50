@@ -1,0 +1,45 @@
+@model Nop.Plugin.Payments.NABGateway.Models.PaymentInfoModel
+@{
+    Layout = "";
+}
+
+<table width="100%" cellspacing="2" cellpadding="1" border="0">
+    <tr>
+        <td>
+            <label asp-for="CardNumber">@T("Plugins.Payments.NABGateway.Payment.CardNumber"):</label>
+        </td>
+        <td>
+            <input type="text" asp-for="CardNumber" style="width:165px;" autocomplete="off" inputmode="numeric" pattern="[0-9 \-]{12,23}" maxlength="23" />
+            <span asp-validation-for="CardNumber"></span>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label asp-for="CardholderName">@T("Plugins.Payments.NABGateway.Payment.CardholderName"):</label>
+        </td>
+        <td>
+            <input type="text" asp-for="CardholderName" style="width:165px;" autocomplete="off" />
+            <span asp-validation-for="CardholderName"></span>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label asp-for="ExpireMonth">@T("Plugins.Payments.NABGateway.Payment.ExpirationDate"):</label>
+        </td>
+        <td>
+            <select asp-for="ExpireMonth" asp-items="Model.ExpireMonths"></select>
+            /
+            <select asp-for="ExpireYear" asp-items="Model.ExpireYears"></select>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <label asp-for="CardCode">@T("Plugins.Payments.NABGateway.Payment.CardCode"):</label>
+        </td>
+        <td>
+            <input type="text" asp-for="CardCode" style="width:60px;" autocomplete="off" inputmode="numeric" pattern="[0-9]{3,4}" maxlength="4" />
+            <span asp-validation-for="CardCode"></span>
+        </td>
+    </tr>
+</table>
+

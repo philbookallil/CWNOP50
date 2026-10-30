@@ -1,0 +1,11 @@
+{
+  "Group": "Payment methods",
+  "FriendlyName": "Card Payment",
+  "SystemName": "Payments.NABGateway",
+  "Version": "0.5_DATA",
+  "SupportedVersions": [ "5.00" ],
+  "Author": "Total Image Group",
+  "DisplayOrder": 0,
+  "FileName": "Nop.Plugin.Payments.NABGateway.dll",
+  "Description": "This plugin allows paying with NAB Transact XML API."
+}

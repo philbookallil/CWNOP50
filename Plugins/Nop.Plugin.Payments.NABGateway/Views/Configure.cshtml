@@ -1,0 +1,72 @@
+@model Nop.Plugin.Payments.NABGateway.Models.ConfigurationModel
+@{
+    Layout = "_ConfigurePlugin";
+}
+
+@await Component.InvokeAsync(typeof(StoreScopeConfigurationViewComponent))
+
+<form asp-controller="NABXMLPayment" asp-action="Configure" method="post">
+    <div class="cards-group">
+        <div class="card card-default">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="GatewayURL_OverrideForStore" asp-input="GatewayURL" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="GatewayURL" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="GatewayURL" />
+                        <span asp-validation-for="GatewayURL"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="MerchantId_OverrideForStore" asp-input="MerchantId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="MerchantId" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="MerchantId" />
+                        <span asp-validation-for="MerchantId"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="Password_OverrideForStore" asp-input="Password" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="Password" />
+                    </div>
+                    <div class="col-md-9">
+                        <input asp-for="Password" type="password" class="form-control" autocomplete="new-password" />
+                        <span asp-validation-for="Password"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="DebugMode_OverrideForStore" asp-input="DebugMode" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="DebugMode" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="DebugMode" />
+                        <span asp-validation-for="DebugMode"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="IgnoreSslErrors_OverrideForStore" asp-input="IgnoreSslErrors" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="IgnoreSslErrors" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="IgnoreSslErrors" />
+                        <span asp-validation-for="IgnoreSslErrors"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-9 offset-md-3">
+                        <button type="submit" name="save" class="btn btn-primary">
+                            <i class="far fa-save"></i> @T("Admin.Common.Save")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

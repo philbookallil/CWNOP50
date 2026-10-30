@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Copyright>Copyright © Total Image Group</Copyright>
+    <Company>Total Image Group</Company>
+    <Authors>Total Image Group</Authors>
+    <OutputPath>$(SolutionDir)\Presentation\Nop.Web\Plugins\Payments.NABGateway</OutputPath>
+    <OutDir>$(OutputPath)</OutDir>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Unit tests of internal helpers (card store, name token, log masking, XML) — Tests/CW.Tests. -->
+    <InternalsVisibleTo Include="CW.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="logo.png" />
+    <None Remove="plugin.json" />
+    <None Remove="Views\Configure.cshtml" />
+    <None Remove="Views\PaymentInfo.cshtml" />
+    <None Remove="Views\_ViewImports.cshtml" />
+    <None Remove="Views\NABXMLTransaction\Payments.cshtml" />
+    <None Remove="Views\NABXMLTransaction\Failed.cshtml" />
+    <None Remove="Views\NABXMLTransaction\_DetailsModal.cshtml" />
+    <None Remove="Content\nab-reports.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="plugin.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\Configure.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\PaymentInfo.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\_ViewImports.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\NABXMLTransaction\Payments.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\NABXMLTransaction\Failed.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Views\NABXMLTransaction\_DetailsModal.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\nab-reports.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="$(SolutionDir)\Presentation\Nop.Web\Nop.Web.csproj" />
+		<ClearPluginAssemblies Include="$(SolutionDir)\Build\ClearPluginAssemblies.proj" />
+	</ItemGroup>
+
+	<!-- This target execute after "Build" target -->
+	<Target Name="NopTarget" AfterTargets="Build">
+		<!-- Delete unnecessary libraries from plugins path -->
+		<MSBuild Projects="@(ClearPluginAssemblies)" Properties="PluginPath=$(OutDir)" Targets="NopClear" />
+		<!-- Remove cross-platform runtime assets copied by CopyLocalLockFileAssemblies -->
+		<RemoveDir Directories="$(OutDir)\runtimes" />
+	</Target>
+
+
+</Project>
