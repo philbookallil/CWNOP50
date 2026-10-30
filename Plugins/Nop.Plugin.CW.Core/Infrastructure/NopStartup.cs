@@ -199,7 +199,6 @@ public class NopStartup : INopStartup
         services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
         services.AddHostedService<QueuedHostedService>();
 
-        services.AddScoped<ViewPathsRegistrar>();
         services.Configure<RazorViewEngineOptions>(options =>
         {
             options.ViewLocationExpanders.Add(new ViewLocationExpander());

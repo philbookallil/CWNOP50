@@ -6,8 +6,8 @@ final release changed, and then finishes the port here (phases 6 and 7). The bet
 `CWPlans/CWCore_Port_Strategy.md` (copied here from the beta port source), stays the record of why things are the way they are: its §5
 (decisions D1–D5, the phase amendments, the deferred fixes) and §7 (the move) are the inputs of this document.
 
-**State (2026-10-30):** M0 committed. M1: the three folders copied (identical to the beta port's) and the CW.Core
-reference added to `Tests/CW.Tests`; the `NopCommerce.sln` change, the build and the test run are open (§5). Next: M2.
+**State (2026-10-30):** M0 and M1 committed (M1 built, CW.Core tests green). M2 applied and checked against the
+spec, unit tests green (`CWPlans/CWCore_Final500_M2_Spec.md`; its runtime checks T1–T7 run in M3). Next: M3.
 
 ---
 
@@ -81,9 +81,9 @@ resolves at runtime.
 | `ViewsPathsRegistry.cs`, `Areas/Admin/Views/{2}/{1}/{0}` (in both lists) | `{2}` is the area name | gives `Areas/Admin/Views/Admin/…`; no such folder exists |
 | `Infrastructure/ViewPathsRegistrar.cs` and its `AddScoped` in `NopStartup` | the runtime registration API | nothing injects it and nothing calls its methods — checked in the beta port, the other CW plugins, `CW.Common`, the tests and 4.9. The beta's part 4.0 kept it (beta strategy §5.2, correction of 2026-10-26, when the expander was wrongly called dead); **removed by decision of 2026-10-30**, together with the registry's four static `Register*` / `Unregister*` methods, which only it called |
 
-The expander and the registry's other eight paths are **not** dead: they are how CW's forks replace nop's views
+The expander and the registry's other nine paths are **not** dead: they are how CW's forks replace nop's views
 (lesson #21), and `ViewLocationExpanderTests` keeps guarding that order. M2 removes all four rows; what stays is the
-expander and one list of eight `~/Plugins/CW.Core/...` locations, in the same order as today.
+expander and one list of nine `~/Plugins/CW.Core/...` locations, in the same order as today.
 
 ---
 
@@ -119,8 +119,8 @@ tests and an independent review before hand-over; defects and decisions come as 
 | Part | Brings | Done when |
 |---|---|---|
 | **M0. Repository set-up** (documents only) — **committed 2026-10-30** | This document; `CLAUDE.md` merged (the other developer's root copy + the beta port's: Mapster/script-path/options rows in §4, CW.Core row in §3.2, a §3.1 row for the beta port source, the new engine in §10.4); `CLAUDE.local.md` ported; `tasks/` copied; `/NOP50Beta` added to `.gitignore` (§5) | The developer has reviewed and committed them |
-| **M1. The beta port, verbatim** — copied 2026-10-30 | `CWLibraries/CW.Common`, `Plugins/Nop.Plugin.CW.Core` and `Tests/CW.Tests/Core` copied unchanged from the beta port source (no `bin/`, `obj/`); the three projects added to `NopCommerce.sln`; `Tests/CW.Tests/CW.Tests.csproj` given its CW.Core reference. Beta strategy §4.2 rule 2: the verbatim copy is its own commit, so M2 reads as "what the final required" | The solution builds against the final nop; registration and cycle checks pass; the 625 CW.Core tests and the other suites pass |
-| **M2. What the final 5.00 changed** | §3's re-diffs (`SearchProductsAsync` copy, sign-in and landing, the product *Info* fork, the return post, the cart readers, reminders); the dead view-location entries (§2.3); `plugin.json` `Version` bumped if any `UpdateAsync` work changes; `CLAUDE.md` §10.3 table re-checked | Spec applied; build, checks and tests green; reviewed |
+| **M1. The beta port, verbatim** — committed 2026-10-30 | `CWLibraries/CW.Common`, `Plugins/Nop.Plugin.CW.Core` and `Tests/CW.Tests/Core` copied unchanged from the beta port source (no `bin/`, `obj/`); the three projects added to `NopCommerce.sln`; `Tests/CW.Tests/CW.Tests.csproj` given its CW.Core reference. Beta strategy §4.2 rule 2: the verbatim copy is its own commit, so M2 reads as "what the final required" | The solution builds against the final nop; registration and cycle checks pass; the 625 CW.Core tests and the other suites pass |
+| **M2. What the final 5.00 changed** — applied 2026-10-30, `CWCore_Final500_M2_Spec.md` | §3's re-diffs (`SearchProductsAsync` copy, sign-in and landing, the product *Info* fork, the return post, the cart readers, reminders); the dead view-location entries (§2.3); `plugin.json` `Version` bumped if any `UpdateAsync` work changes; `CLAUDE.md` §10.3 table re-checked | Spec applied; build, checks and tests green; reviewed |
 | **M3. New database and runtime pass** | A fresh nop install on the new catalog `testnop50`; CW.Core installed (`SchemaMigration` + the SQL views, functions and procedures); §7.3's settings checked on the fresh install (withdrawal, auto-cancel, phone sign-in, vendors, price lists off; reminders on); a catalogue for §7.4 (size/colour combinations, a checkbox option, a required product, a three-level category, a closed ordering period); `CWPlans/TestData/` scripts rewritten for the new ids. Runtime checks: every CW storefront page opened by path (§2.2) loads under `DefaultClean`; one forked storefront view and one forked admin view render CW's version; the packname checkout's address and payment partials refresh through `RenderPartialViewToStringAsync`; then a smoke run of each phase-4/5 part's main flow | Install / uninstall clean; the checks pass |
 | **M4. Deferred runtime tests** | 5h's T5, T8b, T9–T16, T18, T19 (beta §7.4) | Pass |
 | **Phase 6. Outputs** | Invoice and packing slip (SkiaSharp 4, the 5.00 PDF font), e-mails and tokens (packname rows, exchange e-mails), reports (profit with subsidy), each compared with 4.9's for the same order; the theme check of `CLAUDE.md` §10.4 | No difference that is not a 5.00 change |
@@ -146,6 +146,5 @@ Decided 2026-10-30:
 
 Open:
 
-- **`NopCommerce.sln`:** add `CW.Common` and `Nop.Plugin.CW.Core` (the developer applies the change).
-- **Build and tests:** Claude's build environment cannot reach nuget.org or the .NET downloads this session, so M1's
-  build, checks and test run are the developer's, or wait until those hosts are allowed.
+- **Build and tests:** Claude's build environment cannot reach nuget.org or the .NET downloads this session, so the
+  build, checks and test runs are the developer's until those hosts are allowed.

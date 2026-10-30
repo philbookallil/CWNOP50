@@ -21,8 +21,9 @@ namespace Nop.Plugin.CW.Core.Filters;
 /// <remarks>
 /// With <i>Exchanges</i> on, a customer's return goes through CW's wizard, which checks it and records its exchange data;
 /// nop's post takes a guest's withdrawal link only (the wizard is for the order's own signed-in customer). On every path
-/// the quantities are those CW's return page offers: nop's post checks none, so it would register any number of units,
-/// shipped or not.
+/// the quantities are those CW's return page offers, which counts shipped units only: nop's post caps each quantity at
+/// the units ordered and not yet requested, shipped or not, so a post above CW's count is refused here rather than
+/// reduced by nop.
 /// </remarks>
 public class ReturnRequestSubmitFilter : IAsyncActionFilter
 {

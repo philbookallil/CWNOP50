@@ -1,4 +1,5 @@
-﻿using Nop.Core.Domain.Common;
+﻿using Nop.Core;
+using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Events;
 using Nop.Plugin.CW.Core.Domain.Branches;
@@ -127,8 +128,8 @@ public partial class PackNameRegistrationService : IPackNameRegistrationService
         var password = Guid.NewGuid().ToString("N");
 
         var registrationRequest = new CustomerRegistrationRequest(customer,
-            data.Email,
-            _customerSettings.UsernamesEnabled ? data.Username : data.Email,
+            CommonHelper.EnsureMaximumLength(data.Email, 1000),
+            CommonHelper.EnsureMaximumLength(_customerSettings.UsernamesEnabled ? data.Username : data.Email, 1000),
             password,
             _customerSettings.DefaultPasswordFormat,
             registration.StoreId,
@@ -149,31 +150,31 @@ public partial class PackNameRegistrationService : IPackNameRegistrationService
         }
 
         if (_customerSettings.GenderEnabled)
-            customer.Gender = data.Gender;
+            customer.Gender = CommonHelper.EnsureMaximumLength(data.Gender, 1000);
 
         if (_customerSettings.FirstNameEnabled)
-            customer.FirstName = data.FirstName;
+            customer.FirstName = CommonHelper.EnsureMaximumLength(data.FirstName, 1000);
 
         if (_customerSettings.LastNameEnabled)
-            customer.LastName = data.LastName;
+            customer.LastName = CommonHelper.EnsureMaximumLength(data.LastName, 1000);
 
         if (_customerSettings.DateOfBirthEnabled)
             customer.DateOfBirth = data.DateOfBirth;
 
         if (_customerSettings.StreetAddressEnabled)
-            customer.StreetAddress = data.StreetAddress;
+            customer.StreetAddress = CommonHelper.EnsureMaximumLength(data.StreetAddress, 1000);
 
         if (_customerSettings.StreetAddress2Enabled)
-            customer.StreetAddress2 = data.StreetAddress2;
+            customer.StreetAddress2 = CommonHelper.EnsureMaximumLength(data.StreetAddress2, 1000);
 
         if (_customerSettings.ZipPostalCodeEnabled)
-            customer.ZipPostalCode = data.ZipPostalCode;
+            customer.ZipPostalCode = CommonHelper.EnsureMaximumLength(data.ZipPostalCode, 1000);
 
         if (_customerSettings.CityEnabled)
-            customer.City = data.City;
+            customer.City = CommonHelper.EnsureMaximumLength(data.City, 1000);
 
         if (_customerSettings.CountyEnabled)
-            customer.County = data.County;
+            customer.County = CommonHelper.EnsureMaximumLength(data.County, 1000);
 
         if (_customerSettings.CountryEnabled)
             customer.CountryId = data.CountryId;
@@ -182,10 +183,10 @@ public partial class PackNameRegistrationService : IPackNameRegistrationService
             customer.StateProvinceId = data.StateProvinceId;
 
         if (_customerSettings.PhoneEnabled)
-            customer.Phone = data.Phone;
+            customer.Phone = CommonHelper.EnsureMaximumLength(data.Phone, 1000);
 
         if (_customerSettings.FaxEnabled)
-            customer.Fax = data.Fax;
+            customer.Fax = CommonHelper.EnsureMaximumLength(data.Fax, 1000);
 
         customer.CustomCustomerAttributesXML = data.CustomAttributesXml;
         await _customerService.UpdateCustomerAsync(customer);

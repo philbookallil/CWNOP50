@@ -55,4 +55,28 @@ public class ViewLocationExpanderTests
     {
         Expand("Admin").Should().Contain(NopLocations);
     }
+
+    [Test]
+    public void The_plugins_nine_locations_come_first_in_search_order_once_each()
+    {
+        string[] pluginLocations =
+        [
+            "~/Plugins/CW.Core/Views/{0}.cshtml",
+            "~/Plugins/CW.Core/Views/{1}/{0}.cshtml",
+            "~/Plugins/CW.Core/Views/Shared/{0}.cshtml",
+            "~/Plugins/CW.Core/Views/Shared/{1}/{0}.cshtml",
+            "~/Plugins/CW.Core/Views/Shared/Components/{1}/{0}.cshtml",
+            "~/Plugins/CW.Core/Areas/Admin/Views/{1}/{0}.cshtml",
+            "~/Plugins/CW.Core/Areas/Admin/Views/Shared/{0}.cshtml",
+            "~/Plugins/CW.Core/Areas/Admin/Views/Shared/{1}/{0}.cshtml",
+            "~/Plugins/CW.Core/Areas/Admin/Views/Shared/Components/{1}/{0}.cshtml"
+        ];
+
+        foreach (var areaName in new[] { null, "Admin" })
+        {
+            var locations = Expand(areaName);
+
+            locations.Should().Equal(pluginLocations.Concat(NopLocations));
+        }
+    }
 }

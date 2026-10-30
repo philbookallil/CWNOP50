@@ -406,6 +406,40 @@ public class PackNameRegistrationServiceTests
         _customers.Verify(service => service.InsertCustomerAddressAsync(It.IsAny<Customer>(), It.IsAny<Address>()), Times.Never);
     }
 
+    [Test]
+    public async Task The_account_text_fields_are_cut_to_1000_characters_as_nops_registration_cuts_them()
+    {
+        _customerSettings.UsernamesEnabled = true;
+        _customerSettings.GenderEnabled = true;
+        _customerSettings.StreetAddressEnabled = true;
+        _customerSettings.StreetAddress2Enabled = true;
+        _customerSettings.ZipPostalCodeEnabled = true;
+        _customerSettings.CityEnabled = true;
+        _customerSettings.CountyEnabled = true;
+        _customerSettings.PhoneEnabled = true;
+        _customerSettings.FaxEnabled = true;
+        var tooLong = new string('x', 1200);
+
+        CustomerRegistrationRequest request = null;
+        _registration.Setup(service => service.RegisterCustomerAsync(It.IsAny<CustomerRegistrationRequest>()))
+            .Callback<CustomerRegistrationRequest>(sent => { request = sent; sent.Customer.Email = sent.Email; sent.Customer.Username = sent.Username; })
+            .ReturnsAsync(new CustomerRegistrationResult());
+
+        Customer saved = null;
+        _customers.Setup(service => service.UpdateCustomerAsync(It.IsAny<Customer>())).Callback<Customer>(customer => saved = customer).Returns(Task.CompletedTask);
+
+        await Build().RegisterAsync(Registration(new PackNameCustomerRegistration
+        {
+            Email = tooLong, Username = tooLong, Gender = tooLong, FirstName = tooLong, LastName = tooLong,
+            StreetAddress = tooLong, StreetAddress2 = tooLong, ZipPostalCode = tooLong, City = tooLong, County = tooLong, Phone = tooLong, Fax = tooLong
+        }));
+
+        request.Email.Should().HaveLength(1000);
+        request.Username.Should().HaveLength(1000);
+        new[] { saved.Gender, saved.FirstName, saved.LastName, saved.StreetAddress, saved.StreetAddress2, saved.ZipPostalCode, saved.City, saved.County, saved.Phone, saved.Fax }
+            .Should().AllSatisfy(value => value.Should().HaveLength(1000));
+    }
+
     #endregion
 
     #region Subsidies
