@@ -1,0 +1,360 @@
+﻿@model SubsidySearchModel
+
+@{
+    const string hideSearchBlockAttributeName = "MultiStoreSubsidiesPage.HideSearchBlock";
+    var hideSearchBlock = await genericAttributeService.GetAttributeAsync<bool>(await workContext.GetCurrentCustomerAsync(), hideSearchBlockAttributeName);
+}
+
+<section id="subsidies-table-container" class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="cards-group">
+                <div class="card card-default">
+                    <div class="card-header d-flex align-items-center">
+                        <span class="ms-card-title">
+                            @T("Plugins.CW.Core.Admin.Subsidies")
+                        </span>
+                        <div class="ml-auto">
+                            <button type="button"
+                                    class="btn btn-primary btn-add-subsidy btn-sm">
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                                @T("Plugins.CW.Core.Admin.Subsidies.AddNew")
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card card-default card-search">
+                        <div class="card-body">
+                            <div class="row search-row @(!hideSearchBlock ? "opened" : "")" data-hideAttribute="@hideSearchBlockAttributeName">
+                                <div class="search-text">@T("Admin.Common.Search")</div>
+                                <div class="icon-search"><i class="fas fa-search" aria-hidden="true"></i></div>
+                                <div class="icon-collapse"><i class="far fa-angle-@(!hideSearchBlock ? "up" : "down")" aria-hidden="true"></i></div>
+                            </div>
+                            <div class="search-body @(hideSearchBlock ? "closed" : "")">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="SearchSubsidyName" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-editor asp-for="SearchSubsidyName" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="text-center col-12">
+                                        <button type="button" id="search-subsidies" class="btn btn-primary btn-search"><i class="fas fa-search"></i>@T("Admin.Common.Search")</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card card-default">
+                    <div class="card-body">
+                        @await Html.PartialAsync("Table", new DataTablesModel 
+                        {
+                            Name = "subsidies-grid",
+                            UrlRead = new DataUrl("SubsidyList", "Subsidy", new RouteValueDictionary { [nameof(Model.StoreId)] = Model.StoreId }),
+                            UrlDelete = new DataUrl("DeleteSubsidy", "Subsidy", null),
+                            SearchButtonId = "search-subsidies",
+                            Length = Model.PageSize,
+                            LengthMenu = Model.AvailablePageSizes,
+                            Filters = new List<FilterParameter>
+                            {
+                                new FilterParameter(nameof(Model.SearchSubsidyName)),
+                            },
+                            ColumnCollection = new List<ColumnProperty>
+                            {
+                                new ColumnProperty(nameof(SubsidyModel.Name))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.Name").Text,
+                                    Width = "150",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(SubsidyModel.StartDate))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.StartDate").Text,
+                                    Width = "100"
+                                },
+                                new ColumnProperty(nameof(SubsidyModel.EndDate))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.EndDate").Text,
+                                    Width = "100"
+                                },
+                                new ColumnProperty(nameof(SubsidyModel.Credit))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.Credit").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(SubsidyModel.AllocatedStaff))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.AllocatedStaff").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(SubsidyModel.TotalCredit))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.TotalCredit").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(SubsidyModel.Active))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.Active").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                    Render = new RenderBoolean()
+                                },
+                                new ColumnProperty(nameof(SubsidyModel.UsedPercent))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.UsedPercent").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(SubsidyModel.Id))
+                                {
+                                    Title = T("Admin.Common.Edit").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.Button,
+                                    Render = new RenderCustom("Admin.StoreNav.render.tabEdit")
+                                },
+                                new ColumnProperty(nameof(SubsidyModel.Id))
+                                {
+                                    Title = T("Admin.Common.Delete").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.Button,
+                                    Render = new RenderCustom("Admin.StoreNav.render.tabDelete")
+                                }
+                            }
+                        })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<div id="subsidy-container" style="display: none;"></div>
+
+@* EVERY RAZOR VALUE THIS TAB'S SCRIPT NEEDS ARRIVES THROUGH HERE.
+   The script below is then plain JavaScript: no Model, no T(), no Url.Action inside a <script>,
+   so nothing is HTML-encoded on its way into a string literal and the bundler can minify it. *@
+<div class="sub-tab-config"
+     data-store-id="@Model.StoreId"
+     data-detail-url="@Url.Action("SubsidyDetail", "Subsidy")"
+     data-delete-url="@Url.Action("DeleteSubsidy", "Subsidy")"
+     style="display: none;"></div>
+
+<script>
+    (function () {
+        var $panel = $('#tab-panel-subsidies');
+        var $cfg = $panel.find('.sub-tab-config');
+
+        var gridSel   = '#subsidies-grid';
+        var storeId   = $cfg.data('storeId');
+        var detailUrl = $cfg.data('detailUrl');
+        var deleteUrl = $cfg.data('deleteUrl');
+
+        //THE PANEL NODE OUTLIVES THE PARTIAL. loadPartial only swaps innerHTML, so without this
+        //every delegated handler from the previous tab load is still attached and each click
+        //fires one more time than the load before it.
+        $panel.off('.subtab');
+        $('#tab-subsidies').off('click.subtab');
+
+        function refreshGrid() {
+            updateTable(gridSel);
+        }
+
+        function showSubsidyList(show) {
+            if (show) {
+                $('#subsidies-table-container').show();
+                $('#subsidy-container').hide();
+            } else {
+                $('#subsidies-table-container').hide();
+                $('#subsidy-container').show();
+            }
+        }
+
+        function loadSubsidy(subsidyId) {
+            var $detail = $('#subsidy-container');
+
+            $detail.html('<div class="ms-loading-message">' + Admin.StoreNav.res('common.loading', 'Loading...') + '</div>');
+
+            showSubsidyList(false);
+
+            $.get(detailUrl, { storeId: storeId, subsidyId: subsidyId })
+                .done(function (html) {
+                    $detail.html(html);
+                    bindSubsidyDetailEvents();
+                })
+                .fail(function (xhr) {
+                    if (xhr.statusText === 'abort') return;
+                    $detail.html('<div class="ms-error-message">' + Admin.StoreNav.res('common.failedToLoad', 'Failed to load.')
+                        + ' <a href="javascript:void(0)" class="sub-retry">' + Admin.StoreNav.res('common.retry', 'Retry') + '</a></div>');
+                });
+        }
+
+        function exitSubsidyDetails() {
+            //THE TEARDOWN FOR THIS TAB'S DETAIL. Back, and anything else that closes the panel, comes
+            //through here - so the unsaved-edit question is asked here rather than at each caller.
+            if (!Admin.StoreNav.canLeaveForm()) return;
+
+            Admin.StoreNav.navigate({ subsidyId: null }, false);
+            refreshGrid();
+            showSubsidyList(true);
+        }
+
+        function bindSubsidyDetailEvents() {
+            //WAS THIS A CREATE? Read it from the form BEFORE the post - the save reply carries no
+            //reliable flag for it, and it is what decides whether the panel reloads for a new id.
+            var wasNew = String($('#subsidy-detail-form').find('[name="IsNew"]').val()).toLowerCase() === 'true';
+
+            //Baseline for the unsaved-edit gate. The gate itself lives inside exitSubsidyDetails().
+            //PARSE THE VALIDATION RULES. This form is injected by AJAX long after document.ready,
+            //so unobtrusive never saw it and $form.valid() would answer true for a form with no
+            //validator attached - nothing would be checked in the browser.
+            $.validator.unobtrusive.parse($('#subsidy-detail-form'));
+            Admin.StoreNav.watchForm($('#subsidy-detail-form'));
+            Admin.StoreNav.consumeSavedFlash($('#subsidy-detail-form'));
+
+            // Back button
+            $('#btn-subsidy-back').on('click', function () {
+                exitSubsidyDetails();
+            });
+
+            // Save subsidy
+            $('#btn-subsidy-save').on('click', function () {
+                var $btn = $(this);
+                var $form = $('#subsidy-detail-form');
+
+                if (!$form.valid()) return;
+                $btn.prop('disabled', true).text(Admin.StoreNav.res('common.saving', 'Saving...'));
+
+                $.ajax({
+                    type: 'POST',
+                    url: $form.attr('action'),
+                    data: $form.serialize(),
+                    success: function (result, status, xhr) {
+                        $btn.prop('disabled', false).text(Admin.StoreNav.res('common.save', 'Save'));
+                        var ct = xhr.getResponseHeader('Content-Type') || '';
+                        if (ct.indexOf('text/html') !== -1) {
+                            // Validation failed — swap HTML and re-bind.
+                            //NOTHING WAS WRITTEN, so the form stays dirty and takes no stamp.
+                            $('#subsidy-container').html(result);
+                            bindSubsidyDetailEvents();
+                            //AFTER THE RE-BIND, not before: binding the swapped-in form takes a fresh
+                            //baseline from the posted values, which would read as clean. The rejected
+                            //edits are real work, so the form must still ask before it is abandoned.
+                            Admin.StoreNav.markFormDirty($('#subsidy-detail-form'));
+                            return;
+                        }
+                        //JSON REFUSAL. A {success:false} payload is not a saved record: reloading for
+                        //its id would open a panel for something that was never written.
+                        if (result && result.success === false) {
+                            display_nop_error({ error: result.error || result.message || Admin.StoreNav.res('common.serverError', 'A server error occurred. Please try again.') });
+                            return;
+                        }
+
+                        if (result) {
+                            Admin.StoreNav.cacheName('sub', String(result.id), result.name);
+                        }
+
+                        //SAVE NEVER NAVIGATES. On an edit the panel already shows what was saved, so it
+                        //stays and takes the stamp. On a create it reloads for the new id, which is what
+                        //turns "save this first" into the working child grids - those grids are
+                        //server-built DataTables with the id baked into UrlRead, so they cannot be
+                        //unlocked client-side. The grid behind is refreshed by exitSubsidyDetails() on the way out.
+                        Admin.StoreNav.watchForm($form);
+                        if (wasNew && result) {
+                            Admin.StoreNav.flashSavedAfterReload();
+                            Admin.StoreNav.navigate({ subsidyId: String(result.id) }, false);
+                            loadSubsidy(result.id);
+                            return;
+                        }
+                        Admin.StoreNav.markSaved($form);
+                    },
+                    error: function () {
+                        $btn.prop('disabled', false).text(Admin.StoreNav.res('common.save', 'Save'));
+                        display_nop_error({ error: Admin.StoreNav.res('common.serverError', 'A server error occurred. Please try again.') });
+                    }
+                });
+            });
+
+            // Delete subsidy
+            $('#btn-subsidy-delete').on('click', function () {
+                var id = $(this).data('id');
+                if (!confirm(Admin.StoreNav.res('subsidies.confirmDelete', 'Are you sure?'))) return;
+
+                var postData = { id: id };
+                addAntiForgeryToken(postData);
+
+                $.post($(this).data('url'),
+                    postData,
+                    function (result) {
+                        if (!result.success) {
+                            display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') });
+                            return;
+                        }
+                        //The record is gone, so there is nothing left to save and nothing to ask about.
+                        Admin.StoreNav.releaseForm($('#subsidy-detail-form'));
+                        exitSubsidyDetails();
+                    }
+                );
+            });
+        }
+
+        // ── Grid: retry link on a failed detail load ───────────────────────
+        $panel.on('click.subtab', '.sub-retry', function () {
+            location.reload();
+        });
+
+        // ── Grid: edit subsidy → focus mode ────────────────────────────────
+        //THE NAME COMES FROM THE GRID, NOT FROM THE MARKUP. The row is already in the DataTable,
+        //so nothing has to be escaped into an attribute.
+        $panel.on('click.subtab', '.btn-tab-edit', function () {
+            var id = String($(this).data('id'));
+            var row = $(gridSel).DataTable().row($(this).closest('tr')).data() || {};
+
+            Admin.StoreNav.cacheName('sub', id, row.Name || '');
+            Admin.StoreNav.navigate({ subsidyId: id }, false);
+            loadSubsidy(id);
+        });
+
+        // ── Grid: delete subsidy ───────────────────────────────────────────
+        $panel.on('click.subtab', '.btn-tab-delete', function () {
+            var id = $(this).data('id');
+            if (!confirm(Admin.StoreNav.res('subsidies.confirmDelete', 'Are you sure?'))) return;
+
+            var postData = { id: id };
+            addAntiForgeryToken(postData);
+
+            $.post(deleteUrl, postData, function (result) {
+                if (!result.success) {
+                    display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') });
+                    return;
+                }
+                refreshGrid();
+            });
+        });
+
+        // ── Add subsidy → focus mode ───────────────────────────────────────
+        $panel.on('click.subtab', '.btn-add-subsidy', function () {
+            Admin.StoreNav.cacheName('sub', '0', Admin.StoreNav.res('new.subsidy', 'New subsidy'));
+            Admin.StoreNav.navigate({ subsidyId: 0 }, false);
+            loadSubsidy(0);
+        });
+
+        $('#tab-subsidies').on('click.subtab', function () {
+            showSubsidyList(true);
+        });
+
+        var subsidyId = Admin.StoreNav.getState().subsidyId;
+        if (subsidyId) {
+            loadSubsidy(subsidyId);
+        }
+    })();
+</script>

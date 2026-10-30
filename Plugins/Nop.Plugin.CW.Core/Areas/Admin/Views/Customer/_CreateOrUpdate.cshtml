@@ -1,0 +1,95 @@
+﻿@model ExtendedCustomerModel
+
+<div asp-validation-summary="All"></div>
+<input asp-for="Id" type="hidden" />
+
+@{
+    const string hideInfoBlockAttributeName = "CustomerPage.HideInfoBlock";
+    var customer = await workContext.GetCurrentCustomerAsync();
+    var hideInfoBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideInfoBlockAttributeName);
+
+    const string hideOrdersBlockAttributeName = "CustomerPage.HideOrdersBlock";
+    var hideOrdersBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideOrdersBlockAttributeName, defaultValue: true);
+
+    const string hideAddressesBlockAttributeName = "CustomerPage.HideAddressesBlock";
+    var hideAddressesBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideAddressesBlockAttributeName, defaultValue: true);
+
+    const string hideShoppingCartAndWishlistBlockAttributeName = "CustomerPage.HideShoppingCartAndWishlistBlock";
+    var hideShoppingCartAndWishlistBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideShoppingCartAndWishlistBlockAttributeName, defaultValue: true);
+
+    const string hideActivityLogBlockAttributeName = "CustomerPage.HideActivityLogBlock";
+    var hideActivityLogBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideActivityLogBlockAttributeName, defaultValue: true);
+
+    const string hidePlaceOrderBlockAttributeName = "CustomerPage.HidePlaceOrderBlock";
+    var hidePlaceOrderBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hidePlaceOrderBlockAttributeName, defaultValue: true);
+
+    const string hideBackInStockSubscriptionsBlockAttributeName = "CustomerPage.HideBackInStockSubscriptionsBlock";
+    var hideBackInStockSubscriptionsBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideBackInStockSubscriptionsBlockAttributeName, defaultValue: true);
+
+    const string hidePackNameBlockAttributeName = "CustomerPage.HidePackNameBlock";
+    var hidePackNameBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hidePackNameBlockAttributeName, defaultValue: true);
+
+    const string hideSubsidiesBlockAttributeName = "CustomerPage.HideSubsidiesBlock";
+    var hideSubsidiesBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideSubsidiesBlockAttributeName, defaultValue: true);
+
+    const string hideRewardPointsBlockAttributeName = "CustomerPage.HideRewardPointsBlock";
+    var hideRewardPointsBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideRewardPointsBlockAttributeName, defaultValue: true);
+
+    const string hideCreditNotesBlockAttributeName = "CustomerPage.HideCreditNotesBlock";
+    var hideCreditNotesBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideCreditNotesBlockAttributeName, defaultValue: true);
+
+    var features = await cwFeatures.GetFeaturesAsync(Model.StoreId);
+
+    var hasViewOrderPermission = await permissionService.AuthorizeAsync(StandardPermission.Orders.ORDERS_VIEW);
+    var hasViewCustomerActivityPermission = await permissionService.AuthorizeAsync(StandardPermission.Customers.ACTIVITY_LOG_VIEW);
+    var hasCustomerImpersonationPermission = await permissionService.AuthorizeAsync(StandardPermission.Customers.CUSTOMERS_IMPERSONATION);
+    var hasMultiStorePermission = await permissionService.AuthorizeAsync(CWPermissionConfigManager.ADMIN_ACCESS_MULTISTORE);
+}
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <nop-cards id="customer-cards">
+                <nop-card asp-name="customer-info" asp-icon="fas fa-info" asp-title="@T("Admin.Customers.Customers.Info")" asp-hide-block-attribute-name="@hideInfoBlockAttributeName" asp-hide="@hideInfoBlock" asp-advanced="false">@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Customer/_CreateOrUpdate.Info.cshtml", Model)</nop-card>
+                @if (Model.Id > 0)
+                {
+                    @if (hasViewOrderPermission)
+                    {
+                        <nop-card asp-name="customer-orders" asp-icon="fas fa-cart-plus" asp-title="@T("Admin.Customers.Customers.Orders")" asp-hide-block-attribute-name="@hideOrdersBlockAttributeName" asp-hide="@hideOrdersBlock" asp-advanced="false">@await Html.PartialAsync("~/Areas/Admin/Views/Customer/_CreateOrUpdate.Orders.cshtml", Model)</nop-card>
+                    }
+                    <nop-card asp-name="customer-address" asp-icon="far fa-address-book" asp-title="@T("Admin.Customers.Customers.Addresses")" asp-hide-block-attribute-name="@hideAddressesBlockAttributeName" asp-hide="@hideAddressesBlock" asp-advanced="true">@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Customer/_CreateOrUpdate.Addresses.cshtml", Model)</nop-card>
+                    <nop-card asp-name="customer-cart" asp-icon="fas fa-cart-shopping" asp-title="@T("Admin.Customers.Customers.ShoppingCartAndWishlist")" asp-hide-block-attribute-name="@hideShoppingCartAndWishlistBlockAttributeName" asp-hide="@hideShoppingCartAndWishlistBlock" asp-advanced="true">@await Html.PartialAsync("~/Areas/Admin/Views/Customer/_CreateOrUpdate.CurrentShoppingCart.cshtml", Model)</nop-card>
+                    @if (hasViewCustomerActivityPermission)
+                    {
+                        <nop-card asp-name="customer-activitylog" asp-icon="fas fa-list-alt" asp-title="@T("Admin.Customers.Customers.ActivityLog")" asp-hide-block-attribute-name="@hideActivityLogBlockAttributeName" asp-hide="@hideActivityLogBlock" asp-advanced="true">@await Html.PartialAsync("~/Areas/Admin/Views/Customer/_CreateOrUpdate.ActivityLog.cshtml", Model)</nop-card>
+                    }
+                    @if (hasCustomerImpersonationPermission)
+                    {
+                        <nop-card asp-name="customer-impersonate" asp-icon="fas fa-shopping-basket" asp-title="@T("Admin.Customers.Customers.Impersonate")" asp-hide-block-attribute-name="@hidePlaceOrderBlockAttributeName" asp-hide="@hidePlaceOrderBlock" asp-advanced="true">@await Html.PartialAsync("~/Areas/Admin/Views/Customer/_CreateOrUpdate.Impersonate.cshtml", Model)</nop-card>
+                    }
+                    <nop-card asp-name="customer-backinstock" asp-icon="fas fa-square-plus" asp-title="@T("Admin.Customers.Customers.BackInStockSubscriptions")" asp-hide-block-attribute-name="@hideBackInStockSubscriptionsBlockAttributeName" asp-hide="@hideBackInStockSubscriptionsBlock" asp-advanced="true">@await Html.PartialAsync("~/Areas/Admin/Views/Customer/_CreateOrUpdate.BackInStockSubscriptions.cshtml", Model)</nop-card>
+                    @if (features.PackName)
+                    {
+    					<nop-card asp-name="customer-packname" asp-icon="fas fa-box" asp-title="@T("Plugins.CW.Core.Admin.Customers.Customers.PackName")" asp-hide-block-attribute-name="@hidePackNameBlockAttributeName" asp-hide="@hidePackNameBlock" asp-advanced="true">@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Customer/_CreateOrUpdate.PackName.cshtml", Model.PackNameModel)</nop-card>
+                    }
+                    @if (features.Subsidy && hasMultiStorePermission)
+                    {
+                        <nop-card asp-name="customer-subsidy" asp-icon="fas fa-hand-holding-dollar" asp-title="@T("Plugins.CW.Core.Admin.PackName.Subsidies")" asp-hide-block-attribute-name="@hideSubsidiesBlockAttributeName" asp-hide="@hideSubsidiesBlock" asp-advanced="true">
+                            @await Component.InvokeAsync("PackNameSubsidies", new { packNameId = Model.PackNameModel.Id, prefix = "customer" })
+                        </nop-card>
+                    }
+                    @if (Model.DisplayCreditNotes)
+                    {
+                        <nop-card asp-name="customer-creditnotes" asp-icon="fas fa-file-invoice" asp-title="@T("Plugins.CW.Core.Admin.Customer.CreditNote")" asp-hide-block-attribute-name="@hideCreditNotesBlockAttributeName" asp-hide="@hideCreditNotesBlock" asp-advanced="true">@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Customer/_CreateOrUpdate.CreditNotes.cshtml", Model)</nop-card>
+                    }
+                }
+
+                @if (Model.DisplayRewardPointsHistory)
+                {
+                    <nop-card asp-name="customer-notes" asp-icon="fas fa-coins" asp-title="@T("Admin.Customers.Customers.RewardPoints")" asp-hide-block-attribute-name="@hideRewardPointsBlockAttributeName" asp-hide="@hideRewardPointsBlock" asp-advanced="true">@await Html.PartialAsync("~/Areas/Admin/Views/Customer/_CreateOrUpdate.RewardPoints.cshtml", Model)</nop-card>
+                }
+                @await Component.InvokeAsync(typeof(AdminWidgetViewComponent), new { widgetZone = AdminWidgetZones.CustomerDetailsBlock, additionalData = Model })
+            </nop-cards>
+        </div>
+    </div>
+</section>

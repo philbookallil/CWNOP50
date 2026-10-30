@@ -1,0 +1,29 @@
+@model CheckoutPaymentInfoModel
+
+@{
+    Layout = "_ColumnsOne";
+
+    NopHtml.AddTitleParts(T("PageTitle.Checkout").Text);
+    NopHtml.AppendPageCssClassParts("html-checkout-page");
+    NopHtml.AppendPageCssClassParts("html-payment-info-page");
+}
+
+@* The payment method takes the payment in its own pages. Its payment info component takes the customer there
+   (PayPal Commerce's redirects as soon as it renders); the order comes back through PlaceOrderAsync and is
+   placed as a packname order. *@
+<div class="page checkout-page payment-info-page">
+    <div class="page-title">
+        <h1>@T("Checkout.PaymentInfo")</h1>
+    </div>
+    <div class="page-body checkout-data">
+        <p>@T("Plugins.CW.Core.PackNameCheckout.PaymentHandoff")</p>
+        <div class="section payment-info">
+            <div class="info">
+                @await Component.InvokeAsync(Model.PaymentViewComponent)
+            </div>
+        </div>
+        <p>
+            <a href="@Url.RouteUrl("PackNameCheckout")">@T("Plugins.CW.Core.PackNameCheckout.BackToCheckout")</a>
+        </p>
+    </div>
+</div>

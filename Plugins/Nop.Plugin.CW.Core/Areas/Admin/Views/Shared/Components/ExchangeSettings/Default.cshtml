@@ -1,0 +1,23 @@
+﻿@model ExchangeSettingsSearchModel
+
+<div class="content-header clearfix">
+    <h1 class="pull-left">
+        @T("Plugins.CW.Core.Admin.Exchanges.Rules.Settings")
+    </h1>
+</div>
+
+<section class="content">
+    <div class="form-horizontal">
+        <nop-tabs id="exchanges-edit" asp-tab-name-to-select="tab-return-reasons" asp-render-selected-tab-input="false">
+            <nop-tab asp-name="tab-return-reasons" asp-title="@T("Plugins.CW.Core.Admin.Exchanges.Rules.ReasonRules")">
+                @await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Shared/Components/ExchangeSettings/_ReturnReasonsRules.cshtml", Model)
+            </nop-tab>
+            <nop-tab asp-name="tab-return-actions" asp-title="@T("Plugins.CW.Core.Admin.Exchanges.Rules.ActionRules")">
+                @await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Shared/Components/ExchangeSettings/_ReturnActionsRules.cshtml", Model)
+            </nop-tab>
+            <nop-tab asp-name="tab-return-status" asp-title="@T("Plugins.CW.Core.Admin.Exchanges.Rules.StatusRules")">
+                @await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Shared/Components/ExchangeSettings/_ReturnStatusRules.cshtml", Model)
+            </nop-tab>
+        </nop-tabs>
+    </div>
+</section>

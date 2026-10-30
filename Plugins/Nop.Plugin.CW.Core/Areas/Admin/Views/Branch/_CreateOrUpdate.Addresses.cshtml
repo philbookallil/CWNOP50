@@ -1,0 +1,92 @@
+@model BranchModel
+
+<div class="card-body">
+    @await Html.PartialAsync("Table", new DataTablesModel
+    {
+        Name = "branch-addresses-grid",
+        UrlRead = new DataUrl("AddressesSelect", "Branch", new RouteValueDictionary { [nameof(Model.CWAddressSearchModel.EntityId)] = Model.CWAddressSearchModel.EntityId }),
+        UrlDelete = new DataUrl("AddressDelete", "Branch", new RouteValueDictionary { [nameof(Model.CWAddressSearchModel.EntityId)] = Model.CWAddressSearchModel.EntityId }),
+        Length = Model.CWAddressSearchModel.PageSize,
+        LengthMenu = Model.CWAddressSearchModel.AvailablePageSizes,
+        ColumnCollection = new List<ColumnProperty>
+        {
+            new ColumnProperty(nameof(CWAddressModel.FirstName))
+            {
+                Title = T("Admin.Address.Fields.FirstName").Text
+            },
+            new ColumnProperty(nameof(CWAddressModel.LastName))
+            {
+                Title = T("Admin.Address.Fields.LastName").Text
+            },
+            new ColumnProperty(nameof(CWAddressModel.Email))
+            {
+                Title = T("Admin.Address.Fields.Email").Text
+            },
+            new ColumnProperty(nameof(CWAddressModel.PhoneNumber))
+            {
+                Title = T("Admin.Address.Fields.PhoneNumber").Text
+            },
+            new ColumnProperty(nameof(CWAddressModel.FaxNumber))
+            {
+                Title = T("Admin.Address.Fields.FaxNumber").Text
+            },
+            new ColumnProperty(nameof(CWAddressModel.AddressHtml))
+            {
+                Title = T("Admin.Address").Text,
+                Encode = false
+            },
+            new ColumnProperty(nameof(CWAddressModel.AddressId))
+            {
+                Title = T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.Default").Text,
+                Width = "130",
+                ClassName = NopColumnClassDefaults.Button,
+                Render = new RenderCustom("renderBranchAddressDefaultColumn")
+            },
+            new ColumnProperty(nameof(CWAddressModel.AddressId))
+            {
+                Title = T("Admin.Common.Edit").Text,
+                Width = "100",
+                ClassName =  NopColumnClassDefaults.Button,
+                Render = new RenderButtonEdit(new DataUrl("~/Admin/Branch/AddressEdit?branchId=" + Model.CWAddressSearchModel.EntityId + "&addressid=", true))
+            },
+            new ColumnProperty(nameof(CWAddressModel.AddressId))
+            {
+                Title = T("Admin.Common.Delete").Text,
+                Width = "100",
+                Render = new RenderButtonRemove(T("Admin.Common.Delete").Text),
+                ClassName =  NopColumnClassDefaults.Button
+            }
+        }
+    })
+</div>
+<div class="card-body">
+    <button type="button" class="btn btn-primary" onclick="location.href = '@Url.Action("AddressCreate", "Branch", new { branchId = Model.Id })'">
+        @T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.AddButton")
+    </button>
+</div>
+<script>
+    function renderBranchAddressDefaultColumn(data, type, row, meta) {
+        if (row.IsDefault) {
+            return '<span class="badge badge-success"><i class="fas fa-star"></i> @T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.Default").Text</span>';
+        }
+        return '<button class="btn btn-default btn-xs" onclick="setBranchDefaultAddress(' + row.AddressId + '); return false;">'
+             + '<i class="far fa-star"></i> @T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.SetDefault").Text'
+             + '</button>';
+    }
+
+    function setBranchDefaultAddress(addressId) {
+        var postData = { branchId: @Model.Id, addressId: addressId };
+        addAntiForgeryToken(postData);
+
+        $.ajax({
+            url: '@Url.Action("AddressSetDefault", "Branch")',
+            type: 'POST',
+            data: postData,
+            success: function (result) {
+                if (result.success) {
+                    updateTable('#branch-addresses-grid');
+                }
+            }
+        });
+    }
+</script>

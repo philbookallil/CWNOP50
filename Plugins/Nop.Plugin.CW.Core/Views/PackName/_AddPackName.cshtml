@@ -1,0 +1,73 @@
+﻿@model PackNameRegisterModel
+
+<div class="page registration-page packname-registration-page">
+    <div class="page-body">
+        <form asp-controller="PackName" asp-action="AddPackName" id="packname-form" method="post" autocomplete="off">
+            <div asp-validation-summary="ModelOnly" class="message-error"></div>
+            <input asp-for="StoreId" type="hidden" />
+            @await Html.PartialAsync("_PackName.Fields", Model)
+            <div class="buttons">
+                <button type="submit" class="button-1 save-packname-button" onclick="createPackName(); return false;">@T("Common.Save")</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script asp-location="Footer">
+    $(document).ready(function () {
+        $('#dialog-add-packName').dialog("option", "position", { 
+            my: "center", 
+            at: "center", 
+            of: window 
+        });
+    });
+
+    //SelectPackName is a POST: it writes the customer's ordering context, so as a GET it was exempt
+    //from the antiforgery check and an <img src> on any page could switch it.
+    window.cwSelectPackName = window.cwSelectPackName || function (packNameId, listId, returnUrl) {
+        var form = $('<form>', { method: 'post', action: '@Url.Action("SelectPackName", "PackName")' });
+
+        form.append($('<input>', { type: 'hidden', name: 'id', value: packNameId }));
+        form.append($('<input>', { type: 'hidden', name: 'listId', value: listId }));
+
+        if (returnUrl)
+            form.append($('<input>', { type: 'hidden', name: 'returnUrl', value: returnUrl }));
+
+        form.append($('<input>', {
+            type: 'hidden',
+            name: '__RequestVerificationToken',
+            value: $('input[name=__RequestVerificationToken]').first().val()
+        }));
+
+        $('body').append(form);
+        form.submit();
+    };
+
+    function createPackName() {
+        var postData = $('#packname-form').serialize();
+        addAntiForgeryToken(postData);
+
+        $.ajax({
+            cache: false,
+            url: '@Url.Action("AddPackName", "PackName")',
+            data: postData,
+            type: "POST",
+            success: function (response) {
+                if (response.success) {
+                    if (response.packNameId > 0) {
+                        cwSelectPackName(response.packNameId, 0);
+                    }
+                    else {
+                        location.reload();
+                    }
+                }
+                else {
+                    var dialog = $('#dialog-add-packName .packname-registration-page').replaceWith(response.packnameinfosectionhtml);
+                }
+            },
+            error: function () {
+                displayPopupNotification('@T("Common.Error")', 'error', false);
+            }
+        });
+    }
+</script>

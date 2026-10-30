@@ -1,0 +1,568 @@
+﻿.packname-import-page {
+    --pi-ink: #2f3a45;
+    --pi-muted: #66717c;
+    --pi-rule: #dde3e8;
+    --pi-sheet: #f6f9f7;
+    --pi-grid: #e2ebe5;
+    --pi-excel: #1d6f42;
+    --pi-excel-dark: #155733;
+    --pi-excel-tint: #e9f4ed;
+    --pi-danger: #b42318;
+    --pi-danger-tint: #fef3f2;
+    --pi-danger-rule: #f6cfcb;
+    --pi-warn: #93520b;
+    --pi-warn-tint: #fffaeb;
+    --pi-warn-rule: #f5dfa8;
+}
+
+    .packname-import-page .page-body {
+        max-width: 760px;
+        margin: 0 auto;
+        color: var(--pi-ink);
+        font-size: 15px;
+        line-height: 1.55;
+        text-align: left;
+    }
+
+.packname-import-intro {
+    margin: 0 0 28px;
+    font-size: 16px;
+    color: var(--pi-muted);
+}
+
+/* the three steps, joined by a line down the left */
+.packname-import-steps {
+    counter-reset: pi-step;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.packname-import-step {
+    position: relative;
+    counter-increment: pi-step;
+    padding: 0 0 32px 52px;
+}
+
+    .packname-import-step::before {
+        content: counter(pi-step);
+        position: absolute;
+        left: 0;
+        top: -2px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid var(--pi-excel);
+        color: var(--pi-excel);
+        font-weight: bold;
+        font-size: 15px;
+        line-height: 28px;
+        text-align: center;
+    }
+
+    .packname-import-step::after {
+        content: "";
+        position: absolute;
+        left: 15px;
+        top: 34px;
+        bottom: 4px;
+        width: 2px;
+        background: var(--pi-rule);
+    }
+
+    .packname-import-step:last-child {
+        padding-bottom: 0;
+    }
+
+        .packname-import-step:last-child::after {
+            display: none;
+        }
+
+    .packname-import-step p {
+        margin: 0 0 12px;
+        color: var(--pi-muted);
+    }
+
+.packname-import-page .packname-import-step-title {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--pi-ink);
+}
+
+/* step 1 */
+.packname-import-template {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border: 1px solid var(--pi-excel);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--pi-excel);
+    font-weight: bold;
+    text-decoration: none;
+}
+
+    .packname-import-template:hover,
+    .packname-import-template:focus-visible {
+        background: var(--pi-excel);
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .packname-import-template .cw-icon {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+    }
+
+.packname-import-columns {
+    margin-top: 14px;
+}
+
+    .packname-import-columns summary {
+        display: inline-block;
+        color: var(--pi-excel);
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    .packname-import-columns ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 12px 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .packname-import-columns li {
+        padding: 2px 9px;
+        border: 1px solid var(--pi-grid);
+        border-radius: 3px;
+        background: var(--pi-sheet);
+        font-size: 13px;
+        color: var(--pi-ink);
+    }
+
+/* step 3: the drop area, drawn as a sheet */
+.packname-import-drop {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 132px;
+    padding: 24px;
+    border: 2px dashed #b9cdbf;
+    border-radius: 6px;
+    background-color: var(--pi-sheet);
+    background-image: linear-gradient(var(--pi-grid) 1px, transparent 1px), linear-gradient(90deg, var(--pi-grid) 1px, transparent 1px);
+    background-size: 96px 24px;
+    background-position: -1px -1px;
+    text-align: center;
+    transition: border-color .15s, background-color .15s;
+}
+
+    .packname-import-drop input[type="file"] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .packname-import-drop:hover,
+    .packname-import-drop.is-dragging {
+        border-color: var(--pi-excel);
+        background-color: var(--pi-excel-tint);
+    }
+
+    .packname-import-drop:focus-within {
+        outline: 3px solid rgba(29, 111, 66, .35);
+        outline-offset: 2px;
+    }
+
+    .packname-import-drop.has-file {
+        border-style: solid;
+        border-color: var(--pi-excel);
+    }
+
+    .packname-import-drop.is-working {
+        pointer-events: none;
+    }
+
+        .packname-import-drop.is-working input[type="file"] {
+            display: none;
+        }
+
+    .packname-import-drop > div {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, .9);
+        pointer-events: none;
+    }
+
+        .packname-import-drop > div[hidden] {
+            display: none;
+        }
+
+    .packname-import-drop .cw-icon {
+        width: 28px;
+        height: 28px;
+        fill: var(--pi-excel);
+        flex: none;
+    }
+
+.packname-import-choose {
+    color: var(--pi-excel);
+    font-weight: bold;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.packname-import-file-name {
+    font-weight: bold;
+    word-break: break-all;
+}
+
+.packname-import-file-size {
+    color: var(--pi-muted);
+}
+
+.packname-import-progress {
+    position: relative;
+    width: 160px;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--pi-grid);
+}
+
+    .packname-import-progress::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: -40%;
+        width: 40%;
+        border-radius: 2px;
+        background: var(--pi-excel);
+        animation: pi-progress 1.2s ease-in-out infinite;
+    }
+
+@keyframes pi-progress {
+    to {
+        left: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .packname-import-progress::after {
+        left: 0;
+        width: 100%;
+        animation: none;
+    }
+}
+
+.packname-import-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 14px;
+}
+
+    .packname-import-actions .packname-import-rule {
+        margin: 0;
+        font-size: 13px;
+    }
+
+.packname-import-page .packname-import-button {
+    flex: none;
+    min-width: 150px;
+    height: auto;
+    margin: 0;
+    padding: 11px 28px;
+    border: 0;
+    border-radius: 4px;
+    background: var(--pi-excel);
+    color: #fff;
+    font-size: 15px;
+    font-weight: bold;
+    text-transform: none;
+    cursor: pointer;
+}
+
+    .packname-import-page .packname-import-button:hover,
+    .packname-import-page .packname-import-button:focus-visible {
+        background: var(--pi-excel-dark);
+    }
+
+    .packname-import-page .packname-import-button:disabled {
+        opacity: .6;
+        cursor: default;
+    }
+
+    .packname-import-page .packname-import-button:focus-visible,
+    .packname-import-page .packname-import-report:focus-visible,
+    .packname-import-template:focus-visible,
+    .packname-import-columns summary:focus-visible {
+        outline: 3px solid rgba(29, 111, 66, .35);
+        outline-offset: 2px;
+    }
+
+.packname-import-page .packname-import-message {
+    margin: 12px 0 0;
+    color: var(--pi-danger);
+    font-weight: bold;
+}
+
+/* the result */
+.packname-import-result {
+    margin-top: 36px;
+    border: 1px solid var(--pi-rule);
+    border-left-width: 5px;
+    border-radius: 6px;
+    background: #fff;
+    outline: none;
+}
+
+    .packname-import-result.is-success {
+        border-color: #b8dcc5;
+        border-left-color: var(--pi-excel);
+    }
+
+    .packname-import-result.is-failed {
+        border-color: var(--pi-danger-rule);
+        border-left-color: var(--pi-danger);
+    }
+
+    .packname-import-result.is-partly {
+        border-color: var(--pi-warn-rule);
+        border-left-color: var(--pi-warn);
+    }
+
+.packname-import-result-head {
+    display: flex;
+    gap: 14px;
+    padding: 18px 20px;
+}
+
+.is-success .packname-import-result-head {
+    background: var(--pi-excel-tint);
+}
+
+.is-failed .packname-import-result-head {
+    background: var(--pi-danger-tint);
+}
+
+.is-partly .packname-import-result-head {
+    background: var(--pi-warn-tint);
+}
+
+.packname-import-result-mark {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    color: #fff;
+    font-weight: bold;
+    font-size: 17px;
+    line-height: 30px;
+    text-align: center;
+}
+
+.is-success .packname-import-result-mark {
+    background: var(--pi-excel);
+}
+
+.is-failed .packname-import-result-mark {
+    background: var(--pi-danger);
+}
+
+.is-partly .packname-import-result-mark {
+    background: var(--pi-warn);
+}
+
+.packname-import-page .packname-import-result-title {
+    margin: 2px 0 4px;
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--pi-ink);
+}
+
+.packname-import-result-head p {
+    margin: 0;
+    color: var(--pi-ink);
+}
+
+    .packname-import-result-head p + p {
+        margin-top: 4px;
+    }
+
+.packname-import-result-body {
+    padding: 4px 20px 20px 64px;
+}
+
+    .packname-import-result-body > * {
+        margin-top: 16px;
+    }
+
+.packname-import-facts {
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .packname-import-facts li {
+        padding: 2px 0;
+    }
+
+.packname-import-page .packname-import-subtitle {
+    margin: 20px 0 8px;
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--pi-ink);
+}
+
+.packname-import-lists {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--pi-rule);
+}
+
+    .packname-import-lists li {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--pi-rule);
+    }
+
+    .packname-import-lists strong {
+        font-variant-numeric: tabular-nums;
+    }
+
+.packname-import-file-errors {
+    margin: 16px 0 0;
+    padding-left: 18px;
+}
+
+    .packname-import-file-errors li {
+        margin-bottom: 6px;
+    }
+
+.packname-import-page .packname-import-report {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border: 1px solid var(--pi-excel);
+    border-radius: 4px;
+    background: var(--pi-excel);
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+    .packname-import-page .packname-import-report:hover,
+    .packname-import-page .packname-import-report:focus-visible {
+        background: var(--pi-excel-dark);
+    }
+
+    .packname-import-page .packname-import-report .cw-icon {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+    }
+
+.packname-import-row-errors {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--pi-rule);
+}
+
+    .packname-import-row-errors > li {
+        display: flex;
+        gap: 14px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--pi-rule);
+    }
+
+.packname-import-row-number {
+    flex: none;
+    min-width: 64px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 3px;
+    background: var(--pi-sheet);
+    border: 1px solid var(--pi-grid);
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 22px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.packname-import-row-errors ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .packname-import-row-errors ul li {
+        padding: 1px 0;
+    }
+
+@media (max-width: 600px) {
+    .packname-import-step {
+        padding-left: 44px;
+    }
+
+    .packname-import-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .packname-import-page .packname-import-button {
+        width: 100%;
+    }
+
+    .packname-import-result-body {
+        padding-left: 20px;
+    }
+
+    .packname-import-row-errors > li {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .packname-import-row-number {
+        align-self: flex-start;
+    }
+}
+
+.is-success .packname-import-result-mark::before {
+    content: "\2713";
+}
+
+.is-failed .packname-import-result-mark::before {
+    content: "\00D7";
+}
+
+.is-partly .packname-import-result-mark::before {
+    content: "!";
+}

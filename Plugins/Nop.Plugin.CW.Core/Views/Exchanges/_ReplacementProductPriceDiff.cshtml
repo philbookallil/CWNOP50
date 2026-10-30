@@ -1,0 +1,13 @@
+﻿@using Nop.Plugin.CW.Core.Models.Exchanges;
+@using Nop.Services.Catalog;
+@using Nop.Plugin.CW.Core.Helpers;
+@using Nop.Plugin.CW.Core.Services.Exchanges;
+@using CW.Common.Helpers;
+
+@model ReturnRequestGatherInfoModel.ReturnedOrderItemModel
+
+@inject IExchangesDisplayService exchangesDisplayService
+
+<div class="wrapper">
+    @(await exchangesDisplayService.FormatPriceAsync(ExchangesHelper.CalculatePriceDifference(Model)))
+</div>

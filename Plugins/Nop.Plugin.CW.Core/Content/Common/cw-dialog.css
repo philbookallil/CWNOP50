@@ -1,0 +1,148 @@
+/* ================================================================
+   CW SHARED DIALOG STYLES  —  Content/Common/cw-dialog.css
+   Reusable across: PackName dialogs, Change Topup dialogs,
+   any future CW public-store jQuery UI dialog content.
+   ================================================================ */
+
+
+/* ── CSS-only loading spinner ─────────────────────────────────── */
+
+.cw-dialog-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 120px;
+    padding: 40px 20px;
+}
+
+.cw-loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e9ecef;
+    border-top-color: #00549f;
+    border-radius: 50%;
+    animation: cw-spin 0.65s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes cw-spin {
+    to { transform: rotate(360deg); }
+}
+
+
+/* ── Shared topup / data-entry form ──────────────────────────── */
+
+.cw-dialog-form {
+    padding: 20px;
+}
+
+/* Context header (packname name + subtitle) */
+.cw-dialog-form-context {
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.cw-dialog-form-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: #212529;
+    margin-bottom: 2px;
+}
+
+.cw-dialog-form-subtitle {
+    font-size: 13px;
+    color: #6c757d;
+}
+
+/* Field rows */
+.cw-dialog-field {
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.cw-dialog-field label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #343a40;
+}
+
+.cw-dialog-field input[type="text"],
+.cw-dialog-field input[type="number"],
+.cw-dialog-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #343a40;
+    background-color: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.cw-dialog-field input:focus,
+.cw-dialog-field textarea:focus {
+    outline: none;
+    border-color: #00549f;
+    box-shadow: 0 0 0 2px rgba(0, 84, 159, 0.12);
+}
+
+.cw-dialog-field textarea {
+    height: 68px;
+    resize: vertical;
+    line-height: 1.4;
+}
+
+/* Inline validation message */
+.cw-dialog-field .field-validation-error {
+    font-size: 12px;
+    color: #dc3545;
+}
+
+/* Two-column numeric row (Qty + Credit side by side) */
+.cw-dialog-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* Save button */
+.cw-dialog-save-btn {
+    display: block;
+    width: 100%;
+    padding: 10px 0;
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background-color: #00549f;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.cw-dialog-save-btn:hover {
+    background-color: #004080;
+}
+
+.cw-dialog-save-btn:active {
+    background-color: #003060;
+}
+
+/* Validation error block (whole-form level) */
+.cw-dialog-error {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #842029;
+    background-color: #f8d7da;
+    border: 1px solid #f5c2c7;
+    border-radius: 4px;
+}

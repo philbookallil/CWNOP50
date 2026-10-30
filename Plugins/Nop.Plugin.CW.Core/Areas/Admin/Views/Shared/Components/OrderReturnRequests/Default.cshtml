@@ -1,0 +1,113 @@
+﻿@using Nop.Web.Framework.Models.DataTables
+
+@model OrderReturnRequestSearchModel
+
+<div class="card-body">
+    @if (Model.CreditNotesApplied != null)
+    {
+        <div class="card card-default">
+            <div class="card-header">@T("Plugins.CW.Core.Admin.CreditNotes.AppliedTitle")</div>
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <div class="label-wrapper">
+                            <label class="col-form-label">@T("Plugins.CW.Core.Admin.CreditNotes.AppliedLabel")</label>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="form-text-row"><strong>@Model.CreditNotesApplied</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Model.ShowReturns)
+    {
+        <div class="card card-default">
+            <div class="card-header">@T("Plugins.CW.Core.Admin.Exchanges.OrderReturns.Title")</div>
+            <div class="card-body">
+                @await Html.PartialAsync("Table", new DataTablesModel
+                {
+                    Name = "order-return-requests-grid",
+                    UrlRead = new DataUrl("GetOrderReturnRequests", "ExchangesConfig", new RouteValueDictionary { ["orderId"] = Model.OrderId }),
+                    Length = 50,
+                    ColumnCollection = new List<ColumnProperty>
+                    {
+                        new ColumnProperty(nameof(CWReturnRequestModel.CustomNumber))
+                        {
+                            Title = T("Admin.ReturnRequests.Fields.CustomNumber").Text,
+                            Width = "90"
+                        },
+                        new ColumnProperty(nameof(CWReturnRequestModel.ProductName))
+                        {
+                            Title = T("Admin.ReturnRequests.Fields.Product").Text,
+                            Render = new RenderCustom("renderOrderReturnProduct")
+                        },
+                        new ColumnProperty(nameof(CWReturnRequestModel.Quantity))
+                        {
+                            Title = T("Admin.ReturnRequests.Fields.Quantity").Text,
+                            Width = "70",
+                            ClassName = NopColumnClassDefaults.CenterAll
+                        },
+                        new ColumnProperty(nameof(CWReturnRequestModel.CustomerInfo))
+                        {
+                            Title = T("Admin.ReturnRequests.Fields.Customer").Text,
+                            Width = "180",
+                            Render = new RenderCustom("renderOrderReturnCustomer")
+                        },
+                        new ColumnProperty(nameof(CWReturnRequestModel.ReturnRequestStatusStr))
+                        {
+                            Title = T("Admin.ReturnRequests.Fields.Status").Text,
+                            Width = "130"
+                        },
+                        new ColumnProperty(nameof(CWReturnRequestModel.CreatedOn))
+                        {
+                            Title = T("Admin.ReturnRequests.Fields.CreatedOn").Text,
+                            Width = "110",
+                            Render = new RenderDate()
+                        },
+                        new ColumnProperty(nameof(CWReturnRequestModel.Id))
+                        {
+                            Title = T("Admin.Common.Edit").Text,
+                            Width = "80",
+                            ClassName = NopColumnClassDefaults.Button,
+                            Render = new RenderCustom("renderOrderReturnEditButton")
+                        }
+                    }
+                })
+            </div>
+        </div>
+    }
+</div>
+@if (Model.ShowReturns)
+{
+    <script asp-location="Footer">
+        (function () {
+            var orderId = @Model.OrderId;
+            var productEditBase = '@Url.Content("~/Admin/Product/Edit/")';
+            var customerEditBase = '@Url.Content("~/Admin/Customer/Edit/")';
+            var returnEditBase = '@Url.Content("~/Admin/ReturnRequest/Edit/")';
+            var deletedLabel = '@T("Plugins.CW.Core.Admin.Exchanges.OrderReturns.ItemDeleted")';
+            var editLabel = '@T("Admin.Common.Edit")';
+
+            window.renderOrderReturnProduct = function (data, type, row) {
+                if (!row.ProductId || row.ProductId <= 0)
+                    return '<em class="text-muted">' + deletedLabel + '</em>';
+                var html = '<a href="' + productEditBase + row.ProductId + '">' + data + '</a>';
+                if (row.AttributeInfo)
+                    html += '<div class="text-muted small mt-1">' + row.AttributeInfo + '</div>';
+                return html;
+            };
+
+            window.renderOrderReturnCustomer = function (data, type, row) {
+                return '<a href="' + customerEditBase + row.CustomerId + '">' + data + '</a>';
+            };
+
+            window.renderOrderReturnEditButton = function (data, type, row) {
+                return '<a class="btn btn-default btn-sm" href="' + returnEditBase + data + '?backToOrder=' + orderId + '">' +
+                    '<i class="fas fa-pencil-alt"></i> ' + editLabel + '</a>';
+            };
+        })();
+    </script>
+}

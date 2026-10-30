@@ -1,0 +1,56 @@
+﻿@model IList<CustomerSubsidyHistoryModel>
+
+<div class="subsidy-table-wrapper">
+    <table class="subsidy-table subsidy-history-table">
+        <thead>
+            <tr>
+                <th>@T("Plugins.CW.Core.CustomerSubsidies.History.Date")</th>
+                <th class="subsidy-history-what">@T("Plugins.CW.Core.CustomerSubsidies.History.What")</th>
+                <th>@T("Plugins.CW.Core.CustomerSubsidies.History.Units")</th>
+                <th>@T("Plugins.CW.Core.CustomerSubsidies.History.Credit")</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td class="subsidy-history-date">@item.CreatedOn</td>
+                    <td class="subsidy-history-what">
+                        @if (item.CanOpenOrder)
+                        {
+                            <a href="@Url.RouteUrl(NopRouteNames.Standard.ORDER_DETAILS, new { orderId = item.OrderId })">@item.What</a>
+                        }
+                        else
+                        {
+                            @item.What
+                        }
+                        @if (item.AssignmentRemoved)
+                        {
+                            <span class="subsidy-dim">@T("Plugins.CW.Core.CustomerSubsidies.History.AssignmentRemoved")</span>
+                        }
+                    </td>
+                    <td>
+                        @if (string.IsNullOrEmpty(item.Units))
+                        {
+                            <span class="subsidy-dim">&mdash;</span>
+                        }
+                        else
+                        {
+                            @item.Units
+                        }
+                    </td>
+                    <td>
+                        @if (string.IsNullOrEmpty(item.Credit))
+                        {
+                            <span class="subsidy-dim">&mdash;</span>
+                        }
+                        else
+                        {
+                            @item.Credit
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

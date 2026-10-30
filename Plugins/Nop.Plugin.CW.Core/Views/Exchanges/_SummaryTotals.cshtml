@@ -1,0 +1,94 @@
+﻿@using Nop.Plugin.CW.Core.Models.Exchanges;
+@using Nop.Plugin.CW.Core.Domain.Exchanges;
+@using Nop.Services.Catalog;
+@using Nop.Plugin.CW.Core.Helpers;
+@using Nop.Plugin.CW.Core.Services.Exchanges;
+@using CW.Common.Helpers;
+
+@model ReturnRequestSummaryModel
+@inject IExchangesDisplayService exchangesDisplayService
+
+@{
+    decimal priceDifferenceTotals = 0;
+    decimal totalToPay = 0;
+    decimal feesTotals = 0;
+    decimal creditNotesTotal = 0;
+    int totalItems = 0;
+
+    foreach (var returnedItem in Model.GatheredInfo.ReturnedItems)
+    {
+        // Count the total quantity of returned items
+        totalItems += returnedItem.ReturnedQuantity;
+
+        if (Model.Mode == ExchangeReturnMode.Exchange)
+        {
+            // Calculate the total amount related to Price differences
+            priceDifferenceTotals += ExchangesHelper.CalculatePriceDifference(returnedItem);
+        }
+        if (Model.Mode == ExchangeReturnMode.CreditNote)
+        {
+            creditNotesTotal += (returnedItem.UnitPrice * returnedItem.ReturnedQuantity);
+        }
+    }
+
+
+    // Determine the total amount related to Fees
+    foreach (var feeItem in Model.EstimatedFees)
+    {
+        feesTotals += ExchangesHelper.CalculateFeeAmount(feeItem, totalItems);
+    }
+
+    if (priceDifferenceTotals >= decimal.Zero)
+    {
+        totalToPay = feesTotals + priceDifferenceTotals;
+    }
+    else
+    {
+        totalToPay = feesTotals;
+    }
+
+}
+
+<table class="data-table totals-list">
+    <colgroup>
+        <col class="description" />
+        <col class="amount" />
+    </colgroup>
+    @if (Model.Mode == ExchangeReturnMode.Exchange)
+    {
+        <tr>
+            <td>
+                <strong>@T("Plugins.CW.Core.Exchanges.Summary.Totals.PriceDifferences")</strong>
+            </td>
+            <td>@(await exchangesDisplayService.FormatPriceAsync(priceDifferenceTotals))</td>
+        </tr>
+
+    }
+    <tr>
+        <td>
+            <strong>@T("Plugins.CW.Core.Exchanges.Summary.Totals.Fees")</strong>
+        </td>
+        <td>@(await exchangesDisplayService.FormatPriceAsync(feesTotals))</td>
+    </tr>
+    @if (Model.Mode == ExchangeReturnMode.Exchange)
+    {
+        <tr>
+            <td>
+                <strong>@T("Plugins.CW.Core.Exchanges.Summary.Totals.MightPay")</strong>
+            </td>
+            <td>@(await exchangesDisplayService.FormatPriceAsync(totalToPay))</td>
+        </tr>
+    }
+
+    @if (Model.Mode == ExchangeReturnMode.CreditNote)
+    {
+        creditNotesTotal = creditNotesTotal - feesTotals;
+        <tr>
+            <td>
+                <strong>@T("Plugins.CW.Core.Exchanges.Summary.Totals.MostCreditNotes")</strong>
+            </td>
+            <td>@(await exchangesDisplayService.FormatPriceAsync(creditNotesTotal))</td>
+        </tr>
+    }
+
+</table>

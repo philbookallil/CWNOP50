@@ -1,0 +1,36 @@
+﻿@using CW.Common.Helpers;
+
+@model FeeConceptComponentModel
+
+@*One row of the admin fees panel: the label, the staff quantity box, and the amount.
+
+  A shared partial, not a view-component view — it is rendered by ReShippingFee.cshtml and
+  RePackagingFee.cshtml through an explicit path, and the amount reaching it has already been priced by
+  ExchangeService. Nothing here computes money.*@
+
+<tr class="fee-group">
+    <td class="fees-label">
+        @Model.FeeConceptHiddenField
+        @Model.Label
+    </td>
+    <td class="fee-qty">
+        @Model.TextBox
+        @if (Model.Rule != null)
+        {
+            @*The rule, for the browser's live re-price only. The server never reads these back.*@
+            <input type="hidden" class="fee-operator" value="@Model.Rule.FeeOperatorId" />
+            <input type="hidden" class="fee-qtyfactor" value="@Model.Rule.FeeUnitsQuantity" />
+            <input type="hidden" class="fee-amount" value="@Model.Rule.FeeAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+        }
+    </td>
+    <td class="info-label">
+        <div class="label-wrapper">
+            <label class="col-form-label">Fee Amount</label>
+        </div>
+    </td>
+    <td class="info-label fee-total">
+        <div class="form-text-row">
+            @Model.Currency.CurrencyCode <span class="value-container price-display">@FormatHelper.FormatAbsPrice(Model.FeeAmount)</span>
+        </div>
+    </td>
+</tr>

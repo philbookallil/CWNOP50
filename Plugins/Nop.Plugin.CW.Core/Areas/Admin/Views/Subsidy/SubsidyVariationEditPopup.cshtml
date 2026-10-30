@@ -1,0 +1,90 @@
+﻿@model SubsidyVariationModel
+
+@{
+    Layout = "_AdminPopupLayout";
+
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Variation.Edit").Text;
+}
+
+<form asp-controller="Subsidy" asp-action="SubsidyVariationEditPopup"
+      asp-route-btnRefreshId="@Context.Request.Query["btnRefreshId"]">
+    <div class="container-fluid">
+        <div class="content-header clearfix">
+            <h1 class="float-left">
+                @T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Variation.Edit") - @Model.Subsidy - @Model.PackName
+            </h1>
+            <div class="float-right">
+                <button type="submit" name="save" class="btn btn-primary">
+                    <i class="far fa-save"></i>
+                    @T("Admin.Common.Save")
+                </button>
+            </div>
+        </div>
+        <div asp-validation-summary="All"></div>
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="SubsidyPackNameId" type="hidden" />
+
+        @if (ViewBag.RefreshPage == true)
+        {
+            <script>
+                try { window.opener.document.getElementById('@(Context.Request.Query["btnRefreshId"])').click(); }
+                catch (e) { }
+                window.close();
+            </script>
+        }
+
+        <section class="content">
+            <div class="container-fluid">
+                <div class="form-horizontal">
+                    <div class="cards-group">
+                        <div class="card card-default card-popup">
+                            <div class="card-body">
+                                @if (Model.PackNamesOwnGlobalValue)
+                                {
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="Credit" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-editor asp-for="Credit" />
+                                            <span asp-validation-for="Credit"></span>
+                                        </div>
+                                    </div>
+                                }
+                                @if (Model.PackNamesOwnStartAndFinishDates)
+                                {
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="DurationStart" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <nop-editor asp-for="DurationStart" />
+                                            <span asp-validation-for="DurationStart"></span>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="DurationEnd" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <nop-editor asp-for="DurationEnd" />
+                                            <span asp-validation-for="DurationEnd"></span>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="Reason" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="Reason" />
+                                        <span asp-validation-for="Reason"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</form>

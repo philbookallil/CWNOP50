@@ -1,0 +1,35 @@
+﻿@{
+    Layout = "_AdminPopupLayout";
+
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.PackNames.AddPackName").Text;
+}
+
+<form asp-controller="MultiStore" asp-action="CustomerPackNameCannotCreatePopup">
+    <div class="container-fluid">
+        <div class="content-header clearfix">
+            <h1 class="float-left">
+                @T("Plugins.CW.Core.Admin.PackNames.AddPackName")
+            </h1>
+            <div class="float-right">
+                <button type="button" class="btn btn-danger" onclick="window.close(); return false;">
+                    <i class="fas fa-times"></i>
+                    @T("Admin.Common.Cancel")
+                </button>
+            </div>
+        </div>
+        <section class="content">
+            <div class="container-fluid">
+                <div class="form-horizontal">
+                    <div class="cards-group">
+                        <div class="card card-default card-popup">
+                            <div class="card-body">
+                                @T("Plugins.CW.Core.Admin.Customers.Customers.PackName.CannotAddPackName")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</form>

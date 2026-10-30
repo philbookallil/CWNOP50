@@ -1,0 +1,39 @@
+﻿@model Nop.Plugin.CW.Core.Models.PackNames.PackNameImportModel
+
+@{
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.PackNames.PackName.ImportXls").Text;
+
+    //active menu item (system name)
+    NopHtml.SetActiveMenuItemSystemName(CWCoreDefaults.MultiStoreAdminMenuSystemName);
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/PackName/packname-import.css");
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/PackName/packname-import.js");
+
+    Model.TemplateUrl = Url.Action("ImportPackNamesTemplate", "MultiStore", new { storeId = Model.StoreId });
+    Model.ImportUrl = Url.Action("ImportPackNames", "MultiStore");
+    Model.ErrorReportUrl = Url.Action("ImportPackNamesErrorReport", "MultiStore");
+}
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        @Model.StoreName - @T("Plugins.CW.Core.PackNames.PackName.ImportXls")
+        <small>
+            <i class="fas fa-arrow-circle-left"></i>
+            <a href="@(Url.Action("Edit", "MultiStore", new { id = Model.StoreId }))#packnames">@T("Plugins.CW.Core.Admin.PackNames.Import.BackToPackNames")</a>
+        </small>
+    </h1>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card card-default">
+            <div class="card-body">
+                <div class="packname-import-page">
+                    <div class="page-body">
+                        @await Html.PartialAsync("~/Plugins/CW.Core/Views/PackName/_PackNameImport.cshtml", Model)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,43 @@
+﻿@model AddressModel
+
+@{
+	var addressLine = string.Empty;
+
+	if (Model.StreetAddressEnabled && !string.IsNullOrEmpty(Model.Address1))
+	{
+		addressLine += Model.Address1;
+	}
+	else if (Model.CompanyEnabled && !string.IsNullOrEmpty(Model.Company))
+	{
+		addressLine += Model.Company;
+	}
+	else
+	{
+		addressLine += $"{Model.FirstName} {Model.LastName}";
+	}
+
+	addressLine += ", ";
+
+	if (Model.CityEnabled && !string.IsNullOrEmpty(Model.City))
+	{
+		addressLine += Model.City;
+	}
+	else if (Model.CountyEnabled && !string.IsNullOrEmpty(Model.County))
+	{
+		addressLine += Model.County;
+	}
+	else if (Model.StateProvinceEnabled && !string.IsNullOrEmpty(Model.StateProvinceName))
+	{
+		addressLine += Model.StateProvinceName;
+	}
+	else if (Model.ZipPostalCodeEnabled && !string.IsNullOrEmpty(Model.ZipPostalCode))
+	{
+		addressLine += Model.ZipPostalCode;
+	}
+	else
+	{
+		addressLine += Model.Email;
+	}
+}
+
+@addressLine

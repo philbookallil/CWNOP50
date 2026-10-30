@@ -1,0 +1,110 @@
+﻿@model BulkOrderingModel
+
+@{
+    Layout = "_ColumnsOne";
+    NopHtml.AppendPageCssClassParts("html-bulk-ordering-page");
+    NopHtml.AddTitleParts(T("Plugins.CW.Core.BulkOrder.PageTitle").Text);
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/BulkOrder/bulk-order.css");
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/BulkOrder/bulk-order.js");
+}
+
+<div class="page bulk-ordering-page">
+    <div class="page-title"><h1>@T("Plugins.CW.Core.BulkOrder.PageTitle")</h1></div>
+
+    <div class="page-body">
+        <div class="bulk-order-controls">
+            <div class="bulk-order-controls-start">
+                <div class="bulk-order-filter">
+                    <label for="bulk-filter">@T("Plugins.CW.Core.BulkOrder.Filter")</label>
+                    <select id="bulk-filter" asp-items="Model.AvailableFilters"></select>
+                </div>
+                <div class="bulk-order-orders" id="bulk-orders-wrapper">
+                    <label for="bulk-order-id">@T("Plugins.CW.Core.BulkOrder.Order")</label>
+                    <select id="bulk-order-id" asp-items="Model.AvailableOrders"></select>
+                </div>
+                <div class="bulk-order-sort">
+                    <label for="bulk-sort">@T("Catalog.OrderBy")</label>
+                    <select id="bulk-sort" asp-items="Model.AvailableSortOptions"></select>
+                </div>
+                <div class="bulk-order-pagesize">
+                    <label for="bulk-pagesize">@T("Catalog.PageSize")</label>
+                    <select id="bulk-pagesize" asp-items="Model.AvailablePageSizes"></select>
+                </div>
+            </div>
+
+            @*View mode as two icon toggles, the control customers already know from the catalogue
+              (Views/Catalog/_CatalogSelectors.cshtml). The hidden input keeps the value where
+              buildQuery already reads it, so the request contract does not change.*@
+            <div class="bulk-order-controls-end">
+                <div class="bulk-order-viewmode" role="group" aria-label="@T("Catalog.ViewMode")">
+                    @foreach (var mode in Model.AvailableViewModes)
+                    {
+                        <button type="button"
+                                class="viewmode-icon @(mode.Selected ? "selected" : null)"
+                                data-viewmode="@mode.Value"
+                                title="@mode.Text"
+                                aria-pressed="@(mode.Selected ? "true" : "false")">
+                            @if (mode.Value == BulkOrderDefaults.VIEW_MODE_TILED)
+                            {
+                                <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                    <rect x="0" y="0" width="4" height="4" /><rect x="6" y="0" width="4" height="4" /><rect x="12" y="0" width="4" height="4" />
+                                    <rect x="0" y="6" width="4" height="4" /><rect x="6" y="6" width="4" height="4" /><rect x="12" y="6" width="4" height="4" />
+                                    <rect x="0" y="12" width="4" height="4" /><rect x="6" y="12" width="4" height="4" /><rect x="12" y="12" width="4" height="4" />
+                                </svg>
+                            }
+                            else
+                            {
+                                <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                    <rect x="0" y="1" width="4" height="4" /><rect x="6" y="2" width="10" height="2" />
+                                    <rect x="0" y="7" width="4" height="4" /><rect x="6" y="8" width="10" height="2" />
+                                    <rect x="0" y="13" width="4" height="3" /><rect x="6" y="13" width="10" height="2" />
+                                </svg>
+                            }
+                            <span class="bulk-order-sr-only">@mode.Text</span>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            @*the category is a control like the others, not a page*@
+            <input type="hidden" id="bulk-category-id" value="@Model.CategoryId" />
+            <input type="hidden" id="bulk-viewmode" value="@Model.ViewMode" />
+        </div>
+        @*live region: exists before any swap so the announcement is reliable. JS fills it from the pager.*@
+        <div id="bulk-order-status" class="bulk-order-sr-only" role="status" aria-live="polite"></div>
+
+        @*nav and list are one result: the tree depends on the filter, so it is swapped with the list*@
+        <div id="bulk-order-content" class="bulk-order-layout" aria-busy="false"
+             data-url="@Url.RouteUrl(CWCoreDefaults.BULKORDER_ITEMS)"
+             data-load-failed="@T("Plugins.CW.Core.BulkOrder.LoadFailed")"
+             data-add-url="@Url.RouteUrl(CWCoreDefaults.BULKORDER_ADDTOCART)"
+             data-added="@T("Plugins.CW.Core.BulkOrder.AddToCart.Added")"
+             data-some-failed="@T("Plugins.CW.Core.BulkOrder.AddToCart.SomeFailed")"
+             data-add-failed="@T("Plugins.CW.Core.BulkOrder.AddToCart.Failed")"
+             data-nothing="@T("Plugins.CW.Core.BulkOrder.AddToCart.Nothing")"
+             data-exceeds-stock="@T("ShoppingCart.QuantityExceedsStock")"
+             data-invalid-quantity="@T("Plugins.CW.Core.BulkOrder.InvalidQuantity")"
+             data-add-busy="@T("Plugins.CW.Core.BulkOrder.AddToCart.Busy")"
+             data-grid-busy="@T("Plugins.CW.Core.BulkOrder.Grid.Busy")"
+             data-grid-failed="@T("Plugins.CW.Core.BulkOrder.Grid.Failed")"
+             data-grid-lost="@T("Plugins.CW.Core.BulkOrder.Grid.QuantitiesLost")"
+             data-pins-lost="@T("Plugins.CW.Core.BulkOrder.PinsLost")"
+             data-typed-lost="@T("Plugins.CW.Core.BulkOrder.TypedLost")">
+            @await Html.PartialAsync("~/Plugins/CW.Core/Views/BulkOrder/_Content.cshtml", Model)
+        </div>
+
+        @*The add endpoint is a POST and the controller is [AutoValidateAntiforgeryToken]. This is where the
+          token the script sends comes from - without it every add returns 400 and the page has no way to say
+          why. It stays OUTSIDE #bulk-order-content on purpose: that element's contents are replaced on every
+          filter, sort, page-size or page change, and a token destroyed mid-session takes every add with it.
+          The "add everything" button used to live here for the same reason; it moved into _Items.cshtml beside
+          the pager, where its scope is visible, and its listener became delegated to pay for that.*@
+        @Html.AntiForgeryToken()
+    </div>
+</div>
+
+<script asp-location="Footer">
+    document.addEventListener('DOMContentLoaded', function () {
+        CW.BulkOrder.init();
+    });
+</script>

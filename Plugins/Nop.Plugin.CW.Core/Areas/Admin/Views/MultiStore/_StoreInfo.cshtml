@@ -1,0 +1,36 @@
+﻿@model MultiStoreModel
+
+<form asp-controller="MultiStore" asp-action="Edit" method="post" id="multistore-form">
+    <div asp-validation-summary="All"></div>
+    <input asp-for="Id" type="hidden" />
+    <div class="form-horizontal">
+	    <div class="card card-default">
+            <div class="card-body multistore-store-info">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="Name" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="Name" html-attributes="@(new { disabled = true })" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="Url" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="Url" html-attributes="@(new { disabled = true })" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="CompanyName" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="CompanyName" html-attributes="@(new { disabled = true })" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,151 @@
+@model ReasonRulesActionsModel
+
+@{
+    Layout = "_AdminPopupLayout";
+
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.LinkedActions.Title").Text;
+}
+
+@if (ViewBag.RefreshPage == true)
+{
+    <script>
+        try {window.opener. document.forms['@(Context.Request.Query["formId"])'].@(Context.Request.Query["btnId"]).click();}
+        catch (e){}
+        window.close();
+    </script>
+}
+
+<div asp-validation-summary="All"></div>
+
+<form asp-controller="ExchangesConfig" asp-action="AddLinkedActionsPopup"
+      asp-route-btnId="@Context.Request.Query["btnId"]"
+      asp-route-formId="@Context.Request.Query["formId"]"
+      method="post">
+
+    <div class="content-header clearfix">
+        <h1 class="float-left">
+            @T("Plugins.CW.Core.Admin.LinkedActions.Title")
+        </h1>
+        <div class="float-right">
+            <button type="submit" name="save" class="btn btn-primary">
+                <i class="far fa-floppy-disk"></i>
+                @T("Admin.Common.Save")
+            </button>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="form-horizontal">
+                <div class="cards-group">
+                    <div class="card card-default">
+                        <div class="card-body">
+                            <input asp-for="StoreId" type="hidden" />
+                            <input asp-for="ReturnReasonId" type="hidden" />
+                            <div class="form-group row">
+                                <div class="col-sm-3">
+                                    <nop-label asp-for="LinkedActionsIds" />
+                                </div>
+                                <div class="col-sm-9">
+                                    <nop-select asp-for="LinkedActionsIds" asp-items="Model.AvailableLinkedActions" asp-multiple="true" />
+                                    <span asp-validation-for="LinkedActionsIds" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</form>
+
+@if (Model.AvailableLinkedActions.Count == 0)
+{
+    @* nop's multi-select template makes the list a select2 control; with no action to link it is shown disabled *@
+    <script asp-location="Footer">
+        $(function () {
+            $('#@Html.IdFor(model => model.LinkedActionsIds)').prop('disabled', true).select2({ placeholder: 'No Actions' });
+        });
+    </script>
+}
+
+<style>
+    /* Select2 Multiselect Styling */
+    .select2-blue .select2-container--default {
+        width: 100% !important;
+    }
+
+        .select2-blue .select2-container--default .select2-selection--multiple {
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            background-color: #fff;
+            min-height: 38px;
+        }
+
+            .select2-blue .select2-container--default .select2-selection--multiple .select2-selection__choice {
+                background-color: #007bff;
+                border-color: #0062cc;
+                color: #fff;
+                padding: 2px 8px;
+                border-radius: 0.25rem;
+                margin: 2px 4px 2px 0;
+            }
+
+            .select2-blue .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+                color: #fff;
+                margin-right: 5px;
+                cursor: pointer;
+            }
+
+                .select2-blue .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+                    color: rgba(255, 255, 255, 0.8);
+                }
+
+    .select2-blue .select2-container--focus .select2-selection--multiple {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .select2-blue .select2-container--default.select2-container--disabled .select2-selection--multiple {
+        background-color: #e9ecef;
+        opacity: 1;
+        cursor: not-allowed;
+    }
+
+    /* Dropdown styling */
+    .select2-blue .select2-dropdown {
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        margin-top: 2px;
+    }
+
+    .select2-blue .select2-results__option {
+        padding: 8px 10px;
+    }
+
+    .select2-blue .select2-results__option--highlighted[aria-selected] {
+        background-color: #007bff;
+        color: #fff;
+    }
+
+    .select2-blue .select2-results__option[aria-selected=true] {
+        background-color: #e9ecef;
+        color: #212529;
+    }
+
+    .select2-blue .select2-search__field {
+        border-color: #ced4da;
+    }
+
+    /* Popup modal adjustments */
+    .select2-blue.select2-container--open .select2-dropdown {
+        z-index: 1050;
+    }
+
+    /* Empty state styling */
+    .select2-blue .select2-container--disabled .select2-selection--multiple .select2-selection__rendered {
+        color: #6c757d;
+    }
+</style>

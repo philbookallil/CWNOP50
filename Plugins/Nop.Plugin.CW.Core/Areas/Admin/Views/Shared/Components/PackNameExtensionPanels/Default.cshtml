@@ -1,0 +1,13 @@
+@model IList<PackNamePanelModel>
+
+@foreach (var panel in Model)
+{
+    <div class="card card-default">
+        <div class="card-header">
+            <span class="ms-card-title">@panel.Title</span>
+        </div>
+        <div class="card-body">
+            @await Component.InvokeAsync(panel.ViewComponentName, panel.AdditionalData)
+        </div>
+    </div>
+}

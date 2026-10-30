@@ -1,0 +1,33 @@
+﻿@model string
+
+@*THE BULK TOOLBAR OF A PACKNAME GRID. The model is the toolbar's element id. The buttons do nothing on their own:
+  Admin.PackNameBulk.bind (Content/Admin/MultiStore/admin.packname.bulk.js), called by the grid's partial, binds them
+  and keeps the count, the disabled state and the export label in step with the grid's selection.*@
+<div class="pn-bulk-toolbar" id="@Model">
+    <span class="pn-bulk-count"></span>
+    <div class="btn-group btn-group-sm pn-bulk-actions" role="group">
+        <button type="button" class="btn btn-default pn-bulk-action" data-bulk-action="Activate" disabled>
+            <i class="fas fa-toggle-on" aria-hidden="true"></i>
+            @T("Plugins.CW.Core.Admin.PackNames.Bulk.Activate")
+        </button>
+        <button type="button" class="btn btn-default pn-bulk-action" data-bulk-action="Deactivate" disabled>
+            <i class="fas fa-toggle-off" aria-hidden="true"></i>
+            @T("Plugins.CW.Core.Admin.PackNames.Bulk.Deactivate")
+        </button>
+        <button type="button" class="btn btn-default pn-bulk-action" data-bulk-action="Move" disabled>
+            <i class="fas fa-share-square" aria-hidden="true"></i>
+            @T("Plugins.CW.Core.Admin.PackNames.Bulk.Move")
+        </button>
+        <button type="button" class="btn btn-default pn-bulk-action pn-bulk-action-danger" data-bulk-action="Delete" disabled>
+            <i class="far fa-trash-alt" aria-hidden="true"></i>
+            @T("Plugins.CW.Core.Admin.PackNames.Bulk.Delete")
+        </button>
+    </div>
+    <button type="button" class="btn btn-link btn-sm pn-bulk-clear" hidden>
+        @T("Plugins.CW.Core.Admin.PackNames.Bulk.ClearSelection")
+    </button>
+    <button type="button" class="btn btn-success btn-sm pn-bulk-export">
+        <i class="fas fa-file-excel" aria-hidden="true"></i>
+        <span class="pn-bulk-export-label">@T("Plugins.CW.Core.Admin.PackNames.Bulk.Export")</span>
+    </button>
+</div>

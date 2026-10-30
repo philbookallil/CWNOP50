@@ -1,0 +1,28 @@
+﻿@model SubsidyTopupInputModel
+
+<form id="subsidy-topup-form" class="cw-dialog-form">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="message-error"></div>
+    @Html.HiddenFor(m => m.SubsidyPackNameId)
+
+    <div class="cw-dialog-form-context">
+        <div class="cw-dialog-form-name">@Model.PackNameName</div>
+        <div class="cw-dialog-form-subtitle">@Model.SubsidyName</div>
+    </div>
+
+    <div class="cw-dialog-field">
+        <label asp-for="Credit">@T("Plugins.CW.Core.Subsidy.Topup.Fields.Credit")</label>
+        <input asp-for="Credit" type="number" step="0.01" min="0.01" />
+        <span asp-validation-for="Credit" class="field-validation-error"></span>
+    </div>
+
+    <div class="cw-dialog-field">
+        <label asp-for="Reason">@T("Plugins.CW.Core.Subsidy.Topup.Fields.Reason")</label>
+        <textarea asp-for="Reason" maxlength="255"></textarea>
+        <span asp-validation-for="Reason" class="field-validation-error"></span>
+    </div>
+
+    <button type="button" class="cw-dialog-save-btn" onclick="saveSubsidyTopup()">
+        @T("Plugins.CW.Core.ChangeTopup.Save")
+    </button>
+</form>

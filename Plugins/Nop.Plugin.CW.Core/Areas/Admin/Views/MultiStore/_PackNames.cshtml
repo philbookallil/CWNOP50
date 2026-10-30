@@ -1,0 +1,525 @@
+﻿@model PackNameSearchModel
+
+@{
+    const string hideSearchBlockAttributeName = "MultiStorePackNamesPage.HideSearchBlock";
+    var hideSearchBlock = await genericAttributeService.GetAttributeAsync<bool>(await workContext.GetCurrentCustomerAsync(), hideSearchBlockAttributeName);
+}
+
+<section id="packnames-table-container" class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="cards-group">
+                <div class="card card-default">
+                    <div class="card-header d-flex align-items-center">
+                        <span class="ms-card-title">
+                            @T("Plugins.CW.Core.Admin.MultiStores.PackNames")
+                        </span>
+                        <div class="ml-auto">
+                            <a href="@Url.Action("ImportPackNames", "MultiStore", new { storeId = Model.StoreId })"
+                               class="btn btn-success btn-sm">
+                                <i class="fas fa-file-excel" aria-hidden="true"></i>
+                                @T("Plugins.CW.Core.Admin.PackNames.ImportFromExcel")
+                            </a>
+                            <button type="button"
+                                    class="btn btn-primary btn-add-pn btn-sm">
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                                @T("Plugins.CW.Core.Admin.PackNames.AddNew")
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card card-default card-search">
+                        <div class="card-body">
+                            <div class="row search-row @(!hideSearchBlock ? "opened" : "")" data-hideAttribute="@hideSearchBlockAttributeName">
+                                <div class="search-text">@T("Admin.Common.Search")</div>
+                                <div class="icon-search"><i class="fas fa-search" aria-hidden="true"></i></div>
+                                <div class="icon-collapse"><i class="far fa-angle-@(!hideSearchBlock ? "up" : "down")" aria-hidden="true"></i></div>
+                            </div>
+                            <div class="search-body @(hideSearchBlock ? "closed" : "")">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="SearchPackName" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-editor asp-for="SearchPackName" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="SearchEmail" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-editor asp-for="SearchEmail" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="SearchPackNameType" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-select asp-for="SearchPackNameType" asp-items="Model.AvailablePackNameTypes" />
+                                            </div>
+                                        </div>
+                                        @if (Model.MultiStoreSettingsModel.GenderEnabled)
+                                        {
+                                            <div class="form-group row">
+                                                <div class="col-md-4">
+                                                    <nop-label asp-for="SearchGender" />
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <nop-select asp-for="SearchGender" asp-items="Model.AvailableGenders" />
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="SearchBranchName" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-editor asp-for="SearchBranchName" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="SearchDepartmentId" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-select asp-for="SearchDepartmentId" asp-items="Model.AvailableDepartments" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="SearchCostCenterId" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-select asp-for="SearchCostCenterId" asp-items="Model.AvailableCostCenters" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="SearchManager" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-select asp-for="SearchManager" asp-items="Model.AvailableManagerOptions" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="text-center col-12">
+                                        <button type="button" id="search-packnames" class="btn btn-primary btn-search"><i class="fas fa-search"></i>@T("Admin.Common.Search")</button>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-12 customers-without-packname">
+                                        <a title="@T("Plugins.CW.Core.Admin.PackNames.ShowCustomersWithoutPackName.Hint")" onclick="javascript:OpenWindow('@(Url.Action("CustomersWithNoPackNamePopup", "MultiStore", new {storeId = Model.StoreId}))', 800, 600, true); return false;">
+                                            <i class="far fa-eye"></i>
+                                            @T("Plugins.CW.Core.Admin.PackNames.ShowCustomersWithoutPackName")
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card card-default">
+                    <div class="card-body">
+                        @await Html.PartialAsync("_PackNames.BulkToolbar", "packnames-bulk-toolbar")
+                        @{
+                            var gridModel = new DataTablesModel
+                            {
+                                Name = "packnames-grid",
+                                UrlRead = new DataUrl("PackNamesList", "MultiStore", new RouteValueDictionary { [nameof(Model.StoreId)] = Model.StoreId }),
+                                UrlDelete = new DataUrl("DeletePackName", "MultiStore", null),
+                                SearchButtonId = "search-packnames",
+                                Length = Model.PageSize,
+                                LengthMenu = Model.AvailablePageSizes,
+                                Filters = new List<FilterParameter>
+                                {
+                                    new FilterParameter(nameof(Model.SearchPackName)),
+                                    new FilterParameter(nameof(Model.SearchEmail)),
+                                    new FilterParameter(nameof(Model.SearchPackNameType)),
+                                    new FilterParameter(nameof(Model.SearchGender)),
+                                    new FilterParameter(nameof(Model.SearchBranchName)),
+                                    new FilterParameter(nameof(Model.SearchDepartmentId)),
+                                    new FilterParameter(nameof(Model.SearchCostCenterId)),
+                                    new FilterParameter(nameof(Model.SearchManager)),
+                                },
+                                ColumnCollection = new List<ColumnProperty>()
+                            };
+
+                            //THE BULK SELECTION'S OWN CHECKBOXES, not nop's IsMasterCheckBox: nop keeps one selectedIds for
+                            //the whole page, and this page holds a grid per open packname list besides this one
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Id))
+                            {
+                                Title = "<input type=\"checkbox\" class=\"pn-bulk-page\" aria-label=\"" + System.Net.WebUtility.HtmlEncode(T("Plugins.CW.Core.Admin.PackNames.Bulk.SelectPage").Text) + "\" />",
+                                Width = "40",
+                                ClassName = NopColumnClassDefaults.CenterAll,
+                                Render = new RenderCustom("Admin.PackNameBulk.render.check")
+                            });
+
+                            if (Model.MultiStoreSettingsModel.EmployeeNumberEnabled)
+                            {
+                                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.EmployeeNumber))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.EmployeeNumber").Text
+                                });
+                            }
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Name))
+                            {
+                                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Name").Text
+                            });
+
+                            if (Model.MultiStoreSettingsModel.PrintNameEnabled)
+                            {
+                                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.PrintName))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.PrintName").Text
+                                });
+                            }
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Branch))
+                            {
+                                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Branch").Text
+                            });
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Department))
+                            {
+                                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Department").Text
+                            });
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.CostCenter))
+                            {
+                                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.CostCenter").Text
+                            });
+
+                            if (Model.MultiStoreSettingsModel.GenderEnabled)
+                            {
+                                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Gender))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                    Render = new RenderCustom("Admin.StoreNav.render.gender")
+                                });
+                            }
+
+                            if (Model.MultiStoreSettingsModel.POEntryEnabled)
+                            {
+                                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.POEntry))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.POEntry").Text
+                                });
+                            }
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Group))
+                            {
+                                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Group").Text,
+                                Width = "100",
+                                ClassName = NopColumnClassDefaults.CenterAll,
+                                Render = new RenderBoolean()
+                            });
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.IsCustomer))
+                            {
+                                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.IsCustomer").Text,
+                                Width = "100",
+                                ClassName = NopColumnClassDefaults.CenterAll,
+                                Render = new RenderBoolean()
+                            });
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Manager))
+                            {
+                                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Manager").Text,
+                                Width = "100",
+                                ClassName = NopColumnClassDefaults.CenterAll,
+                                Render = new RenderBoolean()
+                            });
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Active))
+                            {
+                                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Active").Text,
+                                Width = "100",
+                                ClassName = NopColumnClassDefaults.CenterAll,
+                                Render = new RenderBoolean()
+                            });
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Id))
+                            {
+                                Title = T("Admin.Common.Edit").Text,
+                                Width = "100",
+                                ClassName = NopColumnClassDefaults.Button,
+                                Render = new RenderCustom("Admin.StoreNav.render.tabEdit")
+                            });
+
+                            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Id))
+                            {
+                                Title = T("Admin.Common.Delete").Text,
+                                Width = "100",
+                                ClassName = NopColumnClassDefaults.Button,
+                                Render = new RenderCustom("Admin.StoreNav.render.tabDelete")
+                            });
+                        }
+
+                        @await Html.PartialAsync("Table", gridModel)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<div id="packname-container" style="display: none;"></div>
+
+@* EVERY RAZOR VALUE THIS TAB'S SCRIPT NEEDS ARRIVES THROUGH HERE.
+   The script below is then plain JavaScript: no Model, no T(), no Url.Action inside a <script>,
+   so nothing is HTML-encoded on its way into a string literal and the bundler can minify it. *@
+<div class="pn-tab-config"
+     data-store-id="@Model.StoreId"
+     data-detail-url="@Url.Action("PackNameDetail", "MultiStore")"
+     data-delete-url="@Url.Action("DeletePackName", "MultiStore")"
+     data-bulk-url="@Url.Action("BulkPackNames", "MultiStore")"
+     data-export-url="@Url.Action("ExportPackNames", "MultiStore")"
+     data-move-targets-url="@Url.Action("PackNameBulkMoveTargets", "MultiStore")"
+     data-bulk-max="@Nop.Plugin.CW.Core.Services.PackNames.Bulk.PackNameBulkDefaults.MaxPackNames"
+     style="display: none;"></div>
+
+<script>
+    (function () {
+        var $panel = $('#tab-panel-packnames');
+        var $cfg = $panel.find('.pn-tab-config');
+
+        var gridSel   = '#packnames-grid';
+        var storeId   = $cfg.data('storeId');
+        var detailUrl = $cfg.data('detailUrl');
+        var deleteUrl = $cfg.data('deleteUrl');
+
+        //THE PANEL NODE OUTLIVES THE PARTIAL. loadPartial only swaps innerHTML, so without this
+        //every delegated handler from the previous tab load is still attached and each click
+        //fires one more time than the load before it.
+        $panel.off('.pntab');
+        $('#tab-packnames').off('click.pntab');
+
+        function refreshGrid() {
+            updateTable(gridSel);
+        }
+
+        function showPackNamesList(show) {
+            if (show) {
+                $('#packnames-table-container').show();
+                $('#packname-container').hide();
+            } else {
+                $('#packnames-table-container').hide();
+                $('#packname-container').show();
+            }
+        }
+
+        function loadPackName(packNameId) {
+            var $detail = $('#packname-container');
+
+            $detail.html('<div class="ms-loading-message">' + Admin.StoreNav.res('common.loading', 'Loading...') + '</div>');
+
+            showPackNamesList(false);
+
+            $.get(detailUrl, { storeId: storeId, packNameId: packNameId })
+                .done(function (html) {
+                    $detail.html(html);
+                    bindPackNameDetailEvents();
+                })
+                .fail(function (xhr) {
+                    if (xhr.statusText === 'abort') return;
+                    $detail.html('<div class="ms-error-message">' + Admin.StoreNav.res('common.failedToLoad', 'Failed to load.')
+                        + ' <a href="javascript:void(0)" class="pn-retry">' + Admin.StoreNav.res('common.retry', 'Retry') + '</a></div>');
+                });
+        }
+
+        function exitPackNameDetails() {
+            //THE TEARDOWN FOR THIS TAB'S DETAIL. Back, and anything else that closes the panel, comes
+            //through here - so the unsaved-edit question is asked here rather than at each caller.
+            if (!Admin.StoreNav.canLeaveForm()) return;
+
+            Admin.StoreNav.navigate({ packNameId: null }, false);
+            refreshGrid();
+            showPackNamesList(true);
+        }
+
+        function bindPackNameDetailEvents() {
+            //WAS THIS A CREATE? Read it from the form BEFORE the post - the save reply carries no
+            //reliable flag for it, and it is what decides whether the panel reloads for a new id.
+            var wasNew = String($('#packname-detail-form').find('[name="IsNew"]').val()).toLowerCase() === 'true';
+
+            //Baseline for the unsaved-edit gate. The gate itself lives inside exitPackNameDetails().
+            //PARSE THE VALIDATION RULES. This form is injected by AJAX long after document.ready, so
+            //unobtrusive never saw it and $form.valid() below was answering for a form with no
+            //validator attached - it returns true, so nothing was ever checked in the browser and every
+            //empty field round-tripped to the server. bindFocusForm (admin.store.navigation.js:694) and
+            //the branch form have always done this; these five never did.
+            $.validator.unobtrusive.parse($('#packname-detail-form'));
+            Admin.StoreNav.watchForm($('#packname-detail-form'));
+            Admin.StoreNav.consumeSavedFlash($('#packname-detail-form'));
+
+            // Back button
+            $('#btn-packname-back').on('click', function () {
+                exitPackNameDetails();
+            });
+
+            // Save packName
+            $('#btn-packname-save').on('click', function () {
+                var $btn = $(this);
+                var $form = $('#packname-detail-form');
+
+                if (!$form.valid()) return;
+                $btn.prop('disabled', true).text(Admin.StoreNav.res('common.saving', 'Saving...'));
+
+                $.ajax({
+                    type: 'POST',
+                    url: $form.attr('action'),
+                    data: $form.serialize(),
+                    success: function (result, status, xhr) {
+                        $btn.prop('disabled', false).text(Admin.StoreNav.res('common.save', 'Save'));
+                        var ct = xhr.getResponseHeader('Content-Type') || '';
+                        if (ct.indexOf('text/html') !== -1) {
+                            // Validation failed — swap HTML and re-bind.
+                            //NOTHING WAS WRITTEN, so the form stays dirty and takes no stamp.
+                            $('#packname-container').html(result);
+                            bindPackNameDetailEvents();
+                            //AFTER THE RE-BIND, not before: binding the swapped-in form takes a fresh
+                            //baseline from the posted values, which would read as clean. The rejected
+                            //edits are real work, so the form must still ask before it is abandoned.
+                            Admin.StoreNav.markFormDirty($('#packname-detail-form'));
+                            return;
+                        }
+                        //JSON REFUSAL. A {success:false} payload is not a saved record: reloading for
+                        //its id would open a panel for something that was never written.
+                        if (result && result.success === false) {
+                            display_nop_error({ error: result.error || result.message || Admin.StoreNav.res('common.serverError', 'A server error occurred. Please try again.') });
+                            return;
+                        }
+
+                        if (result) {
+                            Admin.StoreNav.cacheName('pn', String(result.id), result.name);
+                        }
+
+                        //SAVE NEVER NAVIGATES. On an edit the panel already shows what was saved, so it
+                        //stays and takes the stamp. On a create it reloads for the new id, which is what
+                        //turns "save this first" into the working child grid - those grids are
+                        //server-built DataTables with the id baked into UrlRead, so they cannot be
+                        //unlocked client-side. The grid behind is refreshed by exitPackNameDetails() on the way out.
+                        Admin.StoreNav.watchForm($form);
+                        if (wasNew && result) {
+                            Admin.StoreNav.flashSavedAfterReload();
+                            Admin.StoreNav.navigate({ packNameId: String(result.id) }, false);
+                            loadPackName(result.id);
+                            return;
+                        }
+                        Admin.StoreNav.markSaved($form);
+                    },
+                    error: function () {
+                        $btn.prop('disabled', false).text(Admin.StoreNav.res('common.save', 'Save'));
+                        display_nop_error({ error: Admin.StoreNav.res('common.serverError', 'A server error occurred. Please try again.') });
+                    }
+                });
+            });
+
+            // Delete packName
+            $('#btn-packname-delete').on('click', function () {
+                var id = $(this).data('id');
+                if (!confirm(Admin.StoreNav.res('packNames.confirmDelete', 'Are you sure?'))) return;
+
+                var postData = { id: id };
+                addAntiForgeryToken(postData);
+
+                $.post($(this).data('url'),
+                    postData,
+                    function (result) {
+                        if (!result.success) {
+                            display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') });
+                            return;
+                        }
+                        //The record is gone, so there is nothing left to save and nothing to ask about.
+                        Admin.StoreNav.releaseForm($('#packname-detail-form'));
+                        exitPackNameDetails();
+                    }
+                );
+            });
+        }
+
+        // ── Grid: retry link on a failed detail load ───────────────────────
+        $panel.on('click.pntab', '.pn-retry', function () {
+            location.reload();
+        });
+
+        // ── Grid: edit packName → focus mode ───────────────────────────────
+        //THE NAME COMES FROM THE GRID, NOT FROM THE MARKUP. The row is already in the DataTable,
+        //so nothing has to be escaped into an attribute - which is exactly what the old
+        //onclick="editPackName(id, 'row.Name')" render was failing to do.
+        $panel.on('click.pntab', '.btn-tab-edit', function () {
+            var id = String($(this).data('id'));
+            var row = $(gridSel).DataTable().row($(this).closest('tr')).data() || {};
+
+            Admin.StoreNav.cacheName('pn', id, row.Name || '');
+            Admin.StoreNav.navigate({ packNameId: id }, false);
+            loadPackName(id);
+        });
+
+        // ── Grid: delete packName ──────────────────────────────────────────
+        $panel.on('click.pntab', '.btn-tab-delete', function () {
+            var id = $(this).data('id');
+            if (!confirm(Admin.StoreNav.res('packNames.confirmDelete', 'Are you sure?'))) return;
+
+            var postData = { id: id };
+            addAntiForgeryToken(postData);
+
+            $.post(deleteUrl, postData, function (result) {
+                if (!result.success) {
+                    display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') });
+                    return;
+                }
+                Admin.PackNameBulk.unselect(gridSel, id);
+                refreshGrid();
+            });
+        });
+
+        // ── Add packName → focus mode ──────────────────────────────────────
+        $panel.on('click.pntab', '.btn-add-pn', function () {
+            Admin.StoreNav.cacheName('pn', '0', Admin.StoreNav.res('new.packName', 'New packName'));
+            Admin.StoreNav.navigate({ packNameId: 0 }, false);
+            loadPackName(0);
+        });
+
+        $('#tab-packnames').on('click.pntab', function () {
+            showPackNamesList(true);
+        });
+
+        // ── Bulk actions and export ────────────────────────────────────────
+        Admin.PackNameBulk.bind({
+            panel: $panel,
+            grid: gridSel,
+            toolbar: '#packnames-bulk-toolbar',
+            storeId: storeId,
+            packNameListId: 0,
+            bulkUrl: $cfg.data('bulkUrl'),
+            exportUrl: $cfg.data('exportUrl'),
+            moveTargetsUrl: $cfg.data('moveTargetsUrl'),
+            max: $cfg.data('bulkMax'),
+            filters: {
+                SearchPackName: '#SearchPackName',
+                SearchEmail: '#SearchEmail',
+                SearchPackNameType: '#SearchPackNameType',
+                SearchGender: '#SearchGender',
+                SearchBranchName: '#SearchBranchName',
+                SearchDepartmentId: '#SearchDepartmentId',
+                SearchCostCenterId: '#SearchCostCenterId',
+                SearchManager: '#SearchManager'
+            }
+        });
+
+        var packNameId = Admin.StoreNav.getState().packNameId;
+        if (packNameId) {
+            loadPackName(packNameId);
+        }
+    })();
+</script>

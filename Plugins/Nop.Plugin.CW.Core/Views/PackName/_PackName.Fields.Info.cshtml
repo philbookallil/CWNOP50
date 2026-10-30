@@ -1,0 +1,160 @@
+﻿@model PackNameRegisterModel
+
+@{
+    var packNameTitleText = Model.Id > 0 ? T("Plugins.CW.Core.PackNames.Edit") : T("Plugins.CW.Core.PackNames.Add");
+    var groupTitleText = Model.Id > 0 ? T("Plugins.CW.Core.PackNames.EditGroup") : T("Plugins.CW.Core.PackNames.AddGroup");
+
+    var titleText = Model.Group ? groupTitleText : packNameTitleText;
+
+    // Determine initial icon class from model state
+    var iconClass = Model.Group ? "packname-group" 
+                  : Model.IsCustomer ? "packname-customer" 
+                  : "packname-no-customer";
+
+    if (string.IsNullOrEmpty(Model.Colour))
+    {
+        var random = new Random();
+        Model.Colour = $"#{random.Next(0x1000000):X6}";
+    }
+
+    var dialogId = Model.Id > 0 ? $"dialog-edit-packName-{Model.Id}" : "dialog-add-packName";
+}
+
+<script asp-location="Footer">
+    $(document).ready(function () {
+        var $dialogTitle = $('#@dialogId').closest(".ui-dialog").find(".ui-dialog-title");
+        var svgGroupIcon = '<svg class="packname-group cw-icon" aria-hidden="true"><use href="/Plugins/CW.Core/Content/icons/cw-icons.svg#cw-icon-group"/></svg>';
+        var svgCustomerIcon = '<svg class="packname-customer cw-icon" aria-hidden="true"><use href="/Plugins/CW.Core/Content/icons/cw-icons.svg#cw-icon-customer"/></svg>';
+        var svgNoCustomerIcon = '<svg class="packname-no-customer cw-icon" aria-hidden="true"><use href="/Plugins/CW.Core/Content/icons/cw-icons.svg#cw-icon-person"/></svg>';
+
+        $dialogTitle.html('<div class="packname-dialog-title"><div class="packname-register-title-icon @iconClass" style="color: @Model.Colour">' + svgGroupIcon + svgCustomerIcon + svgNoCustomerIcon + '</div><span class="packname-title-text">@titleText</span></div>')
+    });
+</script>
+
+<div class="fieldset">
+    <div class="form-fields">
+        <div class="inputs">
+            <label asp-for="BranchId" asp-postfix=":"></label>
+            <select asp-for="BranchId" asp-items="Model.AvailableBranches"></select>
+            <nop-required />
+            <span asp-validation-for="BranchId"></span>
+        </div>
+        @if (Model.AvailableDepartments != null && Model.AvailableDepartments.Count > 1)
+        {
+            <div class="inputs">
+                <label asp-for="DepartmentId" asp-postfix=":"></label>
+                <select asp-for="DepartmentId" asp-items="Model.AvailableDepartments"></select>
+                <span asp-validation-for="DepartmentId"></span>
+            </div>
+        }
+        @if (Model.AvailableCostCenters != null && Model.AvailableCostCenters.Count > 1)
+        {
+            <div class="inputs">
+                <label asp-for="CostCenterId" asp-postfix=":"></label>
+                <select asp-for="CostCenterId" asp-items="Model.AvailableCostCenters"></select>
+                <span asp-validation-for="CostCenterId"></span>
+            </div>
+        }
+        <div class="inputs">
+            <label asp-for="Group"></label>
+            <input asp-for="Group" />
+        </div>
+        <script asp-location="Footer">
+            $(document).ready(function () {
+                function updateTitleIcon() {
+                    var $icon = $('.packname-register-title-icon');
+                    var isGroup = $('#@Html.IdFor(model => model.Group)').is(':checked');
+                    var isCustomer = $('#@Html.IdFor(model => model.IsCustomer)').is(':checked') || @(Model.IsCustomer ? "true" : "false");
+    
+                    $icon.removeClass('packname-group packname-customer packname-no-customer');
+    
+                    if (isGroup) {
+                        $icon.addClass('packname-group');
+                        $icon.removeClass('packname-customer packname-no-customer');
+                        $('#name-label').text('@T("Plugins.CW.Core.PackNames.PackName.Field.GroupName")');
+                        $('.packname-title-text').text('@groupTitleText');
+                    } else if (isCustomer) {
+                        $icon.addClass('packname-customer');
+                        $icon.removeClass('packname-no-customer packname-group');
+                        $('#name-label').text('@T("Plugins.CW.Core.PackNames.PackName.Field.Name")');
+                        $('.packname-title-text').text('@packNameTitleText');
+                    } else {
+                        $icon.addClass('packname-no-customer');
+                        $icon.removeClass('packname-customer packname-group');
+                        $('#name-label').text('@T("Plugins.CW.Core.PackNames.PackName.Field.Name")');
+                        $('.packname-title-text').text('@packNameTitleText');
+                    }
+                }
+
+                $('#@Html.IdFor(model => model.Group)').click(updateTitleIcon);
+                updateTitleIcon();
+            });
+        </script>
+        @if (Model.EmployeeNumberEnabled)
+        {
+            <div class="inputs">
+                <label asp-for="EmployeeNumber" asp-postfix=":"></label>
+                <input asp-for="EmployeeNumber" />
+                <span asp-validation-for="EmployeeNumber"></span>
+            </div>
+        }
+        <div class="inputs">
+            <label id="name-label" asp-for="Name" asp-postfix=":"></label>
+            <input asp-for="Name" />
+            <nop-required />
+            <span asp-validation-for="Name"></span>
+        </div>
+        @if (Model.GenderEnabled)
+        {
+            <div class="inputs">
+                <label for="gender">@T("Account.Fields.Gender"):</label>
+                <div id="gender" class="gender">
+                    @foreach (var gender in Model.AvailableGenders)
+                    {
+                        <span class="@gender.Text">
+                            <input type="radio" asp-for="Gender" id="gender-@gender.Text" value="@gender.Value" checked="@(Model.Gender == gender.Value)" />
+                            <label class="forcheckbox" for="gender-@gender.Text">@gender.Text</label>
+                        </span>
+                    }
+                </div>
+                <span asp-validation-for="Gender"></span>
+            </div>
+        }
+        @if (Model.PrintNameEnabled)
+        {
+            <div class="inputs">
+                <label asp-for="PrintName" asp-postfix=":"></label>
+                <input asp-for="PrintName" />
+                <span asp-validation-for="PrintName"></span>
+            </div>
+        }
+        @if (Model.POEntryEnabled)
+        {
+            <div class="inputs">
+                <label asp-for="POEntry" asp-postfix=":"></label>
+                <input asp-for="POEntry" />
+                <span asp-validation-for="POEntry"></span>
+            </div>
+        }
+        <div class="inputs">
+            <label asp-for="Colour" asp-postfix=":"></label>
+            <input type="color" class="form-control form-control-color" id="Colour" name="Colour" value="@Model.Colour">
+            <span asp-validation-for="Colour"></span>
+        </div>
+        <script asp-location="Footer">
+            $(document).ready(function () {
+                $("#Colour").change(function () {
+                    $('.packname-register-title-icon').css('color', $(this).val());
+                });
+            });
+        </script>
+        @if (Model.CommentsEnabled)
+        {
+            <div class="inputs">
+                <label asp-for="Comments" asp-postfix=":"></label>
+                <input asp-for="Comments" />
+                <span asp-validation-for="Comments"></span>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,235 @@
+﻿@model ProductGroupModel
+
+<form id="productgroup-detail-form" class="ms-detail-form"
+        asp-controller="Subsidy"
+        asp-action="SaveProductGroup"
+        method="post">
+
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="StoreId" type="hidden" />
+    <input asp-for="IsNew" type="hidden" />
+
+    <div class="form-horizontal">
+        <div class="card card-default bp-card card-ms-section">
+
+            <div class="card-header d-flex align-items-center">
+                <button type="button"
+                        class="btn btn-sm btn-focus-back"
+                        id="btn-productgroup-back">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    @T("Plugins.CW.Core.Admin.Common.Back")
+                </button>
+
+                <span class="ms-card-title">
+                    @if (Model.IsNew)
+                    {
+                        @T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.New")
+                    }
+                    else
+                    {
+                        @Model.Name
+                    }
+                </span>
+        
+                <div class="ml-auto d-flex align-items-center" style="gap:6px">
+                    @*SAVE NEVER NAVIGATES: the panel stays put, so this is the only
+                      confirmation a save gets. Admin.StoreNav.markSaved() fills and shows it.*@
+                    <span class="ms-saved-stamp" style="display:none"></span>
+                    <button type="button"
+                            class="btn btn-primary btn-sm"
+                            id="btn-productgroup-save">
+                        @T("Admin.Common.Save")
+                    </button>
+                    @if (!Model.IsNew)
+                    {
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                id="btn-productgroup-delete"
+                                data-id="@Model.Id"
+                                data-url="@Url.Action("DeleteProductGroup", "Subsidy")">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                            @T("Admin.Common.Delete")
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Name" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Name" asp-required="true"/>
+                                <span asp-validation-for="Name"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Description" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Description" />
+                                <span asp-validation-for="Description"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Icon" />
+                            </div>
+                            <div class="col-md-2 product-group-icon-field">
+                                <input asp-for="Icon" type="hidden" id="Icon" />
+                                <span asp-validation-for="Icon"></span>
+
+                                <div class="pg-icon-selected-preview" id="pg-icon-preview">
+                                    @if (!string.IsNullOrEmpty(Model.Icon))
+                                    {
+                                        <div class="pg-icon-preview-item selected">
+                                            <svg class="pg-icon" style="color:@Model.Colour" aria-hidden="true">
+                                                <use href="/Plugins/CW.Core/Content/icons/pg-icons.svg#@Model.Icon"/>
+                                            </svg>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="pg-icon-none-selected">@T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Icon.NoneSelected")</span>
+                                    }
+                                </div>
+
+                                <button type="button" class="btn btn-sm btn-default mt-1" id="btn-toggle-icon-picker">
+                                    @T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Icon.Choose")
+                                </button>
+
+                                <div class="pg-icon-picker" id="pg-icon-picker" style="display:none">
+                                    @foreach (var item in Model.AvailableIcons)
+                                    {
+                                        if (string.IsNullOrEmpty(item.Value)) continue;
+                                        <div class="pg-icon-picker-item @(item.Value == Model.Icon ? "selected" : "")"
+                                             data-icon="@item.Value"
+                                             title="@item.Value.Replace("pg-icon-", "")">
+                                            <svg class="pg-icon" aria-hidden="true">
+                                                <use href="/Plugins/CW.Core/Content/icons/pg-icons.svg#@item.Value"/>
+                                            </svg>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="col-md-3 colour-field">
+                                <nop-label asp-for="Colour" />
+                            </div>
+                            <div class="col-md-3 colour-field product-group-colour-value">
+                                <nop-editor asp-for="Colour" html-attributes="@(new { id = "pg-colour-field" })" />
+                                <div id="pg-color-picker"></div>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="DisplayOrder" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="DisplayOrder" />
+                                <span asp-validation-for="DisplayOrder"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4"><nop-label asp-for="Active" /></div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Active" />
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @await Html.PartialAsync("_ProductGroups.ProductGroupDetail.Products", Model)
+</form>
+
+@* EVERY RAZOR VALUE THIS PANEL'S SCRIPT NEEDS ARRIVES THROUGH HERE, so the script is plain JavaScript. *@
+<div class="productgroup-detail-config"
+     data-label-choose="@T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Icon.Choose")"
+     data-label-close="@T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Icon.Close")"
+     style="display: none;"></div>
+
+<script>
+    (function () {
+        var $form = $('#productgroup-detail-form');
+        var $cfg = $form.next('.productgroup-detail-config');
+
+        var $picker  = $('#pg-icon-picker');
+        var $preview = $('#pg-icon-preview');
+        var $input   = $('#Icon');
+        var $toggle  = $('#btn-toggle-icon-picker');
+        var $colour  = $('#pg-colour-field');
+        var iconsUrl = '/Plugins/CW.Core/Content/icons/pg-icons.svg';
+        var labelChoose = $cfg.data('labelChoose');
+        var labelClose  = $cfg.data('labelClose');
+
+        function configureColor() {
+            if ($input.val())
+                $('.colour-field').show();
+            else
+                $('.colour-field').hide();
+        }
+
+        //THE PREVIEW IS PAINTED WITH THE GROUP'S COLOUR, as the storefront paints it. Choosing an
+        //icon and choosing a colour both repaint it.
+        function paintPreview() {
+            $preview.find('svg').css('color', $colour.val());
+        }
+
+        // Toggle picker open/close
+        $toggle.on('click', function () {
+            $picker.toggle();
+            $toggle.text($picker.is(':visible') ? labelClose : labelChoose);
+        });
+
+        // Select an icon
+        $picker.on('click', '.pg-icon-picker-item', function () {
+            var iconId = $(this).data('icon');
+
+            $input.val(iconId);
+
+            $picker.find('.pg-icon-picker-item').removeClass('selected');
+            $(this).addClass('selected');
+
+            $preview.html(
+                '<div class="pg-icon-preview-item selected">' +
+                '<svg class="pg-icon" aria-hidden="true">' +
+                '<use href="' + iconsUrl + '#' + iconId + '"/></svg>' +
+                '</div>'
+            );
+            paintPreview();
+
+            $picker.hide();
+            $toggle.text(labelChoose);
+
+            configureColor();
+        });
+
+        //THE WHEEL WRITES THE FIELD AND THE FIELD DRIVES THE WHEEL. farbtastic's callback form is
+        //used instead of linking it to the field, because the preview must repaint on the same event;
+        //the field is painted the way farbtastic's own link paints it, so it reads like the packname forms.
+        var wheel = $.farbtastic('#pg-color-picker', function (colour) {
+            $colour.val(colour).css({ backgroundColor: colour, color: wheel.hsl[2] > 0.5 ? '#000' : '#fff' });
+            paintPreview();
+        });
+        wheel.setColor($colour.val());
+
+        $colour.on('change keyup', function () {
+            if (/^#[0-9a-f]{6}$/i.test($colour.val())) {
+                wheel.setColor($colour.val());
+            }
+            paintPreview();
+        });
+
+        configureColor();
+    })();
+</script>

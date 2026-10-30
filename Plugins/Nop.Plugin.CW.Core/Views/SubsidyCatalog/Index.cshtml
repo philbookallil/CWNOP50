@@ -1,0 +1,39 @@
+﻿@model SubsidyCatalogModel
+
+@{
+    Layout = "_ColumnsOne";
+    NopHtml.AppendPageCssClassParts("html-subsidy-catalog-page");
+    NopHtml.AddTitleParts(T("Plugins.CW.Core.SubsidyCatalog.PageTitle").Text);
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/SubsidyCatalog/subsidy-catalog.js");
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/SubsidyCatalog/subsidy-catalog.css");
+}
+
+<div class="page subsidy-catalog-page">
+    <div class="page-body">
+        <div class="subsidy-bar-container">
+            @await Component.InvokeAsync("SubsidyBar", new { flyout = false })
+        </div>
+        <div class="catalog-controls">
+            <div class="product-viewmode">
+                <span>@T("Catalog.ViewMode")</span>
+                @foreach (var mode in Model.AvailableViewModes)
+                {
+                    <a class="viewmode-icon @mode.Value @(mode.Selected ? "selected" : "")"
+                       data-viewmode="@mode.Value" title="@mode.Text" href="#">@mode.Text</a>
+                }
+            </div>
+        </div>
+        <div class="product-groups-container @(Model.ViewMode == "list" ? "productgroups-list" : "productgroups-grid")">
+            @await Html.PartialAsync("_ProductGroups", Model)
+        </div>
+    </div>
+</div>
+
+<script>
+    window.subsidyCatalog = {
+        itemsUrl: '@Url.Action("Items", "SubsidyCatalog")',
+        barUrl: '@Url.Action("Bar", "SubsidyCatalog")',
+        headersUrl: '@Url.Action("ProductGroupHeaders", "SubsidyCatalog")',
+        cartUrl: '@Url.RouteUrl("ShoppingCart")'
+    };
+</script>

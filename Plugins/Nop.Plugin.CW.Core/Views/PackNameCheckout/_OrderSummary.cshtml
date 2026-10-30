@@ -1,0 +1,371 @@
+﻿@model PackNameCheckoutModel
+
+@using Nop.Core
+@using Nop.Core.Domain.Orders
+@using Nop.Core.Domain.Tax
+@using Nop.Web.Components
+@using System.Text.Encodings.Web
+
+@inject IWorkContext workContext
+@inject OrderSettings orderSettings
+
+@{
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/PackName/shopping-cart.css");
+}
+
+<div class="order-summary-content packname-order-summary-content">
+    @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OrderSummaryContentBefore, additionalData = Model })
+    @if (Model.ShoppingCart.HasItems)
+    {
+        if (Model.ShoppingCart.IsEditable && Model.ShoppingCart.DisplayVendorList)
+        {
+            <div class="sc-vendor packname-vendor">
+                <label for="packname-selected-vendor" class="sc-vendor-label">@T("ShoppingCart.VendorList")</label>
+                <select id="packname-selected-vendor">
+                    @foreach (var vendor in Model.ShoppingCart.AvailableVendors)
+                    {
+                        <option value="@vendor.Value" selected="@(vendor.Value == Model.ShoppingCart.SelectedVendorId.ToString())">@vendor.Text</option>
+                    }
+                </select>
+            </div>
+        }
+        if (Model.ShoppingCart.Warnings.Count > 0)
+        {
+            <div class="message-error">
+                <ul>
+                    @foreach (var warning in Model.ShoppingCart.Warnings)
+                    {
+                        <li>@warning</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <div class="cart-selectors">
+            <div class="cart-viewmode">
+                <a id="viewlist" class="viewmode-icon list" data-viewmode="list" title="@T("Plugins.CW.Core.PackNameCheckout.ViewByProduct")" tabindex="0" aria-role="button" href="#">
+                    @Html.CWIcon("cw-icon-group")
+                </a>
+                <a id="viewgroup" class="viewmode-icon group selected" data-viewmode="group" title="@T("Plugins.CW.Core.PackNameCheckout.ViewByPackName")" tabindex="0" aria-role="button" href="#">
+                    @Html.CWIcon("cw-icon-list-view")
+                </a>
+            </div>
+        </div>
+        <div id="cartItemsContainer"></div>
+    }
+    else
+    {
+        <div class="no-data">
+            @T("ShoppingCart.CartIsEmpty")
+        </div>
+    }
+    @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OrderSummaryContentAfter, additionalData = Model })
+</div>
+<script asp-location="Footer">
+    $(document).ready(function () {
+        //one vendor's lines at a time: the server moves the others to the stash, and the page is drawn again
+        $('#packname-selected-vendor').on('change', function () {
+            PackNameCheckout.startRequest();
+
+            var postData = { vendorId: $(this).val() };
+            addAntiForgeryToken(postData);
+
+            $.post('@Url.Action("ChangeVendor", "PackNameCheckout")', postData)
+                .done(function () {
+                    location.reload();
+                })
+                .fail(function () {
+                    PackNameCheckout.endRequest();
+                    displayBarNotification('@Html.Raw(JavaScriptEncoder.Default.Encode(T("Common.Error").Text))', 'error', 3500);
+                });
+        });
+
+        var $viewModeEls = $('[data-viewmode]');
+
+        $viewModeEls.on('click', function () {
+            if (!$(this).hasClass('selected')) {
+                $viewModeEls.toggleClass('selected');
+                loadCartItems();
+            }
+
+            return false;
+        });
+
+        loadCartItems();
+    });
+
+    //keepExpanded: a shipping change redraws the whole cart in one request (it used to send one request per
+    //packname panel), so the panels the customer had open are opened again once it is drawn. A panel is
+    //remembered by its row and its packname: in the by-product view one packname's panel repeats on every row.
+    function loadCartItems(keepExpanded) {
+        let viewMode = getViewMode();
+        let expandedPanels = [];
+
+        if (keepExpanded) {
+            $('#cartItemsContainer .pack-name-panel').each(function () {
+                if ($(this).children('.pack-name-panel-header').hasClass('expanded')) {
+                    expandedPanels.push(panelKey(this));
+                }
+            });
+        }
+
+        PackNameCheckout.startRequest();
+
+        $("#cartItemsContainer").load('@Url.Action("PackNameCartItems", "PackNameCheckout")' + '?ViewMode=' + viewMode,
+            function () {
+                $('#cartItemsContainer .pack-name-panel').each(function () {
+                    if (expandedPanels.indexOf(panelKey(this)) >= 0 && !$(this).hasClass('with-errors')) {
+                        $(this).children('.pack-name-panel-header').removeClass('collapsed').addClass('expanded');
+                        $(this).children('.pack-name-panel-body').show();
+                    }
+                });
+
+                PackNameCheckout.endRequest();
+            });
+    }
+
+    //The panel's packname class and its position among the panels of that packname.
+    function panelKey(panel) {
+        let packNameClass = ($(panel).attr('class') || '').split(/\s+/).filter(function (c) { return /^pack-name-panel-\d+$/.test(c); })[0] || '';
+        if (!packNameClass) {
+            return '';
+        }
+        let position = $('#cartItemsContainer .' + packNameClass).index(panel);
+        return packNameClass + ':' + position;
+    }
+
+    function getViewMode() {
+        let $viewModeEl = $('[data-viewmode].selected');
+        return $viewModeEl.length > 0 ? $viewModeEl.data('viewmode') : 'group';
+    }
+
+    function removeFromCart(itemId) {
+        if (confirm('@T("Common.AreYouSure")')) {
+            PackNameCheckout.startRequest();
+
+            var postData = {
+                itemId: itemId
+            };
+
+            addAntiForgeryToken(postData);
+
+            $.ajax({
+                cache: false,
+                type: "POST",
+                url: "@(Url.Action("RemoveShoppingCartItem", "PackNameCheckout"))",
+                data: postData,
+                success: function (data, textStatus, jqXHR) {
+                    if (data.success === false) {
+                        displayBarNotification(data.message, 'error', 3500);
+                        return;
+                    }
+
+                    loadCartItems();
+                    loadPaymentMethods();
+
+                    if (data.updatetopcartsectionhtml) {
+                        $('.header-links .cart-qty').html(data.updatetopcartsectionhtml);
+                    }
+                    if (data.updateflyoutcartsectionhtml) {
+                        var wasActive = $('#flyout-cart').hasClass('active');
+                        $('#flyout-cart').replaceWith(data.updateflyoutcartsectionhtml);
+                        if (wasActive) {
+                            $('#flyout-cart').addClass('active');
+                        }
+                    }
+
+                    PackNameCheckout.startRequest();
+                    $(".packname-checkout-attributes").load('@Url.Action("CheckoutAttributes", "PackNameCheckout")',
+                        function () {
+                            PackNameCheckout.endRequest();
+                        });
+
+                    if ($('.total-info').length > 0 && data.totalssectionhtml) {
+                        $('.total-info').replaceWith(data.totalssectionhtml);
+                    }
+
+                    if (window.CWCart) {
+                        CWCart.notifyChanged();
+                    }
+                },
+                complete: function () {
+                    PackNameCheckout.endRequest();
+                }
+            });
+        }
+    }
+
+    function updateShoppingCart(itemId) {
+        PackNameCheckout.startRequest();
+
+        let qty = $('#itemquantity' + itemId).val();
+
+        var postData = {
+            itemId: itemId,
+            quantity: qty
+        };
+
+        addAntiForgeryToken(postData);
+
+        $.ajax({
+            cache: false,
+            type: "POST",
+            url: "@(Url.Action("UpdateShoppingCartItem", "PackNameCheckout"))",
+            data: postData,
+            success: function (data, textStatus, jqXHR) {
+                if (data.success === false) {
+                    displayBarNotification(data.message, 'error', 3500);
+                    //the input still shows what was typed; redraw it from what the server actually holds
+                    loadCartItems();
+                    return;
+                }
+
+                loadCartItems();
+                loadPaymentMethods();
+
+                if (data.updatetopcartsectionhtml) {
+                    $('.header-links .cart-qty').html(data.updatetopcartsectionhtml);
+                }
+                if (data.updateflyoutcartsectionhtml) {
+                    var wasActive = $('#flyout-cart').hasClass('active');
+                    $('#flyout-cart').replaceWith(data.updateflyoutcartsectionhtml);
+                    if (wasActive) {
+                        $('#flyout-cart').addClass('active');
+                    }
+                }
+
+                PackNameCheckout.startRequest();
+                $(".packname-checkout-attributes").load('@Url.Action("CheckoutAttributes", "PackNameCheckout")',
+                    function () {
+                        PackNameCheckout.endRequest();
+                    });
+
+                if ($('.total-info').length > 0 && data.totalssectionhtml) {
+                    $('.total-info').replaceWith(data.totalssectionhtml);
+                }
+
+                if (window.CWCart) {
+                    CWCart.notifyChanged();
+                }
+            },
+            complete: function () {
+                PackNameCheckout.endRequest();
+            }
+        });
+    }
+
+    function updateShippingAddress(packNameId, addressId) {
+        PackNameCheckout.startRequest();
+
+        var postData = {
+            packNameId,
+            addressId
+        };
+
+        addAntiForgeryToken(postData);
+
+        $.ajax({
+            cache: false,
+            url: "@Html.Raw(Url.Action("UpdateShippingAddress", "PackNameCheckout"))",
+            data: postData,
+            type: "POST",
+            success: function (data) {
+                if (data.success) {
+                    if (data.totalssectionhtml) {
+                        $('.total-info').replaceWith(data.totalssectionhtml);
+                    }
+
+                    loadCartItems(true);
+                    loadPaymentMethods();
+
+                    PackNameCheckout.startRequest();
+                    $(".packname-checkout-attributes").load('@Url.Action("CheckoutAttributes", "PackNameCheckout")',
+                        function () {
+                            PackNameCheckout.endRequest();
+                        });
+                }
+                else {
+                    alert(data.message);
+                }
+            },
+            complete: function () {
+                PackNameCheckout.endRequest();
+            }
+        });
+    }
+
+    function updateShippingMethod(packNameId, shippingMethod) {
+        PackNameCheckout.startRequest();
+
+        var postData = {
+            packNameId,
+            shippingMethod
+        };
+
+        addAntiForgeryToken(postData);
+
+        $.ajax({
+            cache: false,
+            url: "@Html.Raw(Url.Action("UpdateShippingMethod", "PackNameCheckout"))",
+            data: postData,
+            type: "POST",
+            success: function (data) {
+                if (data.success) {
+                    if (data.totalssectionhtml) {
+                        $('.total-info').replaceWith(data.totalssectionhtml);
+                    }
+
+                    loadCartItems(true);
+                    loadPaymentMethods();
+
+                    PackNameCheckout.startRequest();
+                    $(".packname-checkout-attributes").load('@Url.Action("CheckoutAttributes", "PackNameCheckout")',
+                        function () {
+                            PackNameCheckout.endRequest();
+                        });
+                }
+                else {
+                    alert(data.message);
+                }
+            },
+            complete: function () {
+                PackNameCheckout.endRequest();
+            }
+        });
+    }
+
+    function addPackNameAddress(packNameId, name) {
+        PackNameCheckout.startRequest();
+        $.get('@Url.Action("AddAddress", "PackNameCheckout")/' + packNameId)
+            .done(function (html) {
+                PackNameCheckout.endRequest();
+
+                $('#packname-address-dialog').html(html).dialog({
+                    modal: true,
+                    title: name,
+                    width: 600,
+                    zIndex: 9500,  // ← always sits above the CW loading overlay
+                    open: function () {
+                        var $data = $(this).find('#packname-address-icon-data');
+                        var colour = $data.data('colour') || '';
+                        var isCustomer = $data.data('isCustomer') === true;
+                        var isGroup = $data.data('isGroup') === true;
+
+                        var iconName = isCustomer ? 'cw-icon-customer' : (isGroup ? 'cw-icon-group' : 'cw-icon-person')
+                        var svgIcon = '<svg class="cw-icon" aria-hidden="true"><use href="/Plugins/CW.Core/Content/icons/cw-icons.svg#' + iconName + '"/></svg>';
+                        //the name is typed by the customer, so it goes in as text
+                        var $icon = $('<div class="packname-add-address-title-icon"></div>').css('color', colour).html(svgIcon);
+                        var titleDiv = $('<div class="packname-add-address-title"></div>').append($icon).append($('<span></span>').text(name));
+
+                        $(this).dialog('widget').find('.ui-dialog-title')
+                            .empty()
+                            .append(titleDiv);
+                    },
+                    close: function () { $(this).dialog('destroy'); }
+                });
+            })
+            .fail(function () {
+                PackNameCheckout.endRequest();
+            });
+    }
+</script>

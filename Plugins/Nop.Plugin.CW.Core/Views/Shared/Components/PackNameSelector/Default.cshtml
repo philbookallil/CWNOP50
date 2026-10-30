@@ -1,0 +1,422 @@
+@model PackNameSelectorModel
+
+@{
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/lib/tom-select/tom-select.css");
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/lib/tom-select/tom-select.complete.min.js");
+
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/PackNameSelector/pack-name-selector.css");
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/PackName/packname-register.css");
+
+    var pageSize = Nop.Plugin.CW.Core.Helpers.PackNameSelectorHelper.PageSize;
+}
+
+<div id="pack-name-selector">
+    <div>
+        <span class="pack-name-selector-label">@T("Plugins.CW.Core.PackNames.PackNameSelector.PackNameList")</span>
+        <select id="pack-name-list-select">
+            @foreach (var item in Model.AvailablePackNameLists)
+            {
+                <option value="@item.Value" selected="@item.Selected">
+                    @item.Text
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="pack-name-selector-control">
+        <span class="pack-name-selector-label">@T("Plugins.CW.Core.PackNames.PackNameSelector.PackName")</span>
+        <select id="pack-name-select"></select>
+    </div>
+
+    @if (Model.CanAddPackNames)
+    {
+        <div class="pack-name-selector-action">
+            <a href="#"
+               class="add-pack-name-icon add-pack-name"
+               title="@T("Plugins.CW.Core.PackNames.PackNameSelector.AddPackName")">
+                <svg aria-hidden="true"><use href="/Plugins/CW.Core/Content/icons/cw-icons.svg#cw-icon-plus"/></svg>
+            </a>
+        </div>
+        @if (Model.CanAddByExcel)
+        {
+            <div class="pack-name-selector-action">
+                <a href="@Url.Action("ImportPackNames", "PackName")"
+                   class="add-pack-name-icon add-pack-name-xls"
+                   title="@T("Plugins.CW.Core.PackNames.PackNameSelector.AddPackNameExcel")">
+                    <svg aria-hidden="true"><use href="/Plugins/CW.Core/Content/icons/cw-icons.svg#cw-icon-excel"/></svg>
+                </a>
+            </div>
+        }
+    }
+</div>
+
+@*EVERY RAZOR VALUE THE SCRIPT NEEDS ARRIVES THROUGH HERE, as attributes, so nothing is HTML-encoded on its way into a
+  string literal. The two hints are formatted here with the page size.*@
+<div id="pack-name-selector-config"
+     data-select-url="@Url.Action("SelectPackName", "PackName")"
+     data-packnames-url="@Url.Action("PackNames", "PackName")"
+     data-cart-counts-url="@Url.Action("PackNameCartCounts", "PackName")"
+     data-add-url="@Url.Action("AddPackName", "PackName")"
+     data-edit-url="@Url.Action("EditPackName", "PackName")"
+     data-selected-packname-id="@Model.SelectedPackNameId"
+     data-selected-list-id="@Model.SelectedPackNameListId"
+     data-return-url="@Model.ReturnUrl"
+     data-text-add="@T("Plugins.CW.Core.PackNames.Add")"
+     data-text-edit="@T("Plugins.CW.Core.PackNames.Edit")"
+     data-text-error="@T("Common.Error")"
+     data-text-more="@string.Format(T("Plugins.CW.Core.PackNames.PackNameSelector.TypeToSearch").Text, pageSize)"
+     data-text-more-matches="@string.Format(T("Plugins.CW.Core.PackNames.PackNameSelector.TypeToNarrow").Text, pageSize)"
+     style="display: none;"></div>
+
+<script asp-location="Footer">
+    $('#pack-name-selector').prependTo('.header');
+
+    var iconsUrl = '/Plugins/CW.Core/Content/icons/cw-icons.svg';
+    var packNameSelectorConfig = $('#pack-name-selector-config').data();
+
+    //a packname's colour is a hex colour; anything else is left out of the markup
+    function safeColour(colour) {
+        return /^#[0-9A-Fa-f]{6}$/.test(colour || '') ? colour : '';
+    }
+
+    function svgIcon(iconId, colour) {
+        colour = safeColour(colour);
+        var style = colour ? ' style="color:' + colour + '"' : '';
+        return '<svg class="pn-icon" aria-hidden="true"' + style + '>'
+             + '<use href="' + iconsUrl + '#' + iconId + '"/>'
+             + '</svg>';
+    }
+
+    //SelectPackName is a POST: it writes the customer's ordering context, so as a GET it was exempt
+    //from the antiforgery check and an <img src> on any page could switch it.
+    window.cwSelectPackName = window.cwSelectPackName || function (packNameId, listId, returnUrl) {
+        var form = $('<form>', { method: 'post', action: packNameSelectorConfig.selectUrl });
+
+        form.append($('<input>', { type: 'hidden', name: 'id', value: packNameId }));
+        form.append($('<input>', { type: 'hidden', name: 'listId', value: listId }));
+
+        if (returnUrl)
+            form.append($('<input>', { type: 'hidden', name: 'returnUrl', value: returnUrl }));
+
+        form.append($('<input>', {
+            type: 'hidden',
+            name: '__RequestVerificationToken',
+            value: $('input[name=__RequestVerificationToken]').first().val()
+        }));
+
+        $('body').append(form);
+        form.submit();
+    };
+
+    $(function() {
+        var selectedPackNameId = Number(packNameSelectorConfig.selectedPacknameId) || 0;
+
+        //THE SERVER SENDS ONE PAGE AT A TIME. The first page of a list is its first packnames by name plus the selected
+        //one and those with cart lines; when the list holds more, typing asks the server for the matches. moreByQuery
+        //remembers, per text typed, whether the server had more than it sent, and drives the hint under the options.
+        var moreByQuery = {};
+        var currentListId = null;
+
+        var listSelect = new TomSelect('#pack-name-list-select', {
+            valueField: 'Value',
+            labelField: 'Text',
+            searchField: 'Text',
+            maxOptions: 10,
+            onChange: function (listId) {
+                loadPackNames(listId);
+            }
+        });
+
+        var packNameSelect = new TomSelect('#pack-name-select', {
+            valueField: 'Id',
+            labelField: 'Name',
+            searchField: ['Name', 'EmployeeNumber'],
+            sortField: [{ field: 'Name', direction: 'asc' }],
+            maxOptions: 100,
+            disabledField: 'BlockOrdering',
+            //the server is asked only when the list holds more than the first page sent; the answer for a short list is
+            //given at once, so Tom Select still shows its "no results" message
+            load: function (query, callback) {
+                var self = this;
+                var listId = currentListId;
+
+                if (moreByQuery[''] !== true) {
+                    callback();
+                    return;
+                }
+
+                requestPage(listId, query)
+                    .done(function (result) {
+                        //an answer for a list that is no longer chosen is dropped, and the text may be searched again
+                        if (listId !== currentListId || !result || !$.isArray(result.PackNames)) {
+                            delete self.loadedSearches[query];
+                            callback();
+                            return;
+                        }
+
+                        moreByQuery[query] = result.HasMore === true;
+                        callback(result.PackNames);
+                        updateMoreHint();
+                    })
+                    .fail(function () {
+                        //Tom Select marks a text as searched before asking; a failed search is asked again next time
+                        delete self.loadedSearches[query];
+                        callback();
+                    });
+            },
+            render: {
+                option: function (data, escape) {
+                    var iconId = data.Group ? 'cw-icon-group' : data.IsCustomer ? 'cw-icon-customer' : 'cw-icon-person';
+                    var typeIcon = '<div class="pack-name-icon">' + svgIcon(iconId, data.Colour) + '</div>';
+
+                    var cartBadge = '<div class="pack-name-in-cart">'
+                        + (data.InCart > 0
+                            ? '<div style="color:' + safeColour(data.Colour) + '">'
+                              + svgIcon('cw-icon-Trolly', data.Colour)
+                              + '<span>' + data.InCart + '</span>'
+                              + '</div>'
+                            : '')
+                        + '</div>';
+
+                    var editBtn = data.Editable
+                        ? '<div class="pack-name-edit"'
+                          + ' style="color:' + safeColour(data.Colour) + '"'
+                          + ' onclick="editPackName(' + escape(data.Id) + '); return false;"'
+                          + ' title="' + escape(packNameSelectorConfig.textEdit) + '">'
+                          + svgIcon('cw-icon-edit', data.Colour)
+                          + '</div>'
+                        : '';
+
+                    var employeeNumber = data.EmployeeNumber
+                        ? '<span class="pack-name-employee-number">' + escape(data.EmployeeNumber) + '</span>'
+                        : '';
+
+                    var disabledClass = data.BlockOrdering ? ' not-selectable' : '';
+                    var titleAttr = data.BlockOrdering
+                        ? 'title="' + escape(data.BlockOrderingReason) + '"'
+                        : 'title="' + escape(data.Name) + '"';
+
+                    return '<div class="selector-pack-name-item' + disabledClass + '">' +
+                                typeIcon +
+                                '<div class="title"' + titleAttr + '>' + escape(data.Name) + employeeNumber + '</div>' +
+                                cartBadge +
+                                editBtn +
+                            '</div>';
+                },
+                // What shows in the trigger button after selection
+                item: function (data, escape) {
+                    var iconId = data.Group ? 'cw-icon-group'
+                               : data.IsCustomer ? 'cw-icon-customer'
+                               : 'cw-icon-person';
+                    var titleAttr = data.BlockOrdering
+                        ? ' title="' + escape(data.BlockOrderingReason) + '"'
+                        : '';
+                    return '<div class="pack-name-item-selected-name"' + titleAttr + '>'
+                         + svgIcon(iconId, data.Colour)
+                         + '<span>' + escape(data.Name) + '</span>'
+                         + '</div>';
+                }
+            },
+            onItemAdd: function (packNameId, item) {
+                const data = this.options[packNameId];
+
+                //A blocked packname cannot be chosen, but the one already in context stays shown: the info
+                //strip says why it cannot order, and an empty selector would hide which packname that is.
+                if (data.BlockOrdering && packNameId != selectedPackNameId) {
+                     this.removeItem(packNameId);
+                }
+            },
+            onType: function () {
+                updateMoreHint();
+            },
+            onDropdownOpen: function () {
+                updateMoreHint();
+            }
+        });
+
+        //THE HINT SITS UNDER THE OPTIONS, outside the part Tom Select redraws, so a redraw does not remove it.
+        var $moreHint = $('<div class="pack-name-selector-more" hidden></div>').appendTo(packNameSelect.dropdown);
+
+        function updateMoreHint() {
+            var query = packNameSelect.inputValue();
+            var more = moreByQuery[query];
+
+            if (more !== true) {
+                $moreHint.prop('hidden', true);
+                return;
+            }
+
+            $moreHint.text(query.length ? packNameSelectorConfig.textMoreMatches : packNameSelectorConfig.textMore);
+            $moreHint.prop('hidden', false);
+        }
+
+        function requestPage(listId, term) {
+            var postData = {
+                packNameListId: listId,
+                term: term,
+                selectedPackNameId: selectedPackNameId
+            };
+
+            addAntiForgeryToken(postData);
+
+            return $.ajax({
+                cache: false,
+                url: packNameSelectorConfig.packnamesUrl,
+                data: postData,
+                type: 'POST'
+            });
+        }
+
+        packNameSelect.on('change', function(packNameId) {
+            if (packNameId) {
+                const data = this.options[packNameId];
+
+                if (!data.BlockOrdering && packNameId != selectedPackNameId) {
+                    var listId = listSelect.getValue();
+                    cwSelectPackName(packNameId, listId, packNameSelectorConfig.returnUrl);
+                }
+            }
+        });
+
+        $('.add-pack-name').click(function (e) {
+            e.preventDefault();
+
+            var listId = listSelect.getValue();
+
+            openPackNameDialog({
+                dialogId: 'dialog-add-packName',
+                url:      packNameSelectorConfig.addUrl + '/' + listId,
+                title:    packNameSelectorConfig.textAdd,
+                trigger:  this
+            });
+        });
+
+        function loadPackNames(listId) {
+            currentListId = String(listId);
+            moreByQuery = {};
+
+            packNameSelect.clear();
+            //clearOptions also forgets the searches already sent, so the new list is searched afresh
+            packNameSelect.clearOptions();
+            packNameSelect.disable();
+            updateMoreHint();
+
+            requestPage(listId, '')
+                .done(function (result) {
+                    if (String(listId) !== currentListId)
+                        return;
+
+                    var packNames = result && $.isArray(result.PackNames) ? result.PackNames : [];
+
+                    moreByQuery[''] = !!(result && result.HasMore === true);
+                    packNameSelect.addOptions(packNames);
+                    packNameSelect.enable();
+
+                    if (packNameSelect.options[selectedPackNameId]) {
+                        packNameSelect.setValue(selectedPackNameId);
+                    }
+
+                    updateMoreHint();
+                })
+                .fail(function () {
+                    packNameSelect.enable();
+                });
+        }
+
+        // Load packNames for initial list on page load
+        loadPackNames(packNameSelectorConfig.selectedListId);
+
+        //Any change to the cart refreshes the badges of the packnames on screen: a line changed at the checkout
+        //can belong to any packname in the list, not only the selected one. Only the quantities travel.
+        $(document).on('cwCartChangedEvent', refreshCartCounts);
+
+        function refreshCartCounts() {
+            var postData = {};
+
+            addAntiForgeryToken(postData);
+
+            $.ajax({
+                cache: false,
+                url: packNameSelectorConfig.cartCountsUrl,
+                data: postData,
+                type: 'POST',
+                success: function (counts) {
+                    if (!counts || typeof counts !== 'object')
+                        return;
+
+                    $.each(packNameSelect.options, function (id, option) {
+                        var inCart = Number(counts[id]) || 0;
+                        if (option.InCart === inCart) return;
+
+                        option.InCart = inCart;
+                        packNameSelect.updateOption(id, option);
+                    });
+
+                    packNameSelect.refreshOptions(false); // false = don't open dropdown
+                    packNameSelect.refreshItems();
+                }
+            });
+        }
+    });
+
+    function openPackNameDialog(options) {
+        var dialogId  = options.dialogId;
+        var url       = options.url;
+        var title     = options.title;
+        var triggerEl = options.trigger || null; // the button/icon that was clicked
+
+        // Prevent double-open
+        if ($('#' + dialogId).length) return;
+
+        // Show spinner on the trigger element immediately
+        if (triggerEl) {
+            $(triggerEl).addClass('packname-loading').prop('disabled', true);
+        }
+
+        var $dialog = $('<div id="' + dialogId + '"><div class="loading-packname-skeleton"></div></div>')
+            .dialog({
+                modal: true,
+                width: 620,
+                maxHeight: $(window).height() - 40,
+                title: title,
+                resizable: false,
+                draggable: true,
+                close: function (event, ui) {
+                    $(this).dialog('destroy').remove();
+                    if (triggerEl) {
+                        $(triggerEl).removeClass('packname-loading').prop('disabled', false);
+                    }
+                }
+            });
+
+        // Fetch content
+        $.ajax({
+            url: url,
+            type: 'GET',
+            cache: false,
+            success: function (html) {
+                $dialog.html(html);
+                if (triggerEl) {
+                    $(triggerEl).removeClass('packname-loading').prop('disabled', false);
+                }
+            },
+            error: function () {
+                $dialog.dialog('destroy').remove();
+                if (triggerEl) {
+                    $(triggerEl).removeClass('packname-loading').prop('disabled', false);
+                }
+                displayPopupNotification(packNameSelectorConfig.textError, 'error', true);
+            }
+        });
+    }
+
+    function editPackName(id) {
+        event.stopPropagation();
+        openPackNameDialog({
+            dialogId: 'dialog-edit-packName-' + id,
+            url:      packNameSelectorConfig.editUrl + '/' + id,
+            title:    packNameSelectorConfig.textEdit,
+            trigger:  null  // edit icon inside Tom Select — no easy ref
+        });
+    }
+</script>

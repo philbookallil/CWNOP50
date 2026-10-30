@@ -1,0 +1,123 @@
+@using Nop.Plugin.CW.Core.Domain.Exchanges;
+@using Nop.Plugin.CW.Core.Helpers;
+@using Microsoft.AspNetCore.Routing;
+
+@model ReturnExchangesConfirmationModel
+
+@if (Model.Items.Count == 0)
+{
+    return;
+}
+
+@{
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Exchanges/exchanges-wizard.css", null);
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Exchanges/exchanges-gather.js");
+
+    var receiptIds = new RouteValueDictionary();
+    var index = 0;
+    foreach (var item in Model.Items)
+    {
+        receiptIds.Add($"ids[{index}]", item.Id);
+        ++index;
+    }
+}
+
+<div id="rr-confirms" class="cw-return-confirms" style="display:none">
+
+    <p class="rc-lead">@Html.Raw(T("Plugins.CW.Core.Exchanges.Confirmation.Lead"))</p>
+
+    @foreach (var item in Model.Items)
+    {
+        <section class="rc-card">
+            <h3 class="rc-card-title">
+                @string.Format(Model.TitlePattern, item.CustomNumber, item.ReturnRequestStatus)
+            </h3>
+
+            <dl class="rc-details">
+                @if (!string.IsNullOrEmpty(item.CustomOrderNumber))
+                {
+                    <dt>@T("Plugins.CW.Core.Exchanges.Confirmation.Order")</dt>
+                    <dd>@item.CustomOrderNumber</dd>
+                }
+
+                <dt>@T("Account.CustomerReturnRequests.Date")</dt>
+                <dd>@item.CreatedOn.ToString("g")</dd>
+
+                @if (!string.IsNullOrEmpty(item.Packname))
+                {
+                    <dt>@T("Plugins.CW.Core.Exchanges.Confirmation.Packname")</dt>
+                    <dd>@item.Packname</dd>
+                }
+
+                <dt>@T("Account.CustomerReturnRequests.Item")</dt>
+                <dd>
+                    @if (!string.IsNullOrEmpty(item.ReturnedItemSku))
+                    {
+                        <span class="rc-sku">@item.ReturnedItemSku</span><span> &ndash; </span>
+                    }
+                    <span>@item.ProductName</span>
+                    <span class="rc-qty">&times; @item.Quantity</span>
+                </dd>
+
+                @if (!string.IsNullOrEmpty(item.ReturnedItemAttributes))
+                {
+                    <dt>@T("Plugins.CW.Core.Exchanges.Confirmation.Attributes")</dt>
+                    <dd class="rc-attrs">@Html.Raw(item.ReturnedItemAttributes)</dd>
+                }
+
+                @if (item.ExchangeReturnMode != ExchangeReturnMode.CreditNote)
+                {
+                    <dt>@T("Plugins.CW.Core.Exchanges.Confirmation.ExchangeType")</dt>
+                    <dd>@item.ExchangeTypeName</dd>
+
+                    if (item.ExchangeType != ExchangeType.Exact)
+                    {
+                        <dt>@T("Plugins.CW.Core.Exchanges.Confirmation.ReplacementProduct")</dt>
+                        <dd>
+                            @if (!string.IsNullOrEmpty(item.ExchangeItemSku))
+                            {
+                                <span class="rc-sku">@item.ExchangeItemSku</span><span> &ndash; </span>
+                            }
+                            <span>@item.ExchangeProductName</span>
+                            <span class="rc-qty">&times; @item.ExchangeQuantity</span>
+                        </dd>
+
+                        if (!string.IsNullOrEmpty(item.ExchangeProductAttributesInfo))
+                        {
+                            <dt>@T("Plugins.CW.Core.Exchanges.Confirmation.Attributes")</dt>
+                            <dd class="rc-attrs">@Html.Raw(item.ExchangeProductAttributesInfo)</dd>
+                        }
+                    }
+                }
+            </dl>
+
+            @if (!string.IsNullOrEmpty(item.ReceiptMessage))
+            {
+                <div class="rc-message">
+                    @Html.Raw(item.ReceiptMessage)
+                </div>
+            }
+        </section>
+    }
+
+    <div class="rc-actions">
+        <a class="rs-btn rc-print" href="@Url.Action("GenerateReturnRequestReceipts", "Exchanges", receiptIds)" target="_blank">
+            @T("Plugins.CW.Core.Exchanges.Confirmation.PrintAll")
+        </a>
+        <button type="button" class="rs-btn rc-close">@T("Plugins.CW.Core.Exchanges.Confirmation.Close")</button>
+    </div>
+</div>
+
+<script asp-location="Footer">
+    $(function () {
+        cwExchangesGather.initConfirmations({
+            allowCloseWithoutPrinting: @Model.AllowCloseWithoutPrinting.ToString().ToLowerInvariant(),
+            @* JSON-encoded, so a translation with a quote cannot break the script *@
+            text: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                ["dialogTitle"] = T("Plugins.CW.Core.Exchanges.Confirmation.DialogTitle").Text,
+                ["printReminder"] = T("Plugins.CW.Core.Exchanges.Confirmation.PrintReminder").Text
+            }))
+        });
+    });
+</script>

@@ -1,0 +1,10 @@
+﻿@{
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Orders/admin.order.badges.js");
+}
+<div class="cw-order-badges-config"
+     data-url="@Url.Action("OrderBadges", "CWOrder", new { area = AreaNames.ADMIN })"
+     data-exchange-text="@T("Plugins.CW.Core.Admin.Orders.Badge.Exchange")"
+     data-exchange-title="@T("Plugins.CW.Core.Admin.Orders.Badge.Exchange.Hint")"
+     data-return-text="@T("Plugins.CW.Core.Admin.Orders.Badge.Return")"
+     data-return-title="@T("Plugins.CW.Core.Admin.Orders.Badge.Return.Hint")"
+     style="display: none;"></div>

@@ -1,0 +1,256 @@
+﻿@model BranchAddressesModel
+
+@*THE FORM STAYS. BranchAddressPopup is opened with formId="branch-addresses-form" and posts back
+  against it, so removing the wrapper would break the popup's save.*@
+<form id="branch-addresses-form" method="post">
+    @*A COLLECTION IS A LABEL, NOT A CARD. Card classes would give it the same weight as the branch
+      above it and as the detail forms below, so it gets classes of its own.*@
+    <div class="ms-collection">
+
+        <div class="ms-collection-head">
+            <i class="fas fa-caret-right bp-expand-icon open" id="ba-ei"></i>
+            <h3 class="ms-collection-label">
+                @T("Admin.Customers.Customers.Addresses")
+            </h3>
+            @*SERVER-RENDERED, like the other two collections. bindGridEmptyState filled this from a
+              DataTables draw callback before, which left it at 0 until the first draw landed.*@
+            <span class="ms-collection-count">@Model.Addresses.Count</span>
+
+            <div class="ml-auto">
+                <button type="button"
+                        class="ms-collection-action btn-add-addr">
+                    <i class="fas fa-plus" aria-hidden="true"></i>
+                    @T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.AddButton")
+                </button>
+            </div>
+        </div>
+
+        <div id="branch-addresses-body" class="bp-card-body-collapsible">
+
+            <div class="ms-rows" id="ba-list">
+                @foreach (var address in Model.Addresses)
+                {
+                    @*THE ADDRESSEE, falling back through what an address actually has. A branch
+                      address is often a depot with a company and no person, and the old grid showed
+                      five separate columns most of which were empty.*@
+                    var addressee = !string.IsNullOrWhiteSpace($"{address.FirstName} {address.LastName}".Trim())
+                        ? $"{address.FirstName} {address.LastName}".Trim()
+                        : (!string.IsNullOrWhiteSpace(address.Company) ? address.Company : address.Address1);
+
+                    var lineParts = new[] { address.Address1, address.Address2, address.City, address.ZipPostalCode, address.StateProvinceName, address.CountryName }
+                        .Where(p => !string.IsNullOrWhiteSpace(p));
+                    var line = string.Join(", ", lineParts);
+
+                    <div class="ms-row @(address.IsDefault ? "is-default" : "")" data-id="@address.AddressId">
+
+                        <div class="ms-row-main">
+
+                            <div class="ms-row-lead">
+                                @if (address.IsDefault)
+                                {
+                                    <span class="ms-row-default-badge"
+                                          title="@T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.Default")">
+                                        <i class="fas fa-circle" aria-hidden="true"></i>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="ms-row-default-placeholder">
+                                        <i class="far fa-circle" aria-hidden="true"></i>
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="ms-row-info">
+                                <div class="ms-row-name">@addressee</div>
+                                @if (!string.IsNullOrWhiteSpace(line))
+                                {
+                                    @*ITS OWN LINE, NOT A CHIP - see .ms-row-line. The title carries
+                                      the full address, since the visible text is truncated.*@
+                                    <div class="ms-row-line" title="@line">
+                                        <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                                        <span>@line</span>
+                                    </div>
+                                }
+                                <div class="ms-row-meta">
+                                    @if (!string.IsNullOrWhiteSpace(address.Email))
+                                    {
+                                        <span class="ms-row-chip ms-row-chip-gray">
+                                            <i class="fas fa-envelope" aria-hidden="true"></i>
+                                            @address.Email
+                                        </span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(address.PhoneNumber))
+                                    {
+                                        <span class="ms-row-chip ms-row-chip-gray">
+                                            <i class="fas fa-phone" aria-hidden="true"></i>
+                                            @address.PhoneNumber
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="ms-row-actions">
+                                @if (!address.IsDefault)
+                                {
+                                    <button type="button"
+                                            class="btn btn-xs btn-outline-secondary btn-set-default-addr"
+                                            data-id="@address.AddressId"
+                                            title="@T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.SetDefault")">
+                                        <i class="fas fa-check-circle" aria-hidden="true"></i>
+                                        @T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.SetDefault")
+                                    </button>
+                                }
+                                <button type="button"
+                                        class="btn btn-xs btn-outline-primary btn-edit-addr"
+                                        data-id="@address.AddressId"
+                                        title="@T("Admin.Common.Edit")">
+                                    <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                                    @T("Admin.Common.Edit")
+                                </button>
+                                <button type="button"
+                                        class="btn btn-xs btn-outline-danger btn-delete-addr"
+                                        data-id="@address.AddressId"
+                                        title="@T("Admin.Common.Delete")">
+                                    <i class="fas fa-times" aria-hidden="true"></i>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @*AN ADD ROW, BUT NOT AN INLINE INPUT. An address is a first name, a last name, an email,
+              a phone and a country - there is no single field to type, so this row opens the same
+              popup the header button does. It keeps the collection's shape (the last row is the one
+              that adds to it) without pretending an address is a name.*@
+            <button type="button" class="ms-add-row ms-add-row-button btn-add-addr" id="ba-add-row-@Model.BranchId">
+                <span class="ms-add-plus" aria-hidden="true">+</span>
+                <span>@T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.AddInline")</span>
+            </button>
+
+            <div class="ms-collection-scripts">
+                @*THE POPUP CLICKS THIS ON SAVE (btnId=btnRefreshBranchAddresses), so it has to keep
+                  its id and stay in the document. It reloads the panel now instead of redrawing a grid.*@
+                <button type="button" id="btnRefreshBranchAddresses" style="display: none"></button>
+            </div>
+
+        </div>
+    </div>
+</form>
+
+@* EVERY RAZOR VALUE THE SCRIPT NEEDS ARRIVES THROUGH HERE, so the script below is
+   plain JavaScript with nothing HTML-encoded on its way into a string literal.
+   popup-url is the bare action; the script appends the query, as the old inline onclick= did. *@
+<div class="ba-config"
+     data-branch-id="@Model.BranchId"
+     data-popup-url="@Url.Action("BranchAddressPopup", "MultiStore")"
+     data-set-default-url="@Url.Action("BranchAddressSetDefault", "MultiStore")"
+     data-delete-url="@Url.Action("BranchAddressDelete", "MultiStore")"
+     style="display: none;"></div>
+
+<script>
+(function () {
+
+    //OFF BEFORE ON, NAMESPACED. This script runs again on every render, so without the .off() the
+    //delegated handlers stack; the namespace keeps it off handlers other scripts put on the same div.
+    //#branch-addresses-panel is created once by ensureSubPanel and only has its innerHTML swapped,
+    //so it outlives every render of this partial.
+    var $baPanel = $('#branch-addresses-panel').off('.ba');
+
+    var $cfg = $baPanel.find('.ba-config');
+    var branchId      = $cfg.data('branchId');
+    var popupUrl      = $cfg.data('popupUrl');
+    var setDefaultUrl = $cfg.data('setDefaultUrl');
+    var deleteUrl     = $cfg.data('deleteUrl');
+
+    //THE POPUP URL IN ONE PLACE. It was written out three times - twice as an inline onclick= in
+    //the markup and once here - each spelling its own query string. addressId is the only thing
+    //that differs, so the Add spellings simply omit it.
+    function addressPopup(addressId) {
+        var url = popupUrl
+                + '?branchId=' + encodeURIComponent(branchId)
+                + '&btnId=btnRefreshBranchAddresses'
+                + '&formId=branch-addresses-form';
+
+        if (addressId) url += '&addressId=' + encodeURIComponent(addressId);
+
+        OpenWindow(url, 800, 800, true);
+    }
+
+    //THE POPUP CLICKS THIS ON SAVE (btnId=btnRefreshBranchAddresses). It reloads the panel rather
+    //than redrawing a grid, so it cannot use the shared .ms-grid-refresh handler.
+    $('#btnRefreshBranchAddresses').on('click', function () {
+        Admin.StoreNav.reloadBranchAddresses();
+        return false;
+    });
+
+    // ── Collapse / expand the collection ───────────────────────────────
+    //WAS AN onclick= ON THE HEADER running a self-invoking function in an attribute, with a second
+    //onclick="event.stopPropagation()" on the actions wrapper to stop the Add button collapsing the
+    //list. One delegated handler that ignores clicks on the actions does both jobs.
+    $baPanel.on('click.ba', '.ms-collection-head', function (e) {
+        if ($(e.target).closest('.ms-collection-action').length) return;
+
+        var $body = $('#branch-addresses-body');
+        $body.toggleClass('collapsed');
+        $('#ba-ei').toggleClass('open', !$body.hasClass('collapsed'));
+    });
+
+    // ── Add → the popup, from either the header button or the add row ──
+    $baPanel.on('click.ba', '.btn-add-addr', function (e) {
+        e.stopPropagation();
+        addressPopup(null);
+        return false;
+    });
+
+    // ── Edit → the same popup, with the address id ─────────────────────
+    $baPanel.on('click.ba', '.btn-edit-addr', function (e) {
+        e.stopPropagation();
+        addressPopup($(this).data('id'));
+        return false;
+    });
+
+    // ── Set default ────────────────────────────────────────────────────
+    $baPanel.on('click.ba', '.btn-set-default-addr', function (e) {
+        e.stopPropagation();
+        var $btn = $(this).prop('disabled', true);
+        var postData = { branchId: branchId, addressId: $(this).data('id') };
+        addAntiForgeryToken(postData);
+
+        $.post(setDefaultUrl,
+            postData,
+            function (result) {
+                if (!result.success) {
+                    display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotSetDefault', 'Could not set default.') });
+                    $btn.prop('disabled', false);
+                    return;
+                }
+                //RELOAD RATHER THAN PATCH. The default moves the green dot, the left accent and the
+                //Set default button across two rows at once; reloading keeps all three honest.
+                Admin.StoreNav.reloadBranchAddresses();
+            }
+        );
+    });
+
+    // ── Delete ─────────────────────────────────────────────────────────
+    $baPanel.on('click.ba', '.btn-delete-addr', function (e) {
+        e.stopPropagation();
+        if (!confirm(Admin.StoreNav.res('common.areYouSure', 'Are you sure?'))) return;
+
+        var postData = { id: $(this).data('id'), entityId: branchId };
+        addAntiForgeryToken(postData);
+
+        //BranchAddressDelete returns NullJsonResult on success and plain text when the address is
+        //not found, so there is no success flag to read - the reload is what reports the outcome.
+        $.post(deleteUrl,
+            postData,
+            function () {
+                Admin.StoreNav.reloadBranchAddresses();
+            }
+        );
+    });
+
+})();
+</script>

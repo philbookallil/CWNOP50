@@ -1,0 +1,22 @@
+﻿@using Nop.Plugin.CW.Core.Models.CreditNotes
+
+@model CreditNotesOrderSummaryModel
+
+@if (Model.NeedToShow)
+{
+    <tr style="font-size: 14px; font-weight: bold; color: green">
+        <td class="cart-total-left">
+            <label>@T("Plugins.CW.Core.Order.CreditNotes"):</label>
+        </td>
+        <td class="cart-total-right">
+            @if (!string.IsNullOrEmpty(Model.Amount))
+            {
+                <span class="value-summary">@Model.Amount</span>
+            }
+            else
+            {
+                <span class="message-text">@T("ShoppingCart.Totals.CalculatedDuringCheckout")</span>
+            }
+        </td>
+    </tr>
+}

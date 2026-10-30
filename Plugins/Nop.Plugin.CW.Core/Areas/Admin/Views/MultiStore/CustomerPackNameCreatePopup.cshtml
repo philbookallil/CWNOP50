@@ -1,0 +1,209 @@
+﻿@model PackNameModel
+
+@{
+    Layout = "_AdminPopupLayout";
+
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.PackNames.AddPackName").Text;
+}
+
+<link rel="stylesheet" href="~/lib_npm/farbstastic/farbtastic.css" />
+<script src="~/lib_npm/farbstastic/farbtastic.min.js" asp-location="Head"></script>
+
+@if (ViewBag.RefreshPage == true)
+{
+    <script>
+        try { window.opener.document.getElementById('@(Context.Request.Query["btnId"])').click(); }
+        catch (e) { }
+        window.close();
+    </script>
+}
+
+<form asp-controller="MultiStore" asp-action="CustomerPackNameCreatePopup"
+      asp-route-btnId="@Context.Request.Query["btnId"]">
+
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="StoreId" type="hidden" />
+    <input asp-for="BranchId" type="hidden" />
+    <input asp-for="CustomerId" type="hidden" />
+
+    <div class="container-fluid">
+        <div class="content-header clearfix">
+            <h1 class="float-left">
+                @T("Plugins.CW.Core.Admin.PackNames.AddPackName") - @Model.CustomerName
+            </h1>
+            <div class="float-right">
+                <button type="submit" name="save" class="btn btn-primary">
+                    <i class="far fa-save"></i>
+                    @T("Admin.Common.Save")
+                </button>
+            </div>
+        </div>
+        <section class="content">
+            <div class="container-fluid">
+                <div class="form-horizontal">
+                    <div class="cards-group">
+                        <div class="card card-default card-popup">
+                            <div class="card-body">
+                                <div asp-validation-summary="All"></div>
+
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="PackNameListId" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-select asp-for="PackNameListId" asp-items="Model.AvailableLists" />
+                                        <span asp-validation-for="PackNameListId"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="DepartmentId" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-select asp-for="DepartmentId" asp-items="Model.AvailableDepartments" />
+                                        <span asp-validation-for="DepartmentId"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="CostCenterId" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-select asp-for="CostCenterId" asp-items="Model.AvailableCostCenters" />
+                                        <span asp-validation-for="CostCenterId"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="Group" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="Group" />
+                                        <span asp-validation-for="Group"></span>
+                                    </div>
+                                </div>
+                                @if (Model.MultiStoreSettingsModel.EmployeeNumberEnabled)
+                                {
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="EmployeeNumber" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-editor asp-for="EmployeeNumber" />
+                                            <span asp-validation-for="EmployeeNumber"></span>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="Name" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="Name" asp-required="true" />
+                                        <span asp-validation-for="Name"></span>
+                                    </div>
+                                </div>
+                                @if (Model.MultiStoreSettingsModel.GenderEnabled)
+                                {
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="Gender" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <div class="raw">
+                                                @foreach (var gender in Model.AvailableGenders)
+                                                {
+                                                    <div class="form-check">
+                                                        <input type="radio" class="form-check-input" id="gender-@gender.Text" name="Gender" value="@gender.Value" @(gender.Selected ? Html.Raw("checked") : null)>
+                                                        <label class="form-check-label" for="gender-@gender.Text">
+                                                            @gender.Text
+                                                        </label>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                @if (Model.MultiStoreSettingsModel.PrintNameEnabled)
+                                {
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="PrintName" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-editor asp-for="PrintName" />
+                                            <span asp-validation-for="PrintName"></span>
+                                        </div>
+                                    </div>
+                                }
+                                @if (Model.MultiStoreSettingsModel.POEntryEnabled)
+                                {
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="POEntry" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-editor asp-for="POEntry" />
+                                            <span asp-validation-for="POEntry"></span>
+                                        </div>
+                                    </div>
+                                }
+                                @if (string.IsNullOrEmpty(Model.Colour))
+                                {
+                                    var random = new Random();
+                                    Model.Colour = $"#{random.Next(0x1000000):X6}";
+                                }
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="Colour" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="Colour" />
+                                        <div id="color-picker"></div>
+                                        <script>
+                                            $(document).ready(function () {
+                                                $('#color-picker').farbtastic('#@Html.IdFor(model => model.Colour)');
+                                            });
+                                        </script>
+                                        <span asp-validation-for="Colour"></span>
+                                    </div>
+                                </div>
+                                @if (Model.MultiStoreSettingsModel.CommentsEnabled)
+                                {
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="Comments" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-textarea asp-for="Comments" />
+                                            <span asp-validation-for="Comments"></span>
+                                        </div>
+                                    </div>
+                                }
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="Manager" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="Manager" />
+                                        <span asp-validation-for="Manager"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="Active" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="Active" />
+                                        <span asp-validation-for="Active"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</form>

@@ -1,0 +1,374 @@
+﻿@model PackNameModel
+
+<form id="packname-detail-form" class="ms-detail-form"
+        asp-controller="MultiStore"
+        asp-action="SavePackName"
+        method="post">
+
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="StoreId" type="hidden" />
+    <input asp-for="IsNew" type="hidden" />
+
+    <div class="form-horizontal">
+        <div class="card card-default bp-card card-ms-section">
+
+            <div class="card-header d-flex align-items-center">
+                <button type="button"
+                        class="btn btn-sm btn-focus-back"
+                        id="btn-packname-back">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    @T("Plugins.CW.Core.Admin.Common.Back")
+                </button>
+
+                <span class="ms-card-title">
+                    @if (Model.IsNew)
+                    {
+                        @T("Plugins.CW.Core.Admin.PackNames.PackName.New")
+                    }
+                    else
+                    {
+                        @Model.Name
+                    }
+                </span>
+        
+                <div class="ml-auto d-flex align-items-center" style="gap:6px">
+                    @*SAVE NEVER NAVIGATES: the panel stays put, so this is the only
+                      confirmation a save gets. Admin.StoreNav.markSaved() fills and shows it.*@
+                    <span class="ms-saved-stamp" style="display:none"></span>
+                    <button type="button"
+                            class="btn btn-primary btn-sm"
+                            id="btn-packname-save">
+                        @T("Admin.Common.Save")
+                    </button>
+                    @if (!Model.IsNew)
+                    {
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                id="btn-packname-delete"
+                                data-id="@Model.Id"
+                                data-url="/Admin/MultiStore/DeletePackName"
+                                data-confirm="@T("Plugins.CW.Core.Admin.PackNames.DeleteConfirmMessage")">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                            @T("Admin.Common.Delete")
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        @if (Model.IsNew)
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-4">
+                                    <nop-label asp-for="BranchId" />
+                                </div>
+                                <div class="col-md-8">
+                                    <nop-select asp-for="BranchId" asp-items="Model.AvailableBranches" id="packname-branch-field" />
+                                    <span asp-validation-for="BranchId"></span>
+                                </div>
+                            </div>
+                            <script>
+                                $(function() {
+                                    $('#packname-branch-field').select2({
+                                        placeholder: '@T("Admin.Common.Search").Text',
+                                        allowClear: true,
+                                        minimumInputLength: 2,
+                                        delay: 300,
+                                        ajax: {
+                                            url: '@Url.Action("SearchBranches", "Branch", new { area = "Admin" })',
+                                            dataType: 'json',
+                                            data: function (params) {
+                                                return {
+                                                    storeId: '@Model.StoreId',
+                                                    term: params.term,
+                                                    page: params.page || 1
+                                                };
+                                            },
+                                            processResults: function (data, params) {
+                                                params.page = params.page || 1;
+                                                return {
+                                                    results:    data.results,
+                                                    pagination: data.pagination
+                                                };
+                                            },
+                                            cache: true
+                                        }
+                                    });
+                                });
+                            </script>
+                        }
+                        else
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-4">
+                                    <nop-label asp-for="Branch" />
+                                </div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="Branch" html-attributes="@(new { disabled = true })" />
+                                    <span asp-validation-for="Branch"></span>
+                                </div>
+                            </div>
+                            <input asp-for="BranchId" type="hidden" id="packname-branch-field"/>
+                        }
+
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="PackNameListId" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-select asp-for="PackNameListId" asp-items="Model.AvailableLists" id="packname-packnamelist-field" />
+                                <span asp-validation-for="PackNameListId"></span>
+                            </div>
+                        </div>
+                        <script>
+                            $(function() {
+                                $("#packname-branch-field").change(function () {
+                                    var selectedItem = $(this).val();
+                                    var ddlLists = $("#packname-packnamelist-field");
+                                    $.ajax({
+                                        cache: false,
+                                        type: "GET",
+                                        url: "@(Url.Action("GetListsByBranchId", "MultiStore"))",
+                                        data: {
+                                            "branchId": selectedItem
+                                        },
+                                        success: function (data, textStatus, jqXHR) {
+                                            ddlLists.html('');
+                                            $.each(data,
+                                                function (id, option) {
+                                                    $option = $('<option></option>');
+                                                    $option.val(option.id).html(option.name);
+                                                    if (option.selected)
+                                                        $option.prop('selected', true)
+                                                    ddlLists.append($option);
+                                                });
+                                        },
+                                        error: function (jqXHR, textStatus, errorThrown) {
+                                            $("#listsAlert").trigger("click");
+                                        }
+                                    });
+                                });
+                            });
+                        </script>
+                        <nop-alert asp-alert-id="listsAlert" asp-alert-message="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.PackNameList.Alert.Lists.Failed")" />
+
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="DepartmentId" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-select asp-for="DepartmentId" asp-items="Model.AvailableDepartments" />
+                                <span asp-validation-for="DepartmentId"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="CostCenterId" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-select asp-for="CostCenterId" asp-items="Model.AvailableCostCenters" />
+                                <span asp-validation-for="CostCenterId"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Group" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Group" />
+                                <span asp-validation-for="Group"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Name" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Name" asp-required="true" />
+                                <span asp-validation-for="Name"></span>
+                            </div>
+                        </div>
+                        @if (Model.MultiStoreSettingsModel.EmployeeNumberEnabled)
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-4">
+                                    <nop-label asp-for="EmployeeNumber" />
+                                </div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="EmployeeNumber" />
+                                    <span asp-validation-for="EmployeeNumber"></span>
+                                </div>
+                            </div>
+                        }
+                        @if (Model.MultiStoreSettingsModel.GenderEnabled)
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-4">
+                                    <nop-label asp-for="Gender" />
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="raw">
+                                        @foreach (var gender in Model.AvailableGenders)
+                                        {
+                                            <div class="form-check">
+                                                <input type="radio" class="form-check-input" id="gender-@gender.Text" name="Gender" value="@gender.Value" @(gender.Selected ? Html.Raw("checked") : null)>
+                                                <label class="form-check-label" for="gender-@gender.Text">
+                                                    @gender.Text
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                    </div>
+                    <div class="col-md-6">
+
+                        @if (Model.MultiStoreSettingsModel.PrintNameEnabled)
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-4">
+                                    <nop-label asp-for="PrintName" />
+                                </div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="PrintName" />
+                                    <span asp-validation-for="PrintName"></span>
+                                </div>
+                            </div>
+                        }
+                        @if (Model.MultiStoreSettingsModel.POEntryEnabled)
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-4">
+                                    <nop-label asp-for="POEntry" />
+                                </div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="POEntry" />
+                                    <span asp-validation-for="POEntry"></span>
+                                </div>
+                            </div>
+                        }
+                        @if (string.IsNullOrEmpty(Model.Colour))
+                        {
+                            var random = new Random();
+                            Model.Colour = $"#{random.Next(0x1000000):X6}";
+                        }
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Colour" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Colour" html-attributes="@(new { id = "packname-colour-field" })" />
+                                <div id="packname-color-picker"></div>
+                                <script>
+                                    $(document).ready(function () {
+                                        $('#packname-color-picker').farbtastic('#packname-colour-field');
+                                    });
+                                </script>
+                                <span asp-validation-for="Colour"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="CustomerId" />
+                            </div>
+                            <div class="col-md-8">
+                                <input asp-for="CustomerId" type="hidden" id="packname-customer-field" />
+                                <span id="packname-customer-name">@Model.CustomerName</span>
+                                <button type="button" id="associate-customer-btn" class="btn btn-primary" style="margin: 0px 10px;">
+                                    @T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.AddNew")
+                                </button>
+                                <button id="packname-clear-customer-btn" type="button" onclick="clearCustomer(); return false;" class="btn btn-primary">
+                                    @T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.Clear")
+                                </button>
+                                @*ValidatePackNameTargetAsync adds two errors keyed CustomerId -
+                                  "already has a packname" and "wrong store". Without this span they were
+                                  stored in ModelState and rendered nowhere: the form came back unchanged
+                                  and the admin was told nothing.*@
+                                <span asp-validation-for="CustomerId"></span>
+                                <script>
+                                    $(function() {
+                                        $('#associate-customer-btn').click(function () {
+                                            var branchId = $('#packname-branch-field').val();
+                                            if (!branchId) {
+                                                alert('@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.Alert.SelectBranch")');
+                                                return false;
+                                            }
+                                            var url = '@Url.Action("AssociateCustomerToPackNamePopup", "MultiStore")'
+                                                + '?branchId=' + branchId
+                                                + '&currentCustomerId=@Model.CustomerId'
+                                                + '&customerIdInput=packname-customer-field'
+                                                + '&customerNameInput=packname-customer-name';
+                                            OpenWindow(url, 800, 850, true);
+                                            return false;
+                                        });
+
+                                        $('#packname-customer-field').change(configureCustomerFields);
+
+                                        $("#packname-branch-field").change(function () {
+                                            clearCustomer();
+                                        });
+
+                                        configureCustomerFields();
+                                    });
+
+                                    function clearCustomer() {
+                                        $('#packname-customer-name').html('');
+                                        $('#packname-customer-field').val(0).trigger('change');
+                                    }
+
+                                    function configureCustomerFields() {
+                                        if ($('#packname-customer-field').val() > 0) {
+                                            $('#packname-clear-customer-btn').show();
+                                            $('.manager-field').show();
+                                        }
+                                        else {
+                                            $('#packname-clear-customer-btn').hide();
+                                            $('.manager-field').hide();
+                                        }
+                                    }
+                                </script>
+                            </div>
+                        </div>
+                        @if (Model.MultiStoreSettingsModel.CommentsEnabled)
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-4">
+                                    <nop-label asp-for="Comments" />
+                                </div>
+                                <div class="col-md-8">
+                                    <nop-textarea asp-for="Comments" />
+                                    <span asp-validation-for="Comments"></span>
+                                </div>
+                            </div>
+                        }
+                        <div class="form-group row manager-field">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Manager" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Manager" />
+                                <span asp-validation-for="Manager"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Active" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Active" />
+                                <span asp-validation-for="Active"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @await Html.PartialAsync("_PackNames.PackNameDetail.Addresses", Model)
+    @await Component.InvokeAsync(typeof(PackNameExtensionPanelsViewComponent), new { packNameId = Model.Id, prefix = "packname" })
+</form>

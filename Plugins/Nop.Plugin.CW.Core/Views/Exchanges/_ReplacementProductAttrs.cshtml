@@ -1,0 +1,73 @@
+﻿@using Nop.Plugin.CW.Core.Helpers
+
+@model ReplacementProductOptionsModel
+
+@{
+    var product = Model.Product;
+
+    // ProductsHelper.FindColourAttribute IS the selection rule, and
+    // ProductsHelper.FindUncollectableRequiredAttributes calls the same method — so which attribute is
+    // the colour one can no longer drift between this view and the check that decides whether the
+    // product is offerable at all. Everything else that has values to pick from renders as an ordinary
+    // dropdown; an attribute with no values would give a dropdown holding only "- Select -".
+    var colorAttribute = ProductsHelper.FindColourAttribute(product.ProductAttributes);
+    var otherAttributes = product.ProductAttributes
+        .Where(a => !ReferenceEquals(a, colorAttribute) && a.Values.Any())
+        .ToList();
+}
+
+@if (colorAttribute != null)
+{
+    <div class="product-input">
+        <label for="color-select-@product.Id">@colorAttribute.Name</label>
+        <select id="color-select-@product.Id" class="cw-colour-select" name="@String.Format("color_attr_{0}_{1}", product.Id, colorAttribute.Id)"
+                data-attribute-id="@colorAttribute.Id"
+                data-attribute-name="@colorAttribute.Name"
+                data-attribute-issize="false">
+            <option value="0">@T("Plugins.CW.Core.Exchanges.Wizard.SelectPlaceholder")</option>
+            @foreach (var colorAttributeValue in colorAttribute.Values)
+            {
+                Model.AttributeValuePictures.TryGetValue(colorAttributeValue.Id, out var valuePicture);
+
+                <option selected="@colorAttributeValue.IsPreSelected"
+                        value="@colorAttributeValue.Id"
+                        data-picture-url="@valuePicture">@colorAttributeValue.Name</option>
+            }
+        </select>
+
+        @if (ProductsHelper.IsColourAttributeType(colorAttribute.AttributeControlType))
+        {
+            <div id="color-samples-@product.Id" class="color-samples-container">
+                @foreach (var colorAttributeValue in colorAttribute.Values)
+                {
+                    <div class="hidden color-indicator color-sample attribute-squares color-sample-@colorAttributeValue.Id">
+                        <span class="attribute-square-container" title="@colorAttributeValue.Name">
+                            <span class="attribute-square" style="background-color:@(colorAttributeValue.ColorSquaresRgb);">&nbsp;</span>
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@foreach (var productAttribute in otherAttributes)
+{
+    <div class="product-input">
+        <label for="attr-select-@product.Id-@productAttribute.Id">@productAttribute.Name</label>
+        <select id="attr-select-@product.Id-@productAttribute.Id" name="@String.Format("main_attr_{0}_{1}", product.Id, productAttribute.Id)"
+                data-attribute-id="@productAttribute.Id"
+                data-attribute-name="@productAttribute.Name"
+                data-attribute-issize="@(ProductsHelper.IsSizeAttribute(productAttribute) ? "true" : "false")">
+            <option value="0">@T("Plugins.CW.Core.Exchanges.Wizard.SelectPlaceholder")</option>
+            @foreach (var attrValue in productAttribute.Values)
+            {
+                Model.AttributeValuePictures.TryGetValue(attrValue.Id, out var valuePicture);
+
+                <option value="@attrValue.Id"
+                        selected="@attrValue.IsPreSelected"
+                        data-picture-url="@valuePicture">@attrValue.Name</option>
+            }
+        </select>
+    </div>
+}

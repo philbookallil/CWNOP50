@@ -1,0 +1,116 @@
+﻿@model StoreCreditsModel
+
+@{
+    Layout = "_ColumnsTwo";
+
+    NopHtml.AddTitleParts(T("Account.MyAccount").Text);
+    NopHtml.AppendPageCssClassParts("html-account-page");
+    NopHtml.AppendPageCssClassParts("html-store-credit-page");
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/MyAccount/store-credit.css");
+
+    var credit = Model.StoreCredit;
+}
+
+@section left
+{
+    @await Component.InvokeAsync(typeof(CustomerNavigationViewComponent), new { selectedTabId = CWCoreDefaults.CustomerCreditsForMeMenuTab })
+}
+
+<div class="page account-page store-credit-page">
+    <div class="page-title">
+        <h1>@T("Account.MyAccount") - @T("Plugins.CW.Core.StoreCredit.PageTitle")</h1>
+    </div>
+    <div class="page-body">
+        @if (!credit.HasStoreCredit)
+        {
+            <div class="no-data">@T("Plugins.CW.Core.StoreCredit.NoCredit")</div>
+        }
+        else
+        {
+            <div class="store-credit-card store-credit-balance">
+                <div class="store-credit-eyebrow">@T("Plugins.CW.Core.StoreCredit.AvailableBalance")</div>
+                <div class="store-credit-big">@credit.AvailableBalance</div>
+            </div>
+
+            @if (credit.IssuedCreditNotes.Count > 0)
+            {
+                <div class="store-credit-card">
+                    <h2>@T("Plugins.CW.Core.StoreCredit.IssuedNotes")</h2>
+                    <div class="store-credit-table-wrapper">
+                        <table class="store-credit-table">
+                            <thead>
+                                <tr>
+                                    <th>@T("Plugins.CW.Core.StoreCredit.Fields.Description")</th>
+                                    <th>@T("Plugins.CW.Core.StoreCredit.Fields.Order")</th>
+                                    <th>@T("Plugins.CW.Core.StoreCredit.Fields.Date")</th>
+                                    <th>@T("Plugins.CW.Core.StoreCredit.Fields.Amount")</th>
+                                    <th>@T("Plugins.CW.Core.StoreCredit.Fields.Remaining")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var note in credit.IssuedCreditNotes)
+                                {
+                                    <tr>
+                                        <td class="store-credit-description">@note.Name</td>
+                                        <td>
+                                            @if (note.OrderId > 0)
+                                            {
+                                                <a href="@Url.RouteUrl(NopRouteNames.Standard.ORDER_DETAILS, new { orderId = note.OrderId })">@note.OrderId</a>
+                                            }
+                                            else
+                                            {
+                                                <span class="store-credit-dim">&mdash;</span>
+                                            }
+                                        </td>
+                                        <td>@note.CreatedOn</td>
+                                        <td>@note.Amount</td>
+                                        <td class="store-credit-remaining">@note.Remaining</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+
+            @if (credit.Ledger.Count > 0)
+            {
+                <div class="store-credit-card">
+                    <h2>@T("Plugins.CW.Core.StoreCredit.Ledger")</h2>
+                    <div class="store-credit-table-wrapper">
+                        <table class="store-credit-table">
+                            <thead>
+                                <tr>
+                                    <th>@T("Plugins.CW.Core.StoreCredit.Fields.Description")</th>
+                                    <th>@T("Plugins.CW.Core.StoreCredit.Fields.Order")</th>
+                                    <th>@T("Plugins.CW.Core.StoreCredit.Fields.Date")</th>
+                                    <th>@T("Plugins.CW.Core.StoreCredit.Fields.Applied")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in credit.Ledger)
+                                {
+                                    <tr>
+                                        <td class="store-credit-description">@entry.Name</td>
+                                        <td>
+                                            @if (entry.OrderId > 0)
+                                            {
+                                                <a href="@Url.RouteUrl(NopRouteNames.Standard.ORDER_DETAILS, new { orderId = entry.OrderId })">@entry.OrderId</a>
+                                            }
+                                            else
+                                            {
+                                                <span class="store-credit-dim">&mdash;</span>
+                                            }
+                                        </td>
+                                        <td>@entry.CreatedOn</td>
+                                        <td>@entry.AmountApplied</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>

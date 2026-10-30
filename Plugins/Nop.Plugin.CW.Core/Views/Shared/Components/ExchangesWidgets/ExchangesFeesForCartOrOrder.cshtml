@@ -1,0 +1,37 @@
+﻿@using Nop.Plugin.CW.Core.Domain.Exchanges;
+
+@model ExchangesFeesModel
+
+@if (Model.Fees.Count > 0)
+{
+    foreach (var feeDisplay in Model.Fees)
+    {
+        var namedFees = feeDisplay.FeeType == FeeType.AdditionalFee ? Model.AdditionalFees : null;
+        var singleName = namedFees != null && namedFees.Count == 1 ? namedFees[0].FeeName : null;
+
+        <tr class="cart-order-fee">
+            <td class="cart-total-left">
+                <label>@feeDisplay.FeeConcept@(string.IsNullOrWhiteSpace(singleName) ? null : $" ({singleName})"):</label>
+            </td>
+            <td class="cart-total-right">
+                <span class="value-summary">@feeDisplay.FeeAmountDisplay</span>
+            </td>
+        </tr>
+
+        @*Only when an order carries several returns. One fee needs no sub-row — its name is on the row above.*@
+        if (namedFees != null && namedFees.Count > 1)
+        {
+            foreach (var fee in namedFees)
+            {
+                <tr class="cart-order-fee-name">
+                    <td class="cart-total-left">
+                        <label>@fee.FeeName</label>
+                    </td>
+                    <td class="cart-total-right">
+                        <span class="value-summary">@fee.FeeAmountDisplay</span>
+                    </td>
+                </tr>
+            }
+        }
+    }
+}

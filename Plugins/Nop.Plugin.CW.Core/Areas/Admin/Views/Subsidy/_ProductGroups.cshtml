@@ -1,0 +1,403 @@
+﻿@model ProductGroupSearchModel
+
+@{
+    const string hideSearchBlockAttributeName = "MultiStoreProductGroupsPage.HideSearchBlock";
+    var hideSearchBlock = await genericAttributeService.GetAttributeAsync<bool>(await workContext.GetCurrentCustomerAsync(), hideSearchBlockAttributeName);
+}
+
+<section id="productgroups-table-container" class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="cards-group">
+                <div class="card card-default">
+                    <div class="card-header d-flex align-items-center">
+                        <span class="ms-card-title">
+                            @T("Plugins.CW.Core.Admin.ProductGroups")
+                        </span>
+                        <div class="ml-auto">
+                            <button type="button"
+                                    class="btn btn-primary btn-add-pg btn-sm">
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                                @T("Plugins.CW.Core.Admin.ProductGroups.AddNew")
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card card-default card-search">
+                        <div class="card-body">
+                            <div class="row search-row @(!hideSearchBlock ? "opened" : "")" data-hideAttribute="@hideSearchBlockAttributeName">
+                                <div class="search-text">@T("Admin.Common.Search")</div>
+                                <div class="icon-search"><i class="fas fa-search" aria-hidden="true"></i></div>
+                                <div class="icon-collapse"><i class="far fa-angle-@(!hideSearchBlock ? "up" : "down")" aria-hidden="true"></i></div>
+                            </div>
+                            <div class="search-body @(hideSearchBlock ? "closed" : "")">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="SearchProductGroupName" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-editor asp-for="SearchProductGroupName" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="text-center col-12">
+                                        <button type="button" id="search-productgroups" class="btn btn-primary btn-search"><i class="fas fa-search"></i>@T("Admin.Common.Search")</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card card-default">
+                    <div class="card-body">
+                        @await Html.PartialAsync("Table", new DataTablesModel 
+                        {
+                            Name = "productgroups-grid",
+                            UrlRead = new DataUrl("ProductGroupList", "Subsidy", new RouteValueDictionary { [nameof(Model.StoreId)] = Model.StoreId }),
+                            UrlDelete = new DataUrl("DeleteProductGroup", "Subsidy", null),
+                            SearchButtonId = "search-productgroups",
+                            Length = Model.PageSize,
+                            LengthMenu = Model.AvailablePageSizes,
+                            PrimaryKeyColumn = nameof(ProductGroupModel.Id),
+                            Filters = new List<FilterParameter>
+                            {
+                                new FilterParameter(nameof(Model.SearchProductGroupName)),
+                            },
+                            ColumnCollection = new List<ColumnProperty>
+                            {
+                                new ColumnProperty(nameof(ProductGroupModel.Id))
+                                {
+                                    Render = new RenderChildCaret(),
+                                    Width = "5",
+                                    Searchable = false,
+                                    ClassName = NopColumnClassDefaults.ChildControl
+                                },
+                                new ColumnProperty(nameof(ProductGroupModel.Icon))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Icon").Text,
+                                    Width = "50",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                    Render = new RenderCustom("Admin.StoreNav.render.productGroupIcon")
+                                },
+                                new ColumnProperty(nameof(ProductGroupModel.Name))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Name").Text,
+                                },
+                                new ColumnProperty(nameof(ProductGroupModel.Description))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Description").Text,
+                                },
+                                new ColumnProperty(nameof(ProductGroupModel.DisplayOrder))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.DisplayOrder").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(ProductGroupModel.ProductCount))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.ProductCount").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(ProductGroupModel.Active))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Active").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                    Render = new RenderBoolean()
+                                },
+                                new ColumnProperty(nameof(ProductGroupModel.Id))
+                                {
+                                    Title = T("Admin.Common.Edit").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.Button,
+                                    Render = new RenderCustom("Admin.StoreNav.render.tabEdit")
+                                },
+                                new ColumnProperty(nameof(ProductGroupModel.Id))
+                                {
+                                    Title = T("Admin.Common.Delete").Text,
+                                    Width = "100",
+                                    ClassName =  NopColumnClassDefaults.Button,
+                                    Render = new RenderCustom("Admin.StoreNav.render.tabDelete")
+                                }
+                            },
+                            ChildTable = new DataTablesModel
+                            {
+                                Name = "productgroups-products-grid",
+                                UrlRead = new DataUrl("ProductGroupProducts", "Subsidy", null),
+                                IsChildTable = true,
+                                Length = Model.PageSize,
+                                LengthMenu = Model.AvailablePageSizes,
+                                Filters = new List<FilterParameter>
+                                {
+                                    new FilterParameter(nameof(ProductGroupProductSearchModel.ProductGroupId), nameof(ProductGroupModel.Id), true)
+                                },
+                                ColumnCollection = new List<ColumnProperty>
+                                {
+                                    new ColumnProperty(nameof(ProductModel.PictureThumbnailUrl))
+                                    {
+                                        Title = T("Admin.Catalog.Products.Fields.PictureThumbnailUrl").Text,
+                                        Width = "100",
+                                        Render = new RenderPicture()
+                                    },
+                                    new ColumnProperty(nameof(ProductModel.Sku))
+                                    {
+                                        Title = T("Admin.Catalog.Products.Fields.Sku").Text,
+                                        Width = "100"
+                                    },
+                                    new ColumnProperty(nameof(ProductModel.Name))
+                                    {
+                                        Title = T("Admin.Catalog.Products.Fields.Name").Text
+                                    },
+                                    new ColumnProperty(nameof(ProductModel.ShortDescription))
+                                    {
+                                        Title = T("Admin.Catalog.Products.Fields.ShortDescription").Text
+                                    },
+                                    new ColumnProperty(nameof(ProductModel.Published))
+                                    {
+                                        Title = T("Admin.Catalog.Products.Fields.Published").Text,
+                                        Width = "80",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Render = new RenderBoolean()
+                                    },
+                                    new ColumnProperty(nameof(ProductModel.Id))
+                                    {
+                                        Title = T("Admin.Common.View").Text,
+                                        Width = "80",
+                                        ClassName =  NopColumnClassDefaults.Button,
+                                        Render = new RenderButtonView(new DataUrl("~/Admin/Product/Edit/"))
+                                    }
+                                }
+                            }
+                        })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<div id="productgroup-container" style="display: none;"></div>
+
+@* EVERY RAZOR VALUE THIS TAB'S SCRIPT NEEDS ARRIVES THROUGH HERE.
+   The script below is then plain JavaScript: no Model, no T(), no Url.Action inside a <script>,
+   so nothing is HTML-encoded on its way into a string literal and the bundler can minify it. *@
+<div class="pg-tab-config"
+     data-store-id="@Model.StoreId"
+     data-detail-url="@Url.Action("ProductGroupDetail", "Subsidy")"
+     data-delete-url="@Url.Action("DeleteProductGroup", "Subsidy")"
+     style="display: none;"></div>
+
+<script>
+    (function () {
+        var $panel = $('#tab-panel-productgroups');
+        var $cfg = $panel.find('.pg-tab-config');
+
+        var gridSel   = '#productgroups-grid';
+        var storeId   = $cfg.data('storeId');
+        var detailUrl = $cfg.data('detailUrl');
+        var deleteUrl = $cfg.data('deleteUrl');
+
+        //THE PANEL NODE OUTLIVES THE PARTIAL. loadPartial only swaps innerHTML, so without this
+        //every delegated handler from the previous tab load is still attached and each click
+        //fires one more time than the load before it.
+        $panel.off('.pgtab');
+        $('#tab-productgroups').off('click.pgtab');
+
+        function refreshGrid() {
+            updateTable(gridSel);
+        }
+
+        function showProductGroupList(show) {
+            if (show) {
+                $('#productgroups-table-container').show();
+                $('#productgroup-container').hide();
+            } else {
+                $('#productgroups-table-container').hide();
+                $('#productgroup-container').show();
+            }
+        }
+
+        function loadProductGroup(productGroupId) {
+            var $detail = $('#productgroup-container');
+
+            $detail.html('<div class="ms-loading-message">' + Admin.StoreNav.res('common.loading', 'Loading...') + '</div>');
+
+            showProductGroupList(false);
+
+            $.get(detailUrl, { storeId: storeId, productGroupId: productGroupId })
+                .done(function (html) {
+                    $detail.html(html);
+                    bindProductGroupDetailEvents();
+                })
+                .fail(function (xhr) {
+                    if (xhr.statusText === 'abort') return;
+                    $detail.html('<div class="ms-error-message">' + Admin.StoreNav.res('common.failedToLoad', 'Failed to load.')
+                        + ' <a href="javascript:void(0)" class="pg-retry">' + Admin.StoreNav.res('common.retry', 'Retry') + '</a></div>');
+                });
+        }
+
+        function exitProductGroupDetails() {
+            //THE TEARDOWN FOR THIS TAB'S DETAIL. Back, and anything else that closes the panel, comes
+            //through here - so the unsaved-edit question is asked here rather than at each caller.
+            if (!Admin.StoreNav.canLeaveForm()) return;
+
+            Admin.StoreNav.navigate({ productGroupId: null }, false);
+            refreshGrid();
+            showProductGroupList(true);
+        }
+
+        function bindProductGroupDetailEvents() {
+            //WAS THIS A CREATE? Read it from the form BEFORE the post - the save reply carries no
+            //reliable flag for it, and it is what decides whether the panel reloads for a new id.
+            var wasNew = String($('#productgroup-detail-form').find('[name="IsNew"]').val()).toLowerCase() === 'true';
+
+            //Baseline for the unsaved-edit gate. The gate itself lives inside exitProductGroupDetails().
+            //PARSE THE VALIDATION RULES. This form is injected by AJAX long after document.ready,
+            //so unobtrusive never saw it and $form.valid() would answer true for a form with no
+            //validator attached - nothing would be checked in the browser.
+            $.validator.unobtrusive.parse($('#productgroup-detail-form'));
+            Admin.StoreNav.watchForm($('#productgroup-detail-form'));
+            Admin.StoreNav.consumeSavedFlash($('#productgroup-detail-form'));
+
+            // Back button
+            $('#btn-productgroup-back').on('click', function () {
+                exitProductGroupDetails();
+            });
+
+            // Save product group
+            $('#btn-productgroup-save').on('click', function () {
+                var $btn = $(this);
+                var $form = $('#productgroup-detail-form');
+
+                if (!$form.valid()) return;
+                $btn.prop('disabled', true).text(Admin.StoreNav.res('common.saving', 'Saving...'));
+
+                $.ajax({
+                    type: 'POST',
+                    url: $form.attr('action'),
+                    data: $form.serialize(),
+                    success: function (result, status, xhr) {
+                        $btn.prop('disabled', false).text(Admin.StoreNav.res('common.save', 'Save'));
+                        var ct = xhr.getResponseHeader('Content-Type') || '';
+                        if (ct.indexOf('text/html') !== -1) {
+                            // Validation failed — swap HTML and re-bind.
+                            //NOTHING WAS WRITTEN, so the form stays dirty and takes no stamp.
+                            $('#productgroup-container').html(result);
+                            bindProductGroupDetailEvents();
+                            //AFTER THE RE-BIND, not before: binding the swapped-in form takes a fresh
+                            //baseline from the posted values, which would read as clean. The rejected
+                            //edits are real work, so the form must still ask before it is abandoned.
+                            Admin.StoreNav.markFormDirty($('#productgroup-detail-form'));
+                            return;
+                        }
+                        //JSON REFUSAL. A {success:false} payload is not a saved record: reloading for
+                        //its id would open a panel for something that was never written.
+                        if (result && result.success === false) {
+                            display_nop_error({ error: result.error || result.message || Admin.StoreNav.res('common.serverError', 'A server error occurred. Please try again.') });
+                            return;
+                        }
+
+                        if (result) {
+                            Admin.StoreNav.cacheName('pg', String(result.id), result.name);
+                        }
+
+                        //SAVE NEVER NAVIGATES. On an edit the panel already shows what was saved, so it
+                        //stays and takes the stamp. On a create it reloads for the new id, which is what
+                        //turns "save this first" into the working products grid - that grid is a
+                        //server-built DataTable with the id baked into UrlRead, so it cannot be
+                        //unlocked client-side. The grid behind is refreshed by exitProductGroupDetails() on the way out.
+                        Admin.StoreNav.watchForm($form);
+                        if (wasNew && result) {
+                            Admin.StoreNav.flashSavedAfterReload();
+                            Admin.StoreNav.navigate({ productGroupId: String(result.id) }, false);
+                            loadProductGroup(result.id);
+                            return;
+                        }
+                        Admin.StoreNav.markSaved($form);
+                    },
+                    error: function () {
+                        $btn.prop('disabled', false).text(Admin.StoreNav.res('common.save', 'Save'));
+                        display_nop_error({ error: Admin.StoreNav.res('common.serverError', 'A server error occurred. Please try again.') });
+                    }
+                });
+            });
+
+            // Delete product group
+            $('#btn-productgroup-delete').on('click', function () {
+                var id = $(this).data('id');
+                if (!confirm(Admin.StoreNav.res('productGroups.confirmDelete', 'Are you sure?'))) return;
+
+                var postData = { id: id };
+                addAntiForgeryToken(postData);
+
+                $.post($(this).data('url'),
+                    postData,
+                    function (result) {
+                        if (!result.success) {
+                            display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') });
+                            return;
+                        }
+                        //The record is gone, so there is nothing left to save and nothing to ask about.
+                        Admin.StoreNav.releaseForm($('#productgroup-detail-form'));
+                        exitProductGroupDetails();
+                    }
+                );
+            });
+        }
+
+        // ── Grid: retry link on a failed detail load ───────────────────────
+        $panel.on('click.pgtab', '.pg-retry', function () {
+            location.reload();
+        });
+
+        // ── Grid: edit product group → focus mode ────────────────────────────────
+        //THE NAME COMES FROM THE GRID, NOT FROM THE MARKUP. The row is already in the DataTable,
+        //so nothing has to be escaped into an attribute.
+        $panel.on('click.pgtab', '.btn-tab-edit', function () {
+            var id = String($(this).data('id'));
+            var row = $(gridSel).DataTable().row($(this).closest('tr')).data() || {};
+
+            Admin.StoreNav.cacheName('pg', id, row.Name || '');
+            Admin.StoreNav.navigate({ productGroupId: id }, false);
+            loadProductGroup(id);
+        });
+
+        // ── Grid: delete product group ─────────────────────────────────────────
+        $panel.on('click.pgtab', '.btn-tab-delete', function () {
+            var id = $(this).data('id');
+            if (!confirm(Admin.StoreNav.res('productGroups.confirmDelete', 'Are you sure?'))) return;
+
+            var postData = { id: id };
+            addAntiForgeryToken(postData);
+
+            $.post(deleteUrl, postData, function (result) {
+                if (!result.success) {
+                    display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') });
+                    return;
+                }
+                refreshGrid();
+            });
+        });
+
+        // ── Add product group → focus mode────────────────────────────────────
+        $panel.on('click.pgtab', '.btn-add-pg', function () {
+            Admin.StoreNav.cacheName('pg', '0', Admin.StoreNav.res('new.productGroup', 'New product group'));
+            Admin.StoreNav.navigate({ productGroupId: 0 }, false);
+            loadProductGroup(0);
+        });
+
+        $('#tab-productgroups').on('click.pgtab', function () {
+            showProductGroupList(true);
+        });
+
+        var productGroupId = Admin.StoreNav.getState().productGroupId;
+        if (productGroupId) {
+            loadProductGroup(productGroupId);
+        }
+    })();
+</script>

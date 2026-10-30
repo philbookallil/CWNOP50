@@ -1,0 +1,65 @@
+.cw-fees-admin .fees-admin {
+    margin-bottom: 0;
+}
+
+    .cw-fees-admin .fees-admin > tbody > tr > td {
+        vertical-align: middle;
+    }
+
+    .cw-fees-admin .fees-admin col.concept {
+        width: 280px;
+    }
+
+    .cw-fees-admin .fees-admin .fees-label {
+        background: #f6f7f9;
+    }
+
+        .cw-fees-admin .fees-admin .fees-label label {
+            margin: 0;
+            font-weight: 600;
+        }
+
+    .cw-fees-admin .fees-admin .form-text-row {
+        padding: 2px 0;
+    }
+
+    /* The one number staff act on. Emphasis comes from size and a top rule rather than a filled bar —
+       a solid full-width fill reads as a button and invites clicking. */
+    .cw-fees-admin .fees-admin > tbody > tr.total > td {
+        border-top: 2px solid #3c8dbc;
+        background: #f2f8fc;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    .cw-fees-admin .fees-admin .total .fees-label label {
+        font-size: 15px;
+        font-weight: 700;
+        color: #2b5f80;
+    }
+
+    .cw-fees-admin .fees-admin .total .form-text-row {
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: #1a3f57;
+    }
+
+    .cw-fees-admin .fees-admin .total .price-total {
+        font-weight: 700;
+    }
+
+/* The line being edited. The fees panel below charges THIS item only, and the table lists its siblings
+   with no other visual difference — so the row has to be unmistakable. */
+.case-line-current > td {
+    background: #fff8e1;
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 #f0ad4e;
+}
+
+/* The typed quantity exceeded what was returned and has been clamped. The server validator is still the
+   authority; this only explains why the number changed under the cursor. */
+.fee-qty-capped .fee-qty input {
+    border-color: #f0ad4e;
+    background: #fff8e1;
+}

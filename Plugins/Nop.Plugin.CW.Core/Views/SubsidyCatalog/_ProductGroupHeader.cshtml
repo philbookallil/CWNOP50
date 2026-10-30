@@ -1,0 +1,41 @@
+﻿@model SubsidyCatalogProductGroupModel
+
+@{
+    var remainQty = Model.AvailableQuantity - Model.ShoppingCartQuantity;
+    var usedQty   = Model.TotalQuantity - Model.AvailableQuantity;
+    //exhausted: the group's units and credit are used up, and no global credit is left to pay for its products
+    var isExhausted = (Model.AvailableQuantity == 0 || Model.ShoppingCartQuantity >= Model.AvailableQuantity)
+                   && Model.RemainCredit <= 0
+                   && Model.RemainGlobalCredit <= 0;
+}
+
+@Html.PgIcon(Model.Icon, "pg-header-icon", Model.Colour)
+<span class="pg-header-name">@Model.Name</span>
+
+@if (Model.TotalQuantity > 0)
+{
+    <div class="pg-header-qty">
+        @if (Model.TotalQuantity > 6)
+        {
+            <div class="qty-badge available">@remainQty</div>
+            <div class="qty-badge in-cart">@Model.ShoppingCartQuantity</div>
+            <div class="qty-badge used">@usedQty</div>
+        }
+        else
+        {
+            @for (var i = 0; i < remainQty; i++) { <div class="circle available"></div> }
+            @for (var i = 0; i < Model.ShoppingCartQuantity; i++) { <div class="circle in-cart"></div> }
+            @for (var i = 0; i < usedQty; i++) { <div class="circle used"></div> }
+        }
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.RemainCreditFormatted))
+{
+    <span class="pg-header-credit">@Model.RemainCreditFormatted</span>
+}
+
+@if (isExhausted)
+{
+    <span class="pg-header-badge exhausted">@T("Plugins.CW.Core.SubsidyCatalog.ProductGroup.Exhausted")</span>
+}

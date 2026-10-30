@@ -1,0 +1,204 @@
+﻿/* ---- PackName order group wrapper ---- */
+.packname-order-details {
+    margin-bottom: 20px;
+}
+
+    .packname-order-details .packname-order-group {
+        margin-bottom: 12px;
+        border: 1px solid #e5e5e5;
+    }
+
+    /* ---- Panel header (mirrors shopping-cart.css pack-name-panel-header). The packname's colour stays on who
+       it is: its type icon and name. Its details follow a thin divider, with grey icons of one size and darker grey text ---- */
+    .packname-order-details .pack-name-panel-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 12px;
+        background-color: #fff;
+        border-bottom: 1px solid #e5e5e5;
+        color: #495057;
+    }
+
+        .packname-order-details .pack-name-panel-header .pack-name-header-info {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .packname-order-details .pack-name-panel-header .pack-name-info {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0 16px;
+        }
+
+            .packname-order-details .pack-name-panel-header .pack-name-info > div {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+            }
+
+        /* Pack name / branch name columns */
+        .packname-order-details .pack-name-panel-header .pack-name-name {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .packname-order-details .pack-name-panel-header .pack-name-branch,
+        .packname-order-details .pack-name-panel-header .pack-name-department,
+        .packname-order-details .pack-name-panel-header .pack-name-costcenter {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .packname-order-details .pack-name-panel-header .pack-name-name + div {
+            padding-left: 16px;
+            border-left: 1px solid #d5d9dd;
+        }
+
+        /* Type icon container */
+        .packname-order-details .pack-name-panel-header .pack-name-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 5px;
+        }
+
+            .packname-order-details .pack-name-panel-header .pack-name-icon svg {
+                width: 16px;
+                height: 16px;
+                display: none;
+            }
+
+            .packname-order-details .pack-name-panel-header .pack-name-icon.packname-group .packname-group {
+                display: inline-block;
+            }
+
+            .packname-order-details .pack-name-panel-header .pack-name-icon.packname-customer .packname-customer {
+                display: inline-block;
+            }
+
+            .packname-order-details .pack-name-panel-header .pack-name-icon.packname-no-customer .packname-no-customer {
+                display: inline-block;
+            }
+
+        /* Detail icons */
+        .packname-order-details .pack-name-panel-header .pack-name-branch-icon,
+        .packname-order-details .pack-name-panel-header .pack-name-department-icon,
+        .packname-order-details .pack-name-panel-header .pack-name-costcenter-icon {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            margin-right: 5px;
+            color: #868e96;
+        }
+
+        /* Shipping method row */
+        .packname-order-details .pack-name-panel-header .pack-name-shipping-method {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .packname-order-details .pack-name-panel-header .pack-name-shipping-method-icon {
+            width: 14px;
+            height: 14px;
+            color: #868e96;
+            flex-shrink: 0;
+            margin-right: 5px;
+        }
+
+        .packname-order-details .pack-name-panel-header .pack-name-shipping-method-info {
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .packname-order-details .pack-name-panel-header .pack-name-shipping-shared {
+            font-size: 11px;
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        /* Shipping address row */
+        .packname-order-details .pack-name-panel-header .pack-name-shipping-address {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            margin-top: 8px;
+        }
+
+        .packname-order-details .pack-name-panel-header .pack-name-shipping-address-icon {
+            width: 14px;
+            height: 14px;
+            color: #868e96;
+            flex-shrink: 0;
+            margin-right: 5px;
+            margin-top: 2px;
+        }
+
+        .packname-order-details .pack-name-panel-header .pack-name-shipping-address-info {
+            font-size: 12px;
+        }
+
+    /* ---- Products table ---- */
+    .packname-order-details .packname-order-items {
+        padding: 0 12px 12px;
+    }
+
+        .packname-order-details .packname-order-items .data-table {
+            width: 100%;
+        }
+
+    /* ---- Per-line subsidy ---- */
+    .packname-order-details .cart-item-subsidy-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        margin-top: 3px;
+    }
+
+    .packname-order-details .subsidy-breakdown-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 3px;
+        font-size: 0.70rem;
+        color: #6c757d;
+        line-height: 1.4;
+    }
+
+        .packname-order-details .subsidy-breakdown-row .cw-icon,
+        .packname-order-details .subsidy-breakdown-row .pg-icon {
+            width: 11px;
+            height: 11px;
+            flex-shrink: 0;
+        }
+
+        .packname-order-details .subsidy-breakdown-row .subsidy-indicator {
+            color: #6c757d;
+            opacity: 0.55;
+        }
+
+        .packname-order-details .subsidy-breakdown-row .breakdown-qty {
+            color: #495057;
+        }
+
+        .packname-order-details .subsidy-breakdown-row .breakdown-sep {
+            color: #ced4da;
+            line-height: 1;
+        }
+
+        .packname-order-details .subsidy-breakdown-row .breakdown-credit {
+            color: #004085;
+            font-weight: 700;
+        }

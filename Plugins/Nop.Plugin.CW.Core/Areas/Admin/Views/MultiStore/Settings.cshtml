@@ -1,0 +1,496 @@
+﻿@model MultiStoreSettingsModel
+
+@using Nop.Plugin.CW.Core.Domain.PackNames
+@using Nop.Services;
+
+@{
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.MultiStores.Default.Settings").Text;
+    //active menu item (system name)
+    NopHtml.SetActiveMenuItemSystemName(CWCoreDefaults.DefaultStoreSettingsAdminMenuSystemName);
+
+    var customer = await workContext.GetCurrentCustomerAsync();
+
+    const string hidePackNameBlockAttributeName = "MultiStoreSettings.HidePackNameBlock";
+    var hidePackNameBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hidePackNameBlockAttributeName);
+
+    const string hideRegisterBlockAttributeName = "MultiStoreSettings.HideRegisterBlock";
+    var hideRegisterBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideRegisterBlockAttributeName);
+
+    const string hideCreditNotesExchangesBlockAttributeName = "MultiStoreSettings.HideCreditNotesExchangesBlock";
+    var hideCreditNotesExchangesBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideCreditNotesExchangesBlockAttributeName);
+
+    const string hideSubsidyBlockAttributeName = "MultiStoreSettings.HideSubsidyBlock";
+    var hideSubsidyBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideSubsidyBlockAttributeName);
+
+    const string hideBulkOrderBlockAttributeName = "MultiStoreSettings.HideBulkOrderBlock";
+    var hideBulkOrderBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideBulkOrderBlockAttributeName);
+}
+
+<form id="cw-default-settings-form" asp-controller="MultiStore" asp-action="Settings" method="post">
+
+    <div class="content-header clearfix">
+        <h1 class="float-left">
+            @T("Plugins.CW.Core.Admin.MultiStores.Default.Settings")
+        </h1>
+        <div class="float-right">
+            <button type="submit" name="save" class="btn btn-primary">
+                <i class="far fa-save"></i>
+                @T("Admin.Common.Save")
+            </button>
+        </div>
+    </div>
+
+    <div asp-validation-summary="All"></div>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="form-horizontal">
+                <nop-cards id="cw-settings-cards">
+                    <nop-card asp-name="packnames-defaults" asp-icon="fas fa-user" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.PackNames")" asp-hide-block-attribute-name="@hidePackNameBlockAttributeName" asp-hide="@hidePackNameBlock" asp-advanced="false">
+                        <div class="card-body">
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="PackNameEnable" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="PackNameEnable" />
+                                    <span asp-validation-for="PackNameEnable"></span>
+                                </div>
+                            </div>
+                            <div id="pnlPackNameSettings">
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="UseStaffAsPackName" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="UseStaffAsPackName" />
+                                        <span asp-validation-for="UseStaffAsPackName"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="UseBranchesAsPackNameList" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="UseBranchesAsPackNameList" />
+                                        <span asp-validation-for="UseBranchesAsPackNameList"></span>
+                                    </div>
+                                </div>
+                                <nop-nested-setting>
+                                    <div class="form-group row" id="pnlUseBranchesAsPackNameList">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="PackNameListNameFrom" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-select asp-for="PackNameListNameFrom" asp-items="@await (((PackNameListNameFrom)Model.PackNameListNameFrom).ToSelectListAsync())" />
+                                            <span asp-validation-for="PackNameListNameFrom"></span>
+                                        </div>
+                                    </div>
+                                </nop-nested-setting>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="EmployeeNumberEnabled" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="EmployeeNumberEnabled" />
+                                        <span asp-validation-for="EmployeeNumberEnabled"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="PrintNameEnabled" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="PrintNameEnabled" />
+                                        <span asp-validation-for="PrintNameEnabled"></span>
+                                    </div>
+                                </div>
+                                <nop-nested-setting asp-for="PrintNameEnabled" disable-auto-generation="true">
+                                    <div class="form-group row" id="pnlPrintNameEnabled">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="PrintNameProductAttributeId" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-select asp-for="PrintNameProductAttributeId" asp-items="Model.AvailableProductAttributes" />
+                                            <span asp-validation-for="PrintNameProductAttributeId"></span>
+                                        </div>
+                                    </div>
+                                </nop-nested-setting>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="POEntryEnabled" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="POEntryEnabled" />
+                                        <span asp-validation-for="POEntryEnabled"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="CommentsEnabled" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="CommentsEnabled" />
+                                        <span asp-validation-for="CommentsEnabled"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="GenderEnabled" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="GenderEnabled" />
+                                        <span asp-validation-for="GenderEnabled"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="ShowDepartmentPackNamesByBranch" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="ShowDepartmentPackNamesByBranch" />
+                                        <span asp-validation-for="ShowDepartmentPackNamesByBranch"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="AllowManagersToAddPackNames" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="AllowManagersToAddPackNames" />
+                                        <span asp-validation-for="AllowManagersToAddPackNames"></span>
+                                    </div>
+                                </div>
+                                <nop-nested-setting asp-for="AllowManagersToAddPackNames" disable-auto-generation="true">
+                                    <div class="form-group row pnlAllowManagersToAddPackNames">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="AllowToAddCustomerToPackName" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-editor asp-for="AllowToAddCustomerToPackName" />
+                                            <span asp-validation-for="AllowToAddCustomerToPackName"></span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row pnlSubsidySelection">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="AllowSubsidySelection" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-editor asp-for="AllowSubsidySelection" />
+                                            <span asp-validation-for="AllowSubsidySelection"></span>
+                                        </div>
+                                    </div>
+                                    <nop-nested-setting asp-for="AllowSubsidySelection" disable-auto-generation="true">
+                                        <div class="form-group row pnlAllowSubsidySelection">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="AllowEditSubsidyTopup" />
+                                            </div>
+                                            <div class="col-md-9">
+                                                <nop-editor asp-for="AllowEditSubsidyTopup" />
+                                                <span asp-validation-for="AllowEditSubsidyTopup"></span>
+                                            </div>
+                                        </div>
+                                    </nop-nested-setting>
+                                    <div class="form-group row pnlAllowManagersToAddPackNames">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="AllowToAddByExcel" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-editor asp-for="AllowToAddByExcel" />
+                                            <span asp-validation-for="AllowToAddByExcel"></span>
+                                        </div>
+                                    </div>
+                                    <nop-nested-setting asp-for="AllowToAddByExcel" disable-auto-generation="true">
+                                        <div class="form-group row pnlAllowToAddByExcel">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="AllowSubsidyCountByExcel" />
+                                            </div>
+                                            <div class="col-md-9">
+                                                <nop-editor asp-for="AllowSubsidyCountByExcel" />
+                                                <span asp-validation-for="AllowSubsidyCountByExcel"></span>
+                                            </div>
+                                        </div>
+                                    </nop-nested-setting>
+                                </nop-nested-setting>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="LimitAssignedBranches" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="LimitAssignedBranches" />
+                                        <span asp-validation-for="LimitAssignedBranches"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row pnlSubsidyOnly">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="PackNamesOwnGlobalValue" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="PackNamesOwnGlobalValue" />
+                                        <span asp-validation-for="PackNamesOwnGlobalValue"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row pnlSubsidyOnly">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="PackNamesOwnStartAndFinishDates" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="PackNamesOwnStartAndFinishDates" />
+                                        <span asp-validation-for="PackNamesOwnStartAndFinishDates"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="SelectedShippingMethods" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-select asp-for="SelectedShippingMethods" asp-items="Model.AvailableShippingMethods" asp-multiple="true" />
+                                        <span asp-validation-for="SelectedShippingMethods"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="AllowHomeDelivery" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="AllowHomeDelivery" />
+                                        <span asp-validation-for="AllowHomeDelivery"></span>
+                                    </div>
+                                </div>
+                                <nop-nested-setting asp-for="AllowHomeDelivery" disable-auto-generation="true">
+                                    <div class="form-group row pnlAllowHomeDelivery">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="AllowCustomersToAddAddress" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-editor asp-for="AllowCustomersToAddAddress" />
+                                            <span asp-validation-for="AllowCustomersToAddAddress"></span>
+                                        </div>
+                                    </div>
+                                </nop-nested-setting>
+                                <div class="form-group row">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="DoNotPreSelectShippingAddress" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="DoNotPreSelectShippingAddress" />
+                                        <span asp-validation-for="DoNotPreSelectShippingAddress"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row pnlSubsidyOnly">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="IncludeShippingOnSubsidy" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="IncludeShippingOnSubsidy" />
+                                        <span asp-validation-for="IncludeShippingOnSubsidy"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row pnlSubsidyOnly">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="SubsidySendUserAfterLogin" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="SubsidySendUserAfterLogin" />
+                                        <span asp-validation-for="SubsidySendUserAfterLogin"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </nop-card>
+                    <nop-card asp-name="creditnotes-exchanges-defaults" asp-icon="fas fa-file-invoice-dollar" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.CreditNotesAndExchanges")" asp-hide-block-attribute-name="@hideCreditNotesExchangesBlockAttributeName" asp-hide="@hideCreditNotesExchangesBlock" asp-advanced="false">
+                        <div class="card-body">
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="CreditNotesEnable" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="CreditNotesEnable" />
+                                    <span asp-validation-for="CreditNotesEnable"></span>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="ExchangesEnable" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="ExchangesEnable" />
+                                    <span asp-validation-for="ExchangesEnable"></span>
+                                </div>
+                            </div>
+                            <nop-nested-setting asp-for="ExchangesEnable" disable-auto-generation="true">
+                                <div class="form-group row" id="pnlAllowCloseWithoutPrintingReturnNote">
+                                    <div class="col-md-3">
+                                        <nop-label asp-for="AllowCloseWithoutPrintingReturnNote" />
+                                    </div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="AllowCloseWithoutPrintingReturnNote" />
+                                        <span asp-validation-for="AllowCloseWithoutPrintingReturnNote"></span>
+                                    </div>
+                                </div>
+                            </nop-nested-setting>
+                        </div>
+                    </nop-card>
+                    <nop-card asp-name="subsidy-defaults" asp-icon="fas fa-hand-holding-usd" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.SubsidySection")" asp-hide-block-attribute-name="@hideSubsidyBlockAttributeName" asp-hide="@hideSubsidyBlock" asp-advanced="false">
+                        <div class="card-body">
+                            <div class="form-group row" id="pnlSubsidyEnableRow">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="SubsidyEnable" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="SubsidyEnable" />
+                                    <span asp-validation-for="SubsidyEnable"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </nop-card>
+                    <nop-card asp-name="bulkorder-defaults" asp-icon="fas fa-th" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.BulkOrderSection")" asp-hide-block-attribute-name="@hideBulkOrderBlockAttributeName" asp-hide="@hideBulkOrderBlock" asp-advanced="false">
+                        <div class="card-body">
+                            <div class="form-group row">
+                                <div class="col-md-3"><nop-label asp-for="BulkOrderEnable" /></div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="BulkOrderEnable" />
+                                    <span asp-validation-for="BulkOrderEnable"></span>
+                                </div>
+                            </div>
+                            <div id="pnlBulkOrderSettings">
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderAxisAttributeIds" /></div>
+                                    <div class="col-md-9">
+                                        @*id is required: the per-store screen targets this container from the override checkbox*@
+                                        <div id="bulkorder-axis-slots">
+                                            @for (var i = 0; i < BulkOrderDefaults.MAX_AXIS_COUNT; i++)
+                                            {
+                                                var selected = Model.BulkOrderAxisAttributeIds.Count > i ? Model.BulkOrderAxisAttributeIds[i] : 0;
+                                                <div class="bulkorder-axis-slot">
+                                                    <label>@string.Format(T("Plugins.CW.Core.Admin.MultiStores.Settings.BulkOrderAxisSlot").Text, i + 1)</label>
+                                                    <select name="BulkOrderAxisAttributeIds[@i]" class="form-control">
+                                                        @foreach (var item in Model.AvailableProductAttributes)
+                                                        {
+                                                            <option value="@item.Value" selected="@(item.Value == selected.ToString())">@item.Text</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderDefaultViewMode" /></div>
+                                    <div class="col-md-9">
+                                        <nop-select asp-for="BulkOrderDefaultViewMode" asp-items="Model.AvailableBulkOrderViewModes" />
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderMaxCellsPerProduct" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderMaxCellsPerProduct" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderDefaultPageSize" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderDefaultPageSize" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderPageSizeOptions" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderPageSizeOptions" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderShowProductImages" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderShowProductImages" /></div>
+                                </div>
+                                <div class="form-group row" id="pnlBulkOrderProductImageSize">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderProductImageSize" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderProductImageSize" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderShowAttributeImages" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderShowAttributeImages" /></div>
+                                </div>
+                                <div class="form-group row" id="pnlBulkOrderAttributeImageSize">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderAttributeImageSize" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderAttributeImageSize" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderAttributeImageSquaresSize" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderAttributeImageSquaresSize" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderHideQtyArrows" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderHideQtyArrows" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderShowAttributePrices" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderShowAttributePrices" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderShowProductStock" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderShowProductStock" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderSendUserAfterLogin" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderSendUserAfterLogin" /></div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="BulkOrderEnableOnProductPage" /></div>
+                                    <div class="col-md-9"><nop-editor asp-for="BulkOrderEnableOnProductPage" /></div>
+                                </div>
+                            </div>
+                        </div>
+                    </nop-card>
+                </nop-cards>
+            </div>
+        </div>
+    </section>
+</form>
+
+<script>
+    $(document).ready(function () {
+        //See _StoreSettings.cshtml for the rationale: one element, one visibility class,
+        //one line in applySettingVisibility() carrying the complete predicate.
+        $('#cw-default-settings-form').on('change', 'input[type=checkbox]', applySettingVisibility);
+
+        $('#@Html.IdFor(model => model.UseStaffAsPackName)').on('change', function () {
+            $('#@Html.IdFor(model => model.UseBranchesAsPackNameList)')
+                .prop('checked', $(this).is(':checked'));
+        });
+
+        applySettingVisibility();
+    });
+
+    function isChecked(id) {
+        var $input = $('#' + id);
+
+        return $input.length === 0 || $input.is(':checked');
+    }
+
+    function toggleRow(selector, visible) {
+        if (visible)
+            $(selector).showElement();
+        else
+            $(selector).hideElement();
+    }
+
+    function applySettingVisibility() {
+        var packName = isChecked('@Html.IdFor(model => model.PackNameEnable)');
+        var subsidy  = packName && isChecked('@Html.IdFor(model => model.SubsidyEnable)');
+        var managers = packName && isChecked('@Html.IdFor(model => model.AllowManagersToAddPackNames)');
+
+        toggleRow('#pnlPackNameSettings', packName);
+
+        toggleRow('#pnlUseBranchesAsPackNameList', packName && isChecked('@Html.IdFor(model => model.UseBranchesAsPackNameList)'));
+        toggleRow('#pnlPrintNameEnabled',         packName && isChecked('@Html.IdFor(model => model.PrintNameEnabled)'));
+        toggleRow('.pnlAllowManagersToAddPackNames', managers);
+        toggleRow('.pnlAllowHomeDelivery',        packName && isChecked('@Html.IdFor(model => model.AllowHomeDelivery)'));
+
+        toggleRow('.pnlSubsidySelection',      managers && subsidy);
+        toggleRow('.pnlAllowSubsidySelection', managers && subsidy && isChecked('@Html.IdFor(model => model.AllowSubsidySelection)'));
+        toggleRow('.pnlAllowToAddByExcel',     managers && subsidy && isChecked('@Html.IdFor(model => model.AllowSubsidySelection)') && isChecked('@Html.IdFor(model => model.AllowToAddByExcel)'));
+        toggleRow('.pnlSubsidyOnly',           subsidy);
+
+        toggleRow('#pnlSubsidyEnableRow', packName);
+
+        var bulkOrder = isChecked('@Html.IdFor(model => model.BulkOrderEnable)');
+        toggleRow('#pnlBulkOrderSettings', bulkOrder);
+        toggleRow('#pnlBulkOrderProductImageSize', bulkOrder && isChecked('@Html.IdFor(model => model.BulkOrderShowProductImages)'));
+        toggleRow('#pnlBulkOrderAttributeImageSize', bulkOrder && isChecked('@Html.IdFor(model => model.BulkOrderShowAttributeImages)'));
+    }
+</script>

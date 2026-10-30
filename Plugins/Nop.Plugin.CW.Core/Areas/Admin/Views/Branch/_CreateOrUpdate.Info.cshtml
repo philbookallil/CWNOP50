@@ -1,0 +1,95 @@
+﻿@model BranchModel
+
+<div class="card-body">
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="StoreId" />
+        </div>
+        @if (Model.Id > 0)
+        {
+            <div class="col-md-9">
+                <nop-editor asp-for="StoreName" html-attributes="@(new { disabled = true })" />
+                <input asp-for="StoreId" type="hidden" />
+            </div>
+        }
+        else
+        {
+            <div class="col-md-9">
+                <nop-select asp-for="StoreId" asp-items="Model.AvailableStores" />
+                <span asp-validation-for="StoreId"></span>
+            </div>
+        }
+    </div>
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="ParentBranchId" />
+        </div>
+        <div class="col-md-9">
+            <nop-select asp-for="ParentBranchId" asp-items="Model.AvailableBranches" />
+            <span asp-validation-for="ParentBranchId"></span>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="BranchCode" />
+        </div>
+        <div class="col-md-9">
+            <nop-editor asp-for="BranchCode" />
+            <span asp-validation-for="BranchCode"></span>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="Name" />
+        </div>
+        <div class="col-md-9">
+            <nop-editor asp-for="Name" />
+            <span asp-validation-for="Name"></span>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="CardCode" />
+        </div>
+        <div class="col-md-9">
+            <nop-editor asp-for="CardCode" />
+            <span asp-validation-for="CardCode"></span>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="BranchNumber" />
+        </div>
+        <div class="col-md-9">
+            <nop-editor asp-for="BranchNumber" />
+            <span asp-validation-for="BranchNumber"></span>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="PaymentTerms" />
+        </div>
+        <div class="col-md-9">
+            <nop-editor asp-for="PaymentTerms" />
+            <span asp-validation-for="PaymentTerms"></span>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="BranchShippingMethods" />
+        </div>
+        <div class="col-md-9">
+            <nop-select asp-for="BranchShippingMethods" asp-items="Model.AvailableShippingMethods" asp-multiple="true" />
+            <span asp-validation-for="BranchShippingMethods"></span>
+        </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-md-3">
+            <nop-label asp-for="Active" />
+        </div>
+        <div class="col-md-9">
+            <nop-editor asp-for="Active" />
+            <span asp-validation-for="Active"></span>
+        </div>
+    </div>
+</div>

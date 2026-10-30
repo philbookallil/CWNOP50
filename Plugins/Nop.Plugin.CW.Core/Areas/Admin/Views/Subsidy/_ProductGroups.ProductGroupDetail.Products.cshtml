@@ -1,0 +1,87 @@
+﻿@model ProductGroupModel
+
+<div class="card card-default bp-card card-ms-inner-section">
+    <div class="card-header d-flex align-items-center">
+        <span class="ms-card-title">
+            @T("Plugins.CW.Core.Admin.ProductGroups.Products")
+        </span>
+        @if (!Model.IsNew)
+        {
+            <div class="ml-auto d-flex align-items-center" style="gap:6px">
+                <button type="submit" class="btn btn-primary btn-sm" onclick="javascript:OpenWindow('@(Url.Action("ProductGroupProductPopup", "Subsidy", new {productGroupId = Model.Id, btnId = "btnRefreshProductGroupProducts", formId = "productgroup-detail-form"}))', 800, 800, true); return false;">
+                    @T("Plugins.CW.Core.Admin.ProductGroups.Products.AddNew")
+                </button>
+            </div>
+        }
+    </div>
+    @if (!Model.IsNew)
+    {
+        <div class="card-body">
+            @{
+                var gridModel = new DataTablesModel
+                {
+                    Name = "productgroup-products-grid",
+                    UrlRead = new DataUrl("ProductGroupProducts", "Subsidy", new RouteValueDictionary { [nameof(Model.ProductGroupProductSearchModel.ProductGroupId)] = Model.ProductGroupProductSearchModel.ProductGroupId }),
+                    UrlDelete = new DataUrl("ProductGroupProductDelete", "Subsidy", new RouteValueDictionary { [nameof(Model.ProductGroupProductSearchModel.ProductGroupId)] = Model.ProductGroupProductSearchModel.ProductGroupId }),
+                    Length = Model.ProductGroupProductSearchModel.PageSize,
+                    LengthMenu = Model.ProductGroupProductSearchModel.AvailablePageSizes,
+                    ColumnCollection = new List<ColumnProperty>
+                    {
+                        new ColumnProperty(nameof(ProductModel.PictureThumbnailUrl))
+                        {
+                            Title = T("Admin.Catalog.Products.Fields.PictureThumbnailUrl").Text,
+                            Width = "100",
+                            Render = new RenderPicture()
+                        },
+                        new ColumnProperty(nameof(ProductModel.Sku))
+                        {
+                            Title = T("Admin.Catalog.Products.Fields.Sku").Text,
+                            Width = "100"
+                        },
+                        new ColumnProperty(nameof(ProductModel.Name))
+                        {
+                            Title = T("Admin.Catalog.Products.Fields.Name").Text
+                        },
+                        new ColumnProperty(nameof(ProductModel.ShortDescription))
+                        {
+                            Title = T("Admin.Catalog.Products.Fields.ShortDescription").Text
+                        },
+                        new ColumnProperty(nameof(ProductModel.Published))
+                        {
+                            Title = T("Admin.Catalog.Products.Fields.Published").Text,
+                            Width = "80",
+                            ClassName = NopColumnClassDefaults.CenterAll,
+                            Render = new RenderBoolean()
+                        },
+                        new ColumnProperty(nameof(ProductModel.Id))
+                        {
+                            Title = T("Admin.Common.View").Text,
+                            Width = "80",
+                            ClassName =  NopColumnClassDefaults.Button,
+                            Render = new RenderButtonView(new DataUrl("~/Admin/Product/Edit/"))
+                        },
+                        new ColumnProperty(nameof(ProductModel.Id))
+                        {
+                            Title = T("Admin.Common.Delete").Text,
+                            Width = "100",
+                            Render = new RenderButtonRemove(T("Admin.Common.Delete").Text),
+                            ClassName = NopColumnClassDefaults.Button
+                        }
+                    }
+                };
+            }
+
+            @await Html.PartialAsync("Table", gridModel)
+        </div>
+        @* The id stays: ProductGroupProductPopup is handed it as btnId and clicks it on close.
+           The behaviour moved to Admin.StoreNav's delegated .ms-grid-refresh handler. *@
+        <button type="submit" id="btnRefreshProductGroupProducts" class="ms-grid-refresh"
+                data-grid="#productgroup-products-grid" style="display: none"></button>
+    }
+    else
+    {
+        <div class="card-body">
+            @T("Plugins.CW.Core.Admin.ProductGroups.Products.SaveBeforeEdit")
+        </div>
+    }
+</div>

@@ -1,0 +1,38 @@
+﻿@model OrderSubsidyCreditModel
+
+<div class="form-group row">
+    <div class="col-md-3">
+        <div class="label-wrapper">
+            <label class="col-form-label">@T("Plugins.CW.Core.Admin.Order.SettleableTotal")</label>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="form-text-row">@Html.Raw(Model.FormattedGrossTotal)</div>
+    </div>
+</div>
+@if (!string.IsNullOrEmpty(Model.FormattedSubsidyForStock))
+{
+    <div class="form-group row">
+        <div class="col-md-3">
+            <div class="label-wrapper">
+                <label class="col-form-label">@T("Plugins.CW.Core.Admin.Order.SubsidyCreditLabel")</label>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="form-text-row">(@Html.Raw(Model.FormattedSubsidyForStock))</div>
+        </div>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.FormattedSubsidyForShipping))
+{
+    <div class="form-group row">
+        <div class="col-md-3">
+            <div class="label-wrapper">
+                <label class="col-form-label">@T("Plugins.CW.Core.Admin.Order.SubsidyCreditForShipping")</label>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="form-text-row">(@Html.Raw(Model.FormattedSubsidyForShipping))</div>
+        </div>
+    </div>
+}

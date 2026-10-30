@@ -1,0 +1,44 @@
+﻿@model PackNameRegisterModel
+
+@if (Model.CanAddAddress)
+{
+    <div class="fieldset">
+        <div class="inputs">
+            <label asp-for="AddAddress"></label>
+            <input asp-for="AddAddress" />
+        </div>
+        <script asp-location="Footer">
+            $(document).ready(function () {
+                $('#@Html.IdFor(model => model.AddAddress)').click(toggleAddAddress);
+                toggleAddAddress();
+
+                function toggleAddAddress () {
+                    if ($('#@Html.IdFor(model => model.AddAddress)').is(':checked')) {
+                        $('.add-address').show();
+                    } else {
+                        $('.add-address').hide();
+                    }
+                }
+            });
+        </script>
+    </div>
+    <div class="fieldset add-address">
+        <div class="form-fields packname-address-fields">
+            <div class="title">
+                @T("Plugins.CW.Core.PackNames.PackName.Address")
+            </div>
+            @{
+                var dataDictAddress = new ViewDataDictionary(ViewData);
+                dataDictAddress.TemplateInfo.HtmlFieldPrefix = "Address";
+                @await Html.PartialAsync("_CreateOrUpdateAddress", Model.Address, dataDictAddress)
+            }
+        </div>
+        <script asp-location="Footer">
+            $(document).ready(function () {
+                if ($('.packname-address-fields').has('select[data-trigger="country-select"]')) {
+                    $('.packname-address-fields select[data-trigger="country-select"]').countrySelect();
+                }
+            });
+        </script>
+    </div>
+}

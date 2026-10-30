@@ -1,0 +1,204 @@
+﻿@model MiniShoppingCartModel
+
+@using Nop.Core.Domain.Catalog
+@using System.Text.Encodings.Web
+
+@{
+    var packNameModel = Model as PackNameMiniShoppingCartModel;
+    var isManager = packNameModel != null;
+
+    // Removal posts to PackNameCheckoutController, which is gated on the PackName feature — so only
+    // offer it where a packname context is actually active. Outside one, this view is rendering nop's
+    // own model and nop's own behaviour.
+    var allowRemove = isManager;
+}
+
+<div id="flyout-cart" class="flyout-cart">
+    <div class="mini-shopping-cart">
+
+        @* ── Summary header — only shown for managers ── *@
+        @if (isManager && packNameModel.ManagerTotalProducts > 0)
+        {
+            <div class="packname-cart-summary">
+                <div class="packname-cart-summary__row">
+                    <span>@string.Format(T("Plugins.CW.Core.ShoppingCart.Mini.CurrentPackName").Text, packNameModel.CurrentPackNameName)</span>
+                    <span class="packname-cart-summary__qty">@packNameModel.PackNameTotalProducts</span>
+                </div>
+                <div class="packname-cart-summary__row packname-cart-summary__row--total">
+                    <span>@T("Plugins.CW.Core.ShoppingCart.Mini.AllPackNames")</span>
+                    <span class="packname-cart-summary__qty">@packNameModel.ManagerTotalProducts</span>
+                </div>
+            </div>
+        }
+
+        @* ── Item count ── *@
+        <div class="count">
+            @if (Model.TotalProducts == 0)
+            {
+                @if (isManager && packNameModel.ManagerTotalProducts > 0)
+                {
+                    @T("Plugins.CW.Core.ShoppingCart.Mini.NoItemsForCurrentPackName")
+                }
+                else
+                {
+                    @T("ShoppingCart.Mini.NoItems")
+                }
+            }
+            else
+            {
+                //A packname cart is seen at the packname checkout; nop's cart page only redirects there.
+                var cartUrl = isManager ? Url.RouteUrl("PackNameCheckout") : Url.RouteUrl(NopRouteNames.General.CART);
+
+                @Html.Raw(string.Format(T("ShoppingCart.Mini.ItemsText").Text,
+                    $"<a href=\"{cartUrl}\">{string.Format(T("ShoppingCart.Mini.Items").Text, Model.TotalProducts)}</a>"))
+            }
+        </div>
+
+        @* ── Items for current packname ── *@
+        @if (Model.TotalProducts > 0)
+        {
+            <div class="items">
+                @for (var i = 0; i < Model.Items.Count; i++)
+                {
+                    var item = Model.Items[i];
+                    var cwItem = item as CWMiniCartItemModel;
+
+                    // Returned items are the cart-side half of an open return request. The packname cart
+                    // views suppress removal for them via DisableRemoval; same rule here.
+                    var canRemove = allowRemove && !(cwItem?.IsReturnedItem ?? false);
+
+                    <div class="item @(i == 0 ? "first" : null)">
+                        @if (canRemove)
+                        {
+                            <div class="mini-cart-remove">
+                                <button type="button" class="mini-cart-remove-btn"
+                                        title="@T("Plugins.CW.Core.ShoppingCart.Mini.Remove")"
+                                        aria-label="@T("Plugins.CW.Core.ShoppingCart.Mini.Remove")"
+                                        onclick="CWFlyoutCart.remove(@item.Id);">
+                                    @Html.CWIcon("cw-icon-bin-1", "cw-icon--sm")
+                                </button>
+                            </div>
+                        }
+                        @if (Model.ShowProductImages)
+                        {
+                            <div class="picture">
+                                <a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.ProductSeName }))" title="@item.Picture.Title">
+                                    <img alt="@item.Picture.AlternateText" src="@item.Picture.ImageUrl" title="@item.Picture.Title" />
+                                </a>
+                            </div>
+                        }
+                        <div class="product">
+                            <div class="name">
+                                <a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.ProductSeName }))">@item.ProductName</a>
+                            </div>
+                            @if (!string.IsNullOrEmpty(item.AttributeInfo))
+                            {
+                                <div class="attributes">@Html.Raw(item.AttributeInfo)</div>
+                            }
+                            <div class="price">@T("ShoppingCart.Mini.UnitPrice"): <span>@item.UnitPrice</span></div>
+                            <div class="quantity">@T("ShoppingCart.Mini.Quantity"): <span>@item.Quantity</span></div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="totals">@T("ShoppingCart.Totals.SubTotal"): <strong>@Model.SubTotal</strong></div>
+        }
+
+        @* ── Buttons ── *@
+        <div class="buttons">
+            @if (Model.TotalProducts > 0 && Model.DisplayShoppingCartButton)
+            {
+                <button type="button" class="button-1 cart-button"
+                        onclick="setLocation('@Url.RouteUrl(NopRouteNames.General.CART)')">
+                    @T("ShoppingCart.Mini.ViewCart")
+                </button>
+            }
+            @if (isManager && packNameModel.ManagerTotalProducts > 0)
+            {
+                <button type="button" class="button-1 checkout-button"
+                        onclick="setLocation('@Url.RouteUrl("PackNameCheckout")')">
+                    @T("Checkout.Button")
+                </button>
+            }
+            else if (Model.TotalProducts > 0 && Model.DisplayCheckoutButton)
+            {
+                var checkoutUrl = Model.AnonymousCheckoutAllowed && Model.CurrentCustomerIsGuest
+                    ? Url.RouteUrl(NopRouteNames.Standard.LOGIN_CHECKOUT_AS_GUEST, new { returnUrl = Url.RouteUrl(NopRouteNames.General.CART) })
+                    : Url.RouteUrl(NopRouteNames.Standard.CHECKOUT);
+                <button type="button" class="button-1 checkout-button"
+                        onclick="setLocation('@checkoutUrl')">
+                    @T("Checkout.Button")
+                </button>
+            }
+        </div>
+
+    </div>
+</div>
+<script>
+    var CWFlyoutCart = CWFlyoutCart || {};
+
+    CWFlyoutCart.remove = function (itemId) {
+        if (CWFlyoutCart.busy)
+            return;
+
+        if (!confirm('@Html.Raw(JavaScriptEncoder.Default.Encode(T("Common.AreYouSure").Text))'))
+            return;
+
+        CWFlyoutCart.busy = true;
+        displayAjaxLoading(true);
+
+        var postData = { itemId: itemId };
+        addAntiForgeryToken(postData);
+
+        $.ajax({
+            cache: false,
+            type: 'POST',
+            url: '@Url.Action("RemoveShoppingCartItem", "PackNameCheckout")',
+            data: postData,
+            success: function (response) {
+                if (response.success === false) {
+                    displayBarNotification(response.message, 'error', 3500);
+                    return;
+                }
+
+                if (response.updatetopcartsectionhtml) {
+                    $('.header-links .cart-qty').html(response.updatetopcartsectionhtml);
+                }
+
+                // Only present when we happen to be standing on the packname checkout page.
+                if (typeof loadCartItems === 'function') {
+                    loadCartItems();
+                }
+                if (typeof loadPaymentMethods === 'function') {
+                    loadPaymentMethods();
+                }
+                if (response.totalssectionhtml && $('.total-info').length > 0) {
+                    $('.total-info').replaceWith(response.totalssectionhtml);
+                }
+
+                if (window.CWCart) {
+                    CWCart.notifyChanged();
+                }
+
+                // Last, because it destroys the element this handler was fired from. The open/close
+                // state lives in an `active` class that the replacement will not have, so carry it
+                // over — otherwise the panel snaps shut the moment you remove something.
+                if (response.updateflyoutcartsectionhtml) {
+                    var wasActive = $('#flyout-cart').hasClass('active');
+                    $('#flyout-cart').replaceWith(response.updateflyoutcartsectionhtml);
+
+                    if (wasActive) {
+                        $('#flyout-cart').addClass('active');
+                    }
+                }
+            },
+            error: function () {
+                displayBarNotification('@Html.Raw(JavaScriptEncoder.Default.Encode(T("Common.Error").Text))', 'error', 3500);
+            },
+            complete: function () {
+                CWFlyoutCart.busy = false;
+                displayAjaxLoading(false);
+            }
+        });
+    };
+</script>

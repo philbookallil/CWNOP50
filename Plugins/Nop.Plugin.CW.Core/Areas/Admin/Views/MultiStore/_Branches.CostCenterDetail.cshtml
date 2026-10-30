@@ -1,0 +1,104 @@
+﻿@model CostCenterModel
+
+<form id="cc-detail-form" class="ms-detail-form"
+        asp-controller="MultiStore"
+        asp-action="SaveCostCenter"
+        method="post">
+
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="StoreId" type="hidden" />
+    <input asp-for="BranchId" type="hidden" />
+    <input asp-for="IsNew" type="hidden" />
+    @*WHICH EDITOR POSTED. The branch panel and the Cost Centres tab share this form and this
+      action; the value tells the controller which one to return to.*@
+    <input type="hidden" name="ReturnView" value="branch" />
+
+    <div class="form-horizontal">
+        <div class="card card-default bp-card card-ms-section">
+
+            <div class="card-header d-flex align-items-center">
+                <button type="button"
+                        class="btn btn-sm btn-focus-back"
+                        id="btn-focus-back">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    @T("Plugins.CW.Core.Admin.Common.Back")
+                </button>
+
+                <span class="ms-card-title">
+                    @if (Model.IsNew)
+                    {
+                        @T("Plugins.CW.Core.Admin.CostCenters.CostCenter.New")
+                    }
+                    else
+                    {
+                        @Model.Name
+                    }
+                </span>
+        
+                <div class="ml-auto d-flex align-items-center" style="gap:6px">
+                    @*SAVE NEVER NAVIGATES: the panel stays put, so this is the only
+                      confirmation a save gets. Admin.StoreNav.markSaved() fills and shows it.*@
+                    <span class="ms-saved-stamp" style="display:none"></span>
+                    <button type="button"
+                            class="btn btn-primary btn-sm"
+                            id="btn-focus-save">
+                       @T("Admin.Common.Save")
+                    </button>
+                    @if (!Model.IsNew)
+                    {
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                id="btn-focus-delete"
+                                data-id="@Model.Id"
+                                data-url="/Admin/MultiStore/DeleteCostCenter"
+                                data-confirm="@T("Plugins.CW.Core.Admin.CostCenters.DeleteConfirmMessage")">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                            @T("Admin.Common.Delete")
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Branch" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Branch" html-attributes="@(new { disabled = true })" />
+                                <span asp-validation-for="Branch"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Name" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Name" asp-required="true" />
+                                <span asp-validation-for="Name"></span>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Active" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Active" />
+                                <span asp-validation-for="Active"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @await Html.PartialAsync("_Branches.CostCenterDetail.Addresses", Model)
+</form>

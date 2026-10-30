@@ -1,0 +1,137 @@
+@using Nop.Plugin.CW.Core.Extensions;
+
+@model ReturnRequestModel
+
+@{
+    //page title
+    ViewBag.PageTitle = T("Admin.ReturnRequests.EditReturnRequestDetails").Text;
+    //active menu item (system name)
+    NopHtml.SetActiveMenuItemSystemName("Return requests");
+
+    var exchangeRequestModel = Model as CWReturnRequestModel;
+    var isExchangeModelData = exchangeRequestModel != null;
+    var aspController = isExchangeModelData ? "Returns" : "ReturnRequest";
+    var aspAction = isExchangeModelData ? "EditExchangeRequest" : "Edit";
+    var showCompletionActions = isExchangeModelData ? exchangeRequestModel.NeedsCompletion : false;
+
+    //Set by the returns grid on the order page. Carried on the form as well as read for the back link, so
+    //it survives the POST-redirect after a save, an undo or a notification — every button on this screen
+    //posts to the same action, so one route value covers all of them.
+    int? backToOrderId = int.TryParse(Context.Request.Query["backToOrder"], out var parsedBackToOrderId) && parsedBackToOrderId > 0
+        ? parsedBackToOrderId
+        : null;
+}
+<form asp-controller="@aspController" asp-action="@aspAction" asp-route-backToOrder="@backToOrderId" method="post" id="edit-exchange-form">
+    <div class="content-header clearfix">
+        <h1 class="float-left">
+            @T("Admin.ReturnRequests.EditReturnRequestDetails")
+            <small>
+                <i class="fas fa-arrow-circle-left"></i>
+                @if (backToOrderId.HasValue)
+                {
+                    <a asp-controller="Order" asp-action="Edit" asp-route-id="@backToOrderId.Value" asp-route-area="Admin">Back to order #@backToOrderId.Value</a>
+                }
+                else
+                {
+                    <a asp-action="List">@T("Admin.ReturnRequests.BackToList")</a>
+                }
+            </small>
+        </h1>
+
+        <div class="float-right">
+            @if (showCompletionActions)
+            {
+                <button type="submit" name="notify-checkout" class="btn bg-purple">
+                    <i class="fa fa-envelope-o"></i>
+                    Checkout Notification
+                </button>
+                <button type="submit" name="impersonate" class="btn bg-yellow">
+                    <i class="fa fa-user"></i>
+                    Impersonate
+                </button>
+            }
+            @if (exchangeRequestModel != null && exchangeRequestModel.NeedsCompletion)
+            {
+                <button type="submit" name="undo-approval" class="btn bg-maroon">
+                    <i class="fa fa-undo"></i>
+                    Undo Approval
+                </button>
+            }
+            <button type="submit" name="notify-customer" class="btn bg-purple">
+                <i class="fas fa-at"></i>
+                @T("Admin.ReturnRequests.NotifyCustomer")
+            </button>
+            <button type="submit" name="save" class="btn btn-primary">
+                <i class="far fa-floppy-disk"></i>
+                @T("Admin.Common.Save")
+            </button>
+            <button type="submit" name="save-continue" class="btn btn-primary">
+                <i class="far fa-floppy-disk"></i>
+                @T("Admin.Common.SaveContinue")
+            </button>
+            <span id="returnrequest-delete" class="btn btn-danger">
+                <i class="far fa-trash-can"></i>
+                @T("Admin.Common.Delete")
+            </span>
+            @await Component.InvokeAsync(typeof(AdminWidgetViewComponent), new { widgetZone = AdminWidgetZones.ReturnRequestDetailsButtons, additionalData = Model })
+        </div>
+
+    </div>
+    @if (isExchangeModelData)
+    {
+        @await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/ReturnRequest/_CreateOrUpdateExchange.cshtml", Model)
+    }
+    else
+    {
+        @await Html.PartialAsync("_CreateOrUpdate", Model)
+    }
+
+</form>
+<nop-delete-confirmation asp-model-id="@Model.Id" asp-button-id="returnrequest-delete" />
+@if (exchangeRequestModel != null)
+{
+    <div class="modal fade" id="undo-confirmation" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="delete-branch-title">@T("Admin.Common.AreYouSure")</h4>
+                </div>
+                <div class="form-horizontal">
+                    <div class="modal-body">
+                        <p>
+                            This action will undo/reset the current approval status of this Return Request, please be aware
+                            that this is only needed as a last resort to solve any issues the system might have had when
+                            processing the approval workflow for this Return Request, doing this will allow you to start
+                            the approval workflow from scratch but any current data related to it will be lost.
+                            Are you sure you want to do this?
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <span class="btn btn-default" data-dismiss="modal">@T("Admin.Common.NoCancel")</span>
+                        <button type="button" class="btn btn-primary pull-right accept">
+                            Yes, I'm sure
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script asp-location="Footer">
+        $(function () {
+            var $form = $('#edit-exchange-form');
+            var $dialog = $('#undo-confirmation');
+
+            //the undo voids what the approval created, so it waits for the confirmation
+            $('button[name="undo-approval"]', $form).on('click', function (e) {
+                e.preventDefault();
+                $dialog.modal('show');
+            });
+
+            $('.accept', $dialog).on('click', function () {
+                $(this).prop('disabled', true);
+                $('<input type="hidden" name="undo-approval" />').appendTo($form);
+                $form.submit();
+            });
+        });
+    </script>
+}

@@ -1,0 +1,24 @@
+﻿@using Nop.Plugin.CW.Core.Models.Exchanges.FeeRule;
+@using Nop.Services.Catalog;
+@using Nop.Plugin.CW.Core.Helpers;
+@using Nop.Plugin.CW.Core.Models.Exchanges.FeeRule;
+@using Nop.Plugin.CW.Core.Services.Exchanges;
+
+@model FeesAndChargesListModel
+
+@inject IExchangesDisplayService exchangesDisplayService
+
+<table class="data-table fees-list">
+    <colgroup>
+        <col class="description" />
+        <col class="amount" />
+    </colgroup>
+    @foreach (var chargeItem in Model.FeesItems)
+    {
+        decimal amount = ExchangesHelper.CalculateFeeAmount(chargeItem, Model.ItemsQuantity);
+        <tr>
+            <td><span class="fee-name"><strong>@chargeItem.Concept</strong></span></td>
+            <td><span class="fee-value">@(await exchangesDisplayService.FormatPriceAsync(amount))</span></td>
+        </tr>
+    }
+</table>

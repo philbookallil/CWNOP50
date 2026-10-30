@@ -1,0 +1,45 @@
+﻿@*
+    Return wizard progress indicator.
+    Model is the 1-based current step. Steps 1-2 happen on the nop return request page.
+*@
+@model int
+
+@{
+    var stepLabels = new[]
+    {
+        T("Plugins.CW.Core.Exchanges.Wizard.Steps.SelectItems").Text,
+        T("Plugins.CW.Core.Exchanges.Wizard.Steps.Reason").Text,
+        T("Plugins.CW.Core.Exchanges.Wizard.Steps.Options").Text,
+        T("Plugins.CW.Core.Exchanges.Wizard.Steps.Confirm").Text
+    };
+}
+
+<ol class="wizard-steps" aria-label="@T("Plugins.CW.Core.Exchanges.Wizard.Steps.Progress")">
+    @for (var index = 0; index < stepLabels.Length; index++)
+    {
+        var stepNumber = index + 1;
+
+        if (stepNumber < Model)
+        {
+            <li class="wizard-step is-done">
+                <span class="wizard-step-num" aria-hidden="true">&#10003;</span>
+                <span class="wizard-step-label">@stepLabels[index]</span>
+                <span class="wizard-step-sr">@T("Plugins.CW.Core.Exchanges.Wizard.Steps.Completed")</span>
+            </li>
+        }
+        else if (stepNumber == Model)
+        {
+            <li class="wizard-step is-current" aria-current="step">
+                <span class="wizard-step-num" aria-hidden="true">@stepNumber</span>
+                <span class="wizard-step-label">@stepLabels[index]</span>
+            </li>
+        }
+        else
+        {
+            <li class="wizard-step">
+                <span class="wizard-step-num" aria-hidden="true">@stepNumber</span>
+                <span class="wizard-step-label">@stepLabels[index]</span>
+            </li>
+        }
+    }
+</ol>

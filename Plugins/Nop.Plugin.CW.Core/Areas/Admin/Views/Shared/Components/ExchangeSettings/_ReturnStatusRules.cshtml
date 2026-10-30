@@ -1,0 +1,78 @@
+﻿@model ExchangeSettingsSearchModel
+
+<div class="content">
+    <!-- Empty state message -->
+    <div id="no-status-rules-message" class="alert alert-info" role="alert" style="display:none;">
+        <p>@T("Plugins.CW.Core.Admin.Exchanges.Rules.StatusRules.NoRules")</p>
+    </div>
+
+    <!-- DataTables Implementation -->
+    @await Html.PartialAsync("Table", new DataTablesModel
+    {
+        Name = "return-status-grid",
+        UrlRead = new DataUrl("GetReturnStatusRules", "ExchangesConfig", new RouteValueDictionary { [nameof(ReturnStatusRuleSearchModel.StoreId)] = Model.StoreId }),
+        UrlUpdate = new DataUrl("UpdateReturnStatusRule", "ExchangesConfig", new RouteValueDictionary { [nameof(ReturnStatusRuleModel.StoreId)] = Model.StoreId }),
+        PrimaryKeyColumn = nameof(ReturnStatusRuleModel.Id),
+        Length = Model.PageSize,
+        LengthMenu = Model.AvailablePageSizes,
+        ColumnCollection = new List<ColumnProperty>
+        {
+            // Return Status (Read-Only)
+            new ColumnProperty(nameof(ReturnStatusRuleModel.ReturnStatus))
+            {
+                Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.StatusRules").Text,
+                Editable = false,
+                Searchable = false
+            },
+            // Perform Store Credit (Checkbox - Editable)
+            new ColumnProperty(nameof(ReturnStatusRuleModel.PerformStoreCredit))
+            {
+                Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.PerformStoreCredit").Text,
+                Width = "150",
+                ClassName = NopColumnClassDefaults.CenterAll,
+                Editable = true,
+                EditType = EditType.Checkbox,
+                Render = new RenderBoolean()
+            },
+            // Perform Exchange (Checkbox - Editable)
+            new ColumnProperty(nameof(ReturnStatusRuleModel.PerformExchange))
+            {
+                Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.PerformExchange").Text,
+                Width = "150",
+                ClassName = NopColumnClassDefaults.CenterAll,
+                Editable = true,
+                EditType = EditType.Checkbox,
+                Render = new RenderBoolean()
+            },
+            // Back In Stock (Checkbox - Editable)
+            new ColumnProperty(nameof(ReturnStatusRuleModel.BackInStock))
+            {
+                Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.BackInStock").Text,
+                Width = "150",
+                ClassName = NopColumnClassDefaults.CenterAll,
+                Editable = true,
+                EditType = EditType.Checkbox,
+                Render = new RenderBoolean()
+            },
+            // Authorised (Checkbox - Editable)
+            new ColumnProperty(nameof(ReturnStatusRuleModel.Authorised))
+            {
+                Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.Authorised").Text,
+                Width = "150",
+                ClassName = NopColumnClassDefaults.CenterAll,
+                Editable = true,
+                EditType = EditType.Checkbox,
+                Render = new RenderBoolean()
+            },
+            // Actions Column (Edit/Update/Cancel buttons)
+            new ColumnProperty(nameof(ReturnStatusRuleModel.Id))
+            {
+                Title = T("Admin.Common.Actions").Text,
+                Width = "250",
+                ClassName = NopColumnClassDefaults.Button,
+                Render = new RenderButtonsInlineEdit(),
+            }
+        }
+    })
+</div>
+

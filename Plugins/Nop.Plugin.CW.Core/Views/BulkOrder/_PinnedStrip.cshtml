@@ -1,0 +1,136 @@
+﻿@using Nop.Core.Domain.Catalog
+
+@model BulkOrderGridModel
+
+@{
+    @*A pin that IS the reason for the "cannot be entered on this screen" notice above the grid is not
+      rendered here at all. That notice names it, explains it and links to the page that can take it; the
+      strip entry repeats the same fact in three shorter pieces - the label, "Not available on this screen"
+      and "Applies to X only" - which made one card state one thing four times.
+      The test is the builder's own, read off two model properties rather than re-derived:
+      RequiredTextAttributeName is set exactly when a cell is blocked, and a required pin with no values is
+      what blocks it (BulkOrderGridBuilder's `missingRequired`).*@
+    IList<BulkOrderPinModel> pins = string.IsNullOrEmpty(Model.RequiredTextAttributeName)
+        ? Model.Pins
+        : Model.Pins.Where(pin => !(pin.IsRequired && !pin.Values.Any())).ToList();
+
+    @*_Grid.cshtml decided to render this partial from Model.Pins.Any(), which was true before the filter -
+      so returning here is what stops an empty grey tray appearing above the grid.*@
+    if (pins.Count == 0)
+    {
+        return;
+    }
+}
+
+<div class="bulk-order-pins">
+    @foreach (var pin in pins)
+    {
+        var controlType = (AttributeControlType)pin.AttributeControlTypeId;
+        var controlId = $"pin-{Model.ProductId}-{pin.Id}";
+        var labelId = $"pin-label-{Model.ProductId}-{pin.Id}";
+        var isSelect = controlType is not (AttributeControlType.TextBox or AttributeControlType.MultilineTextbox
+            or AttributeControlType.Datepicker or AttributeControlType.FileUpload
+            or AttributeControlType.Checkboxes or AttributeControlType.ReadonlyCheckboxes);
+
+        <div class="pin @(pin.WasDemoted ? "pin-demoted" : null) @(pin.IsBlockedByCondition ? "is-blocked" : null)">
+            @*only the select branch has an element to point at; a checkbox group is named by aria-labelledby*@
+            @if (isSelect)
+            {
+                <label for="@controlId">
+                    @(!string.IsNullOrEmpty(pin.TextPrompt) ? pin.TextPrompt : pin.Name)
+                    @if (pin.IsRequired)
+                    {
+                        <span class="required">*</span>
+                    }
+                </label>
+            }
+            else
+            {
+                <span class="pin-group-label" id="@labelId">
+                    @(!string.IsNullOrEmpty(pin.TextPrompt) ? pin.TextPrompt : pin.Name)
+                    @if (pin.IsRequired)
+                    {
+                        <span class="required">*</span>
+                    }
+                </span>
+            }
+
+            @*One value, never a list: an axis cell offers a single value and nop
+              compares the required set by count, so only a one-value condition can ever be met. Sits
+              between the label and the control for both branches - the label markup above is shared,
+              so this belongs here rather than inside either of them.*@
+            @if (pin.IsConditional && !string.IsNullOrEmpty(pin.AppliesToValueName))
+            {
+                <span class="pin-conditional">
+                    @string.Format(T("Plugins.CW.Core.BulkOrder.Grid.AppliesTo").Text, pin.AppliesToValueName)
+                </span>
+            }
+
+            @*The control stays and says what would bring it back, rather than leaving the strip without
+              a word. Mutually exclusive with the conditional note above:
+              that one belongs to case 3, where the condition IS met by part of the grid.
+              The attribute, not the value that unlocks it - a condition can require a set, and an empty
+              required list is meaningful, so naming the attribute is the one form true in every shape.*@
+            @if (pin.IsBlockedByCondition && !string.IsNullOrEmpty(pin.DependsOnName))
+            {
+                <span class="pin-blocked">
+                    @string.Format(T("Plugins.CW.Core.BulkOrder.Grid.ChooseFirst").Text, pin.DependsOnName)
+                </span>
+            }
+
+            @if (controlType is AttributeControlType.TextBox or AttributeControlType.MultilineTextbox
+                 or AttributeControlType.Datepicker or AttributeControlType.FileUpload)
+            {
+                @*Read-only: they carry no value into the grid signature and nothing is submitted for
+                  them. What a per-card text value would mean has not been decided.*@
+                <span class="pin-unsupported">@T("Plugins.CW.Core.BulkOrder.Grid.PinNotSupportedYet")</span>
+            }
+            else if (controlType is AttributeControlType.Checkboxes or AttributeControlType.ReadonlyCheckboxes)
+            {
+                var readOnly = controlType == AttributeControlType.ReadonlyCheckboxes;
+
+                <div class="pin-checks" role="group" aria-labelledby="@labelId"
+                     data-product-id="@Model.ProductId" data-mapping-id="@pin.Id">
+                    @foreach (var value in pin.Values)
+                    {
+                        var isChecked = pin.SelectedValueIds.Contains(value.Id);
+
+                        <label class="pin-check">
+                            <input type="checkbox" class="bulk-pin-check"
+                                   data-product-id="@Model.ProductId" data-mapping-id="@pin.Id"
+                                   value="@value.Id"
+                                   checked="@isChecked" disabled="@(readOnly || pin.IsBlockedByCondition)"
+                                   data-default-checked="@pin.DefaultValueIds.Contains(value.Id).ToString().ToLowerInvariant()" />
+                            @value.Name
+                        </label>
+                    }
+                </div>
+            }
+            else
+            {
+                <select id="@controlId" class="bulk-pin"
+                        data-product-id="@Model.ProductId" data-mapping-id="@pin.Id"
+                        data-default-value="@(pin.DefaultValueIds.FirstOrDefault())"
+                        disabled="@pin.IsBlockedByCondition">
+                    @if (!pin.IsRequired)
+                    {
+                        <option value="0">@T("Plugins.CW.Core.BulkOrder.Grid.PinAny")</option>
+                    }
+                    else if (!pin.SelectedValueIds.Any())
+                    {
+                        @*The server holds NOTHING for this pin and the grid says so,
+                          so the control must not show a value the server does not hold - a select with no
+                          selected option displays its first one. Value 0 is what collectPins treats as
+                          "not sent", so the server keeps applying the (empty) default. Once chosen the option
+                          is gone, as nop's own required dropdown has no way back to nothing.*@
+                        <option value="0" selected>@T("Plugins.CW.Core.BulkOrder.Grid.PinChoose")</option>
+                    }
+                    @foreach (var value in pin.Values)
+                    {
+                        <option value="@value.Id" selected="@(pin.SelectedValueIds.Contains(value.Id))">@value.Name</option>
+                    }
+                </select>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,39 @@
+﻿@model BranchNodesModel
+
+@foreach (var node in Model.Nodes)
+{
+    var isSelected  = Model.SelectedIds.Contains(node.Id.ToString());
+    var hasChildren = node.Children.Any();
+    var indentPx    = node.Depth > 0 ? node.Depth * 16 + 12 : 12;
+    var dotClass    = node.Active ? "active" : "inactive";
+
+    <li class="branch-node" data-node-id="@node.Id">
+        <div class="branch-row @(isSelected ? "selected" : "")"
+             data-id="@node.Id"
+             data-name="@Html.Encode(node.Name)"
+             data-parent-id="@(node.ParentId?.ToString() ?? "")"
+             data-depth="@node.Depth"
+             style="padding-left:@(indentPx)px">
+
+             <i class="fas fa-caret-right branch-toggle @(hasChildren ? "" : "leaf") @(isSelected && hasChildren ? "open" : "")" aria-hidden="true"></i>
+
+            <span class="branch-status-dot @dotClass"></span>
+
+             <i class="far fa-home branch-icon" aria-hidden="true"></i>
+
+            <span class="branch-name" title="@node.Name">@node.Name</span>
+            <span class="branch-code-badge">@node.Code</span>
+        </div>
+
+        @if (hasChildren)
+        {
+            <ul class="branch-children @(isSelected ? "expanded" : "")">
+                @await Html.PartialAsync("_Branches.BranchNodes", new BranchNodesModel
+                {
+                    Nodes       = node.Children,
+                    SelectedIds = Model.SelectedIds
+                })
+            </ul>
+        }
+    </li>
+}

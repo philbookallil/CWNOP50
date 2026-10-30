@@ -1,0 +1,257 @@
+@using Nop.Plugin.CW.Core.Constants;
+
+@model ExtendedCustomerModel
+
+@{
+    var customerId = Model.Id;
+}
+
+<div class="card-body">
+    <p class="text-muted">
+        @T("Plugins.CW.Core.Admin.CreditNotes.Description")
+    </p>
+
+    @if (!Model.CreditNotesEnabled)
+    {
+        <div class="alert alert-info">
+            @T("Plugins.CW.Core.Features.Disabled.ReadOnly")
+        </div>
+    }
+
+    <div class="form-group row">
+        <div class="col-md-3">
+            <div class="label-wrapper">
+                <label class="col-form-label">@T("Plugins.CW.Core.Admin.CreditNotes.AvailableBalance")</label>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="form-text-row"><strong id="creditnotes-available-amount">-</strong></div>
+        </div>
+    </div>
+
+    @* ===== Manual add form ===== *@
+    @if (Model.CreditNotesEnabled)
+    {
+        <div class="card card-default">
+            <div class="card-header">
+                @T("Plugins.CW.Core.Admin.CreditNotes.AddForm.Title")
+            </div>
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <div class="label-wrapper">
+                            <label class="col-form-label">@T("Plugins.CW.Core.Admin.CreditNotes.AddForm.Order")</label>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <select id="cn-add-order" class="form-control"></select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <div class="label-wrapper">
+                            <label class="col-form-label">@T("Plugins.CW.Core.Admin.CreditNotes.AddForm.Description")</label>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <input id="cn-add-description" class="form-control" type="text" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <div class="label-wrapper">
+                            <label class="col-form-label">@T("Plugins.CW.Core.Admin.CreditNotes.AddForm.Amount")</label>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <input id="cn-add-amount" class="form-control" type="number" min="0" step="0.01" value="0" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-9 offset-md-3">
+                        <button type="button" id="cn-add-button" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            @T("Plugins.CW.Core.Admin.CreditNotes.AddForm.Add")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ===== Credit notes grid (with history child rows) ===== *@
+    @await Html.PartialAsync("Table", new DataTablesModel
+    {
+        Name = "customer-creditnotes-grid",
+        UrlRead = new DataUrl("CustomerCreditNotesList", "CreditNotes", new RouteValueDictionary { [nameof(Model.CustomerAddressSearchModel.CustomerId)] = Model.CustomerAddressSearchModel.CustomerId }),
+        Length = 10,
+        LengthMenu = "5,10,25",
+        PrimaryKeyColumn = nameof(CreditNoteModel.Id),
+        ColumnCollection = new List<ColumnProperty>
+        {
+            new ColumnProperty(null)
+            {
+                Render = new RenderChildCaret(),
+                Width = "5",
+                Searchable = false,
+                ClassName = NopColumnClassDefaults.ChildControl
+            },
+            new ColumnProperty(nameof(CreditNoteModel.OrderId))
+            {
+                Title = T("Plugins.CW.Core.Admin.CreditNotes.Fields.Order").Text,
+                Width = "90"
+            },
+            new ColumnProperty(nameof(CreditNoteModel.Reason))
+            {
+                Title = T("Plugins.CW.Core.Admin.CreditNotes.Fields.Reason").Text
+            },
+            new ColumnProperty(nameof(CreditNoteModel.AmountFormated))
+            {
+                Title = T("Plugins.CW.Core.Admin.CreditNotes.Fields.Amount").Text,
+                Width = "120",
+                ClassName = NopColumnClassDefaults.CenterAll
+            },
+            new ColumnProperty(nameof(CreditNoteModel.RemainFormated))
+            {
+                Title = T("Plugins.CW.Core.Admin.CreditNotes.Fields.Remain").Text,
+                Width = "120",
+                ClassName = NopColumnClassDefaults.CenterAll
+            },
+            new ColumnProperty(nameof(CreditNoteModel.CreatedOn))
+            {
+                Title = T("Plugins.CW.Core.Admin.CreditNotes.Fields.CreatedOn").Text,
+                Width = "150"
+            },
+            new ColumnProperty(nameof(CreditNoteModel.Id))
+            {
+                Title = T("Admin.Common.Delete").Text,
+                Width = "100",
+                ClassName = NopColumnClassDefaults.Button,
+                Render = new RenderCustom("renderCreditNoteDeleteButton")
+            }
+        },
+        ChildTable = new DataTablesModel
+        {
+            Name = "creditnote-history-grid",
+            UrlRead = new DataUrl("CreditNoteHistoryList", "CreditNotes", null),
+            IsChildTable = true,
+            Length = 10,
+            LengthMenu = "5,10,25",
+            Filters = new List<FilterParameter>
+            {
+                new FilterParameter(nameof(CreditNoteHistorySearchModel.CreditNoteId), nameof(CreditNoteModel.Id), true)
+            },
+            ColumnCollection = new List<ColumnProperty>
+            {
+                new ColumnProperty(nameof(CreditNoteHistoryModel.CreatedOn))
+                {
+                    Title = T("Plugins.CW.Core.Admin.CreditNotes.Fields.CreatedOn").Text
+                },
+                new ColumnProperty(nameof(CreditNoteHistoryModel.OrderId))
+                {
+                    Title = T("Plugins.CW.Core.Admin.CreditNotes.Fields.Order").Text,
+                    Width = "90"
+                },
+                new ColumnProperty(nameof(CreditNoteHistoryModel.AmountFormated))
+                {
+                    Title = T("Plugins.CW.Core.Admin.CreditNotes.Fields.Amount").Text,
+                    Width = "120",
+                    ClassName = NopColumnClassDefaults.CenterAll
+                },
+                new ColumnProperty(nameof(CreditNoteHistoryModel.RemainFormated))
+                {
+                    Title = T("Plugins.CW.Core.Admin.CreditNotes.Fields.Remain").Text,
+                    Width = "120",
+                    ClassName = NopColumnClassDefaults.CenterAll
+                }
+            }
+        }
+    })
+</div>
+
+<script asp-location="Footer">
+    (function () {
+        var customerId = @customerId;
+        var summaryUrl = '@Url.Action("GetCreditNotesSummary", "CreditNotes")';
+        var ordersUrl = '@Url.Action("GetAvailableOrders", "CreditNotes")';
+        var saveUrl = '@Url.Action("SaveCreditNote", "CreditNotes")';
+        var deleteUrl = '@Url.Action("DeleteCreditNote", "CreditNotes")';
+
+        function antiForgery() {
+            return $('input[name="__RequestVerificationToken"]').first().val();
+        }
+
+        function reloadGrid() {
+            if ($.fn.dataTable.isDataTable('#customer-creditnotes-grid')) {
+                $('#customer-creditnotes-grid').DataTable().ajax.reload();
+            }
+        }
+
+        window.renderCreditNoteDeleteButton = function (data, type, row) {
+            @if (!Model.CreditNotesEnabled)
+            {
+                <text>return '';</text>
+            }
+            return '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCreditNote(' + data + ')">' +
+                '<i class="far fa-trash-can"></i> @T("Admin.Common.Delete")</button>';
+        };
+
+        window.deleteCreditNote = function (id) {
+            if (!confirm('@T("Plugins.CW.Core.Admin.CreditNotes.Delete.Confirm")')) return;
+            $.ajax({
+                cache: false,
+                type: 'POST',
+                url: deleteUrl,
+                data: { creditNoteId: id, __RequestVerificationToken: antiForgery() },
+                success: function (res) {
+                    if (res && res.success === false) { alert(res.message || res.error || '@T("Plugins.CW.Core.Admin.CreditNotes.Delete.Error")'); }
+                    reloadGrid(); loadSummary();
+                },
+                error: function () { alert('@T("Plugins.CW.Core.Admin.CreditNotes.Delete.Error")'); }
+            });
+        };
+
+        function loadSummary() {
+            $.ajax({
+                cache: false, type: 'GET', url: summaryUrl, data: { customerId: customerId },
+                success: function (res) { $('#creditnotes-available-amount').text(res.amount); }
+            });
+        }
+
+        function loadOrders() {
+            $.ajax({
+                cache: false, type: 'GET', url: ordersUrl, data: { customerId: customerId },
+                success: function (res) {
+                    var $sel = $('#cn-add-order').empty();
+                    $.each(res, function (i, o) { $sel.append($('<option>').val(o.id).text(o.text)); });
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            loadSummary();
+            loadOrders();
+
+            $('#cn-add-button').on('click', function () {
+                var orderId = parseInt($('#cn-add-order').val(), 10);
+                var amount = parseFloat($('#cn-add-amount').val());
+                if (!orderId) { alert('@T("Plugins.CW.Core.Admin.CreditNotes.AddForm.SelectOrder")'); return; }
+                if (!(amount > 0)) { alert('@T("Plugins.CW.Core.Admin.CreditNotes.AddForm.InvalidAmount")'); return; }
+                $.ajax({
+                    cache: false, type: 'POST', url: saveUrl,
+                    data: {
+                        CustomerId: customerId, OrderId: orderId,
+                        Description: $('#cn-add-description').val(), Amount: amount,
+                        __RequestVerificationToken: antiForgery()
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            $('#cn-add-description').val(''); $('#cn-add-amount').val('0');
+                            reloadGrid(); loadSummary();
+                        } else { alert(res.message || res.error); }
+                    }
+                });
+            });
+        });
+    })();
+</script>

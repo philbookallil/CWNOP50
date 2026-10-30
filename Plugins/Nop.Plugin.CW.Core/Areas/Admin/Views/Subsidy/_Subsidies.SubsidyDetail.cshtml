@@ -1,0 +1,224 @@
+﻿@model SubsidyModel
+
+<form id="subsidy-detail-form" class="ms-detail-form"
+        asp-controller="Subsidy"
+        asp-action="SaveSubsidy"
+        method="post">
+
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="StoreId" type="hidden" />
+    <input asp-for="IsNew" type="hidden" />
+
+    <div class="form-horizontal">
+        <div class="card card-default bp-card card-ms-section">
+
+            <div class="card-header d-flex align-items-center">
+                <button type="button"
+                        class="btn btn-sm btn-focus-back"
+                        id="btn-subsidy-back">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    @T("Plugins.CW.Core.Admin.Common.Back")
+                </button>
+
+                <span class="ms-card-title">
+                    @if (Model.IsNew)
+                    {
+                        @T("Plugins.CW.Core.Admin.Subsidies.Subsidy.New")
+                    }
+                    else
+                    {
+                        @Model.Name
+                    }
+                </span>
+        
+                <div class="ml-auto d-flex align-items-center" style="gap:6px">
+                    @*SAVE NEVER NAVIGATES: the panel stays put, so this is the only
+                      confirmation a save gets. Admin.StoreNav.markSaved() fills and shows it.*@
+                    <span class="ms-saved-stamp" style="display:none"></span>
+                    <button type="button"
+                            class="btn btn-primary btn-sm"
+                            id="btn-subsidy-save">
+                        @T("Admin.Common.Save")
+                    </button>
+                    @if (!Model.IsNew)
+                    {
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                id="btn-subsidy-delete"
+                                data-id="@Model.Id"
+                                data-url="@Url.Action("DeleteSubsidy", "Subsidy")">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                            @T("Admin.Common.Delete")
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Name" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Name" asp-required="true"/>
+                                <span asp-validation-for="Name"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Description" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Description" />
+                                <span asp-validation-for="Description"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Credit" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Credit" asp-postfix="@Model.PrimaryStoreCurrencyCode" asp-required="true" />
+                                <span asp-validation-for="Credit"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="DurationStart" />
+                            </div>
+                            <div class="col-md-3">
+                                <nop-editor asp-for="DurationStart" />
+                                <span asp-validation-for="DurationStart"></span>
+                            </div>
+                            <div class="col-md-2">
+                                <nop-label asp-for="DurationEnd" />
+                            </div>
+                            <div class="col-md-3">
+                                <nop-editor asp-for="DurationEnd" />
+                                <span asp-validation-for="DurationEnd"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="AnnualRecurrence" />
+                            </div>
+                            <div class="col-md-1">
+                                <nop-editor asp-for="AnnualRecurrence" />
+                                <span asp-validation-for="AnnualRecurrence"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <nop-label asp-for="OnlyAllocatedProducts" />
+                            </div>
+                            <div class="col-md-4">
+                                <nop-editor asp-for="OnlyAllocatedProducts" />
+                                <span asp-validation-for="OnlyAllocatedProducts"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row pnlOnlyAllocatedProducts">
+                            <div class="col-md-8">
+                                <nop-label asp-for="IncludeManagers" />
+                            </div>
+                            <div class="col-md-1">
+                                <nop-editor asp-for="IncludeManagers" />
+                                <span asp-validation-for="IncludeManagers"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="OrderOutsidePeriod" />
+                            </div>
+                            <div class="col-md-1">
+                                <nop-editor asp-for="OrderOutsidePeriod" />
+                                <span asp-validation-for="OrderOutsidePeriod"></span>
+                            </div>
+                            <div class="col-md-3 pnlRestrictToQty">
+                                <nop-label asp-for="RestrictToAllocatedQty" />
+                            </div>
+                            <div class="col-md-2 pnlRestrictToQty">
+                                <nop-editor asp-for="RestrictToAllocatedQty" />
+                                <span asp-validation-for="RestrictToAllocatedQty"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Active" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Active" />
+                                <span asp-validation-for="Active"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @await Html.PartialAsync("_Subsidies.SubsidyDetail.PackNames", Model)
+    @await Html.PartialAsync("_Subsidies.SubsidyDetail.ProductGroups", Model)
+</form>
+@* EVERY RAZOR VALUE THIS PANEL'S SCRIPT NEEDS ARRIVES THROUGH HERE - the field ids and the one
+   confirm text - so the script is plain JavaScript. *@
+<div class="subsidy-detail-config"
+     data-id-credit="@Html.IdFor(model => model.Credit)"
+     data-id-only-allocated="@Html.IdFor(model => model.OnlyAllocatedProducts)"
+     data-id-include-managers="@Html.IdFor(model => model.IncludeManagers)"
+     data-id-order-outside="@Html.IdFor(model => model.OrderOutsidePeriod)"
+     data-id-restrict-qty="@Html.IdFor(model => model.RestrictToAllocatedQty)"
+     data-change-credit-confirm="@T("Plugins.CW.Core.Admin.Subsidies.ChangeCreditConfirmMessage")"
+     style="display: none;"></div>
+
+<script>
+    (function () {
+        var $form = $('#subsidy-detail-form');
+        var $cfg = $form.next('.subsidy-detail-config');
+
+        var $credit          = $form.find('#' + $cfg.data('idCredit'));
+        var $onlyAllocated   = $form.find('#' + $cfg.data('idOnlyAllocated'));
+        var $includeManagers = $form.find('#' + $cfg.data('idIncludeManagers'));
+        var $orderOutside    = $form.find('#' + $cfg.data('idOrderOutside'));
+        var $restrictQty     = $form.find('#' + $cfg.data('idRestrictQty'));
+        var changeCreditConfirm = $cfg.data('changeCreditConfirm');
+
+        function toggleRestrictToAllocatedQty() {
+            if ($onlyAllocated.is(':checked')) {
+                $('.pnlOnlyAllocatedProducts').showElement();
+            } else {
+                $includeManagers.prop('checked', false);
+                $('.pnlOnlyAllocatedProducts').hideElement();
+            }
+
+            if ($onlyAllocated.is(':checked') && !$orderOutside.is(':checked') && $credit.val() == 0) {
+                $('.pnlRestrictToQty').showElement();
+            } else {
+                $restrictQty.prop('checked', false);
+                $('.pnlRestrictToQty').hideElement();
+            }
+        }
+
+        //A subsidy that restricts to the allocated quantity is a unit-only subsidy: giving it credit
+        //is asked about, and declining puts the credit back to zero. (This used to reference an
+        //event argument that was never passed, so declining threw before the reset.)
+        function validateRestrictAllocatedQty() {
+            if ($credit.val() > 0 && $restrictQty.is(':checked')) {
+                if (!confirm(changeCreditConfirm)) {
+                    $credit.val(0);
+                }
+            }
+
+            toggleRestrictToAllocatedQty();
+        }
+
+        //THE PANEL IS INJECTED BY AJAX, so this runs when the partial lands, not on document.ready;
+        //direct binding on the fields is right because the fields are replaced with the panel.
+        $onlyAllocated.on('click', toggleRestrictToAllocatedQty);
+        $orderOutside.on('click', toggleRestrictToAllocatedQty);
+        $credit.on('change', validateRestrictAllocatedQty);
+
+        toggleRestrictToAllocatedQty();
+    })();
+</script>

@@ -1,0 +1,5 @@
+﻿@*The zone is the first child of the header links <ul> (HeaderLinks/Default.cshtml :7), so this emits an
+  <li> and nothing around it. `ico-` prefixed classes are how every other item in that list is styled, and a
+  theme restyling its header links picks this up with them rather than needing to know about us.*@
+
+<li><a href="@Url.RouteUrl(CWCoreDefaults.BULKORDER_INDEX)" class="ico-bulk-order">@T("Plugins.CW.Core.BulkOrder.HeaderLink")</a></li>

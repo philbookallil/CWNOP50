@@ -1,0 +1,281 @@
+﻿@using Nop.Plugin.CW.Core.Extensions;
+@using Nop.Core.Domain.Orders;
+@using Nop.Plugin.CW.Core.Domain.Exchanges;
+@using CW.Common.Helpers;
+
+@model ReturnRequestModel
+
+@inject IWorkContext _workContext
+
+@{
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Admin/Exchanges/return-request-fees.css");
+
+    var exchangeRequestModel = Model as CWReturnRequestModel;
+    var isExchangeModelData = exchangeRequestModel != null;
+
+    var currency = await _workContext.GetWorkingCurrencyAsync();
+}
+
+<input asp-for="Id" type="hidden" />
+
+<div asp-validation-summary="All" class="message-error"></div>
+
+@if (isExchangeModelData)
+{
+    var productSubTotal = exchangeRequestModel.ProductPrice * Model.Quantity;
+    var replacementProductTotal = exchangeRequestModel.ReplacementProductPrice * Model.Quantity;
+    decimal priceDifference = exchangeRequestModel.ExchangeType != ExchangeType.Exact ?
+    (replacementProductTotal - productSubTotal) : decimal.Zero;
+
+    decimal shippingFee = 0;
+    decimal repackagingFee = 0;
+    //What is charged, not what is in the input box. Once the case has resolved the frozen charge wins and
+    //editing the field no longer moves the money — this total has to follow the money.
+    decimal additionalFee = exchangeRequestModel.AdditionalFeeChargedAmount;
+
+    //Whether the credit-note figures on this panel are still a projection. A projection is not the answer:
+    //subsidy goes back in kind and the note is only what is left over, so an unresolved case can
+    //show a maximum and nothing firmer.
+    var creditNoteIsEstimate = exchangeRequestModel.CreditNoteRaisedAmount == null;
+    var creditNoteRaised = exchangeRequestModel.CreditNoteRaisedAmount ?? decimal.Zero;
+
+    @*data-* values let the script mirror the total formula below exactly rather than scraping amounts out
+      of the DOM, which would pick up the price-difference and credit-note rows by accident.*@
+    <div class="card card-default cw-fees-admin"
+         data-editable="@(exchangeRequestModel.IsEditable ? "true" : "false")"
+         data-mode="@(exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.Exchange ? "exchange" : "credit-note")"
+         data-base-quantity="@Model.Quantity"
+         data-price-difference="@priceDifference.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+         data-product-subtotal="@productSubTotal.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+         data-op-per-units="@((int)FeeRuleOperator.PerUnitsQuantity)"
+         data-op-fixed-price="@((int)FeeRuleOperator.FixedPrice)">
+        <div class="card-body">
+            <table class="table table-bordered fees-admin">
+                <colgroup>
+                    <col class="concept" />
+                    <col class="data" />
+                    <col class="info" />
+                    <col />
+                </colgroup>
+
+                @if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.Exchange)
+                {
+                    <tr>
+                        <td class="fees-label">
+                            <label class="col-form-label">Product Sub-Total</label>
+                        </td>
+                        <td colspan="3">
+                            <div class="form-text-row">
+                                @currency.CurrencyCode
+                                <span class="amount">@FormatHelper.FormatAbsPrice(productSubTotal)</span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+
+                @if (exchangeRequestModel.ExchangeType != ExchangeType.Exact)
+                {
+                    <tr class="price-diff">
+                        <td class="fees-label">
+                            <label class="col-form-label">Price Difference</label>
+                        </td>
+                        <td colspan="3">
+                            <div class="form-text-row">
+                                @currency.CurrencyCode
+                                <span class="price-display">@FormatHelper.FormatAbsPrice(priceDifference)</span>
+                                @if (priceDifference < 0)
+                                {
+                                    <span>&nbsp; (in customer's favour)</span>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+
+                @if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.CreditNote)
+                {
+                    <tr class="credit-note-info">
+                        <td class="fees-label">
+                            <label class="col-form-label">
+                                @(creditNoteIsEstimate ? "Returned Value" : "Credit Note Raised")
+                            </label>
+                        </td>
+                        <td colspan="3">
+                            <div class="form-text-row">
+                                @currency.CurrencyCode
+                                <span class="price-display">@FormatHelper.FormatAbsPrice(creditNoteIsEstimate ? productSubTotal : creditNoteRaised)</span>
+                                @if (!creditNoteIsEstimate && creditNoteRaised <= decimal.Zero)
+                                {
+                                    <span>&nbsp; (no credit note — the value went back to the employee's entitlement)</span>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+
+                @if (exchangeRequestModel.ShowShippingFee)
+                {
+                    shippingFee = exchangeRequestModel.ShippingFeeAmount;
+                    @await Component.InvokeAsync("FeeConcept", new { exchangeModel = exchangeRequestModel, feeType = FeeType.ReShippingFee })
+                }
+                @if (exchangeRequestModel.ShowRepackagingFee)
+                {
+                    repackagingFee = exchangeRequestModel.RepackagingFeeAmount;
+                    @await Component.InvokeAsync("FeeConcept", new { exchangeModel = exchangeRequestModel, feeType = FeeType.RepackagingFee })
+                }
+
+                @await Component.InvokeAsync("FeeConcept", new { exchangeModel = exchangeRequestModel, feeType = FeeType.AdditionalFee })
+
+                @if (priceDifference < 0)
+                {
+                    <tr class="total-section">
+                        <td class="fees-label">
+                            <label class="col-form-label">Sub-Total on Customer's favour</label>
+                        </td>
+                        <td colspan="3">
+                            <div class="form-text-row">
+                                @currency.CurrencyCode
+                                <span class="amount">@Math.Abs(priceDifference).ToString("F")</span>&nbsp;
+                                <span>(returned to whatever paid for it — subsidy to the employee's entitlement, cash as a Credit Note)</span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                <tr class="total-section total">
+                    @{
+                        decimal feesTotal = (shippingFee + repackagingFee + additionalFee);
+                        decimal totalAmount = priceDifference >= decimal.Zero ? (priceDifference + feesTotal) : feesTotal;
+                        if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.CreditNote)
+                        {
+                            //An unresolved case can only bound it: this is the figure a wholly cash-funded
+                            //line would produce, and any subsidy on the line reduces it.
+                            totalAmount = creditNoteIsEstimate
+                                ? productSubTotal - feesTotal
+                                : creditNoteRaised;
+                        }
+                    }
+                    <td class="fees-label">
+                        @if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.Exchange)
+                        {
+                            <label class="col-form-label">Minimum Payment Required</label>
+                        }
+                        else if (creditNoteIsEstimate)
+                        {
+                            <label class="col-form-label">Most the Customer Could Receive as Credit Notes</label>
+                        }
+                        else
+                        {
+                            <label class="col-form-label">Credit Notes Amount Received</label>
+                        }
+                    </td>
+                    <td colspan="3">
+                        <div class="form-text-row">
+                            @currency.CurrencyCode
+                            <span class="price-total">@Math.Abs(totalAmount).ToString("F")</span>
+                        </div>
+                    </td>
+                </tr>
+
+                @if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.CreditNote && creditNoteIsEstimate)
+                {
+                    <tr class="credit-note-caveat">
+                        <td colspan="4">
+                            <div class="form-text-row">
+                                <em>
+                                    Anything on this line paid for by subsidy is given back to the employee's
+                                    entitlement when the return is authorised, not raised as a Credit Note, so
+                                    the figure above is an upper bound until then.
+                                </em>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </table>
+        </div>
+    </div>
+
+    <script>
+        $(function () {
+            var $panel = $('.cw-fees-admin');
+            if (!$panel.length) return;
+
+            // ---- additional fee show/hide (unchanged behaviour) ----
+            var $enable = $('#enable-additional-fee');
+            var $fields = $('.additional-fee-fields');
+            $enable.on('change', function () {
+                if ($enable.is(':checked')) {
+                    $fields.show();
+                } else {
+                    $fields.hide();
+                    $fields.find('input[type="number"], input[type="text"]').val('');
+                }
+            });
+
+            // A resolved case shows its FROZEN charges, and its credit-note row shows the note that was
+            // actually raised. Re-pricing either here would put a live figure on screen while the customer
+            // is charged the stored one, so the panel stays exactly as rendered.
+            if ($panel.data('editable') !== true && $panel.data('editable') !== 'true') return;
+
+            var OP_PER_UNITS = parseInt($panel.data('op-per-units'), 10);
+            var OP_FIXED     = parseInt($panel.data('op-fixed-price'), 10);
+            var baseQty      = parseInt($panel.data('base-quantity'), 10);
+            var mode         = $panel.data('mode');
+            var priceDiff    = parseFloat($panel.data('price-difference')) || 0;
+            var productSub   = parseFloat($panel.data('product-subtotal')) || 0;
+
+            // Mirrors ExchangesHelper.CalculateFeeAmount, including its divide-by-zero guard. If these two
+            // ever disagree the screen lies about the money, so keep them in step.
+            function calcFee(qty, amount, op, factor) {
+                if (op === OP_PER_UNITS) {
+                    if (!(factor > 0)) return 0;
+                    return Math.ceil(qty / factor) * amount;
+                }
+                if (op === OP_FIXED) return qty > 0 ? amount : 0;
+                return 0;
+            }
+
+            function repriceRow($row) {
+                var $qty = $row.find('.fee-qty input[type="text"], .fee-qty input:not([type="hidden"])').first();
+                var $op  = $row.find('.fee-operator');
+                if (!$qty.length || !$op.length) return;   // no live rule on this row: leave it alone
+
+                var qty = parseInt($qty.val(), 10);
+                if (isNaN(qty) || qty < 0) qty = 0;
+
+                var capped = qty > baseQty;
+                if (capped) { qty = baseQty; $qty.val(qty); }
+
+                var amount = calcFee(qty,
+                                     parseFloat($op.siblings('.fee-amount').val()) || 0,
+                                     parseInt($op.val(), 10),
+                                     parseInt($op.siblings('.fee-qtyfactor').val(), 10));
+
+                $row.find('.fee-total .value-container').text(amount.toFixed(2));
+                $row.toggleClass('fee-qty-capped', capped);
+                return amount;
+            }
+
+            function repriceAll() {
+                var fees = 0;
+                $panel.find('tr.fee-group').each(function () {
+                    var a = repriceRow($(this));
+                    if (typeof a === 'number') fees += a;
+                });
+                // the ad-hoc fee is typed, not priced
+                $panel.find('.additional-fee-fields input[type="number"]').each(function () {
+                    fees += parseFloat($(this).val()) || 0;
+                });
+
+                // Same formula as the Razor above — keep the two in step. In credit-note mode this is the
+                // upper bound, which is what an unresolved case shows.
+                var total = (mode === 'credit-note')
+                    ? productSub - fees
+                    : (priceDiff >= 0 ? priceDiff + fees : fees);
+
+                $panel.find('.price-total').text(Math.abs(total).toFixed(2));
+            }
+
+            $panel.on('change blur', '.fee-qty input, .additional-fee-fields input', repriceAll);
+            $panel.on('change', '#enable-additional-fee', repriceAll);
+        });
+    </script>}

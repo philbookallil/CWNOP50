@@ -3,10 +3,11 @@
 Written 2026-10-30. This repository is the final nop 5.00 (`release-5.00.0`) with no CW.Core in it yet. CW.Core comes
 across from the beta port (the 5.00 beta port source, `CLAUDE.md` §3.1, where phases 1–5 were applied), takes what the
 final release changed, and then finishes the port here (phases 6 and 7). The beta port's own map,
-`CWPlans/CWCore_Port_Strategy.md` in the beta port source, stays the record of why things are the way they are: its §5
+`CWPlans/CWCore_Port_Strategy.md` (copied here from the beta port source), stays the record of why things are the way they are: its §5
 (decisions D1–D5, the phase amendments, the deferred fixes) and §7 (the move) are the inputs of this document.
 
-**State:** M0 in progress (this document, `CLAUDE.md` merged, `CLAUDE.local.md` and `tasks/` brought across). Next: M1.
+**State (2026-10-30):** M0 committed. M1: the three folders copied (identical to the beta port's) and the CW.Core
+reference added to `Tests/CW.Tests`; the `NopCommerce.sln` change, the build and the test run are open (§5). Next: M2.
 
 ---
 
@@ -15,9 +16,9 @@ final release changed, and then finishes the port here (phases 6 and 7). The bet
 | | This repository | Beta port source |
 |---|---|---|
 | nop | **final 5.00**: 14 files in `Libraries/` and 12 in `Presentation/` differ from the beta (besides the installation language files), among them the new `Nop.Web.Framework/Themes/ThemeableRazorViewEngine.cs`. `NopVersion` is `5.00` / `0` in both | the unmodified beta |
-| CW.Core | absent | `Plugins/Nop.Plugin.CW.Core`, phases 1–5 applied (`plugin.json` `2026_10_30_DATA_0.1`, `SupportedVersions` `5.00`), git clean |
-| `CWLibraries/CW.Common` | **absent** — CW.Core references it (`..\..\CWLibraries\CW.Common\CW.Common.csproj`) | present |
-| `Tests/CW.Tests` | Freight, SSO, NAB folders; no `Core/`, no project reference to CW.Core | `Core/` (625 CW.Core tests after 5h), Odoo |
+| CW.Core | absent before M1 | `Plugins/Nop.Plugin.CW.Core`, phases 1–5 applied (`plugin.json` `2026_10_30_DATA_0.1`, `SupportedVersions` `5.00`), git clean |
+| `CWLibraries/CW.Common` | absent before M1 — CW.Core references it (`..\..\CWLibraries\CW.Common\CW.Common.csproj`) | present |
+| `Tests/CW.Tests` | Freight, SSO, NAB folders; `Core/` and the CW.Core reference from M1 | `Core/` (625 CW.Core tests after 5h), Odoo |
 | Other CW plugins | `CW.Freight` (another developer's), `Payments.NABGateway`, `ExternalAuth.SSO` | the same, plus `Integration.Odoo` |
 | `tasks/` | brought across from the beta port on 2026-10-30 (`lessons.md` #1–#21, `lessons-4.9.md`) | |
 
@@ -78,10 +79,11 @@ resolves at runtime.
 | `Infrastructure/ViewLocationExpander.cs`, the admin block | adds `~/Plugins/Nop.Plugin.CW.Core/Areas/Admin/Views/Home/{0}.cshtml` | CW.Core deploys to `Plugins/CW.Core` (`.csproj` `OutputPath`) and has no `Areas/Admin/Views/Home` folder |
 | `Infrastructure/ViewsPathsRegistry.cs`, `partialViewsPaths` | the same ten paths as `viewsPaths` | the expander concatenates both and `Distinct()` drops the copy |
 | `ViewsPathsRegistry.cs`, `Areas/Admin/Views/{2}/{1}/{0}` (in both lists) | `{2}` is the area name | gives `Areas/Admin/Views/Admin/…`; no such folder exists |
-| `Infrastructure/ViewPathsRegistrar.cs` and its `AddScoped` in `NopStartup` | the runtime registration API | nothing injects it, nothing calls `Register*` / `Unregister*`. **The beta's part 4.0 decided to keep it** (beta strategy §5.2, correction of 2026-10-26, when the expander was wrongly called dead): §5, Q7 |
+| `Infrastructure/ViewPathsRegistrar.cs` and its `AddScoped` in `NopStartup` | the runtime registration API | nothing injects it and nothing calls its methods — checked in the beta port, the other CW plugins, `CW.Common`, the tests and 4.9. The beta's part 4.0 kept it (beta strategy §5.2, correction of 2026-10-26, when the expander was wrongly called dead); **removed by decision of 2026-10-30**, together with the registry's four static `Register*` / `Unregister*` methods, which only it called |
 
 The expander and the registry's other eight paths are **not** dead: they are how CW's forks replace nop's views
-(lesson #21). M2 removes the first three rows; the fourth waits for Q7.
+(lesson #21), and `ViewLocationExpanderTests` keeps guarding that order. M2 removes all four rows; what stays is the
+expander and one list of eight `~/Plugins/CW.Core/...` locations, in the same order as today.
 
 ---
 
@@ -116,10 +118,10 @@ tests and an independent review before hand-over; defects and decisions come as 
 
 | Part | Brings | Done when |
 |---|---|---|
-| **M0. Repository set-up** (documents only) | This document; `CLAUDE.md` merged (the other developer's root copy + the beta port's: Mapster/script-path/options rows in §4, CW.Core row in §3.2, a §3.1 row for the beta port source, the new engine in §10.4); `CLAUDE.local.md` ported; `tasks/` copied; `/NOP50Beta` added to `.gitignore` (§5, Q1) | The developer has reviewed and committed them |
-| **M1. The beta port, verbatim** | `CWLibraries/CW.Common`, `Plugins/Nop.Plugin.CW.Core` and `Tests/CW.Tests/Core` copied unchanged from the beta port source (no `bin/`, `obj/`); the three projects added to `NopCommerce.sln`; `Tests/CW.Tests/CW.Tests.csproj` given its CW.Core reference. Beta strategy §4.2 rule 2: the verbatim copy is its own commit, so M2 reads as "what the final required" | The solution builds against the final nop; registration and cycle checks pass; the 625 CW.Core tests and the other suites pass |
+| **M0. Repository set-up** (documents only) — **committed 2026-10-30** | This document; `CLAUDE.md` merged (the other developer's root copy + the beta port's: Mapster/script-path/options rows in §4, CW.Core row in §3.2, a §3.1 row for the beta port source, the new engine in §10.4); `CLAUDE.local.md` ported; `tasks/` copied; `/NOP50Beta` added to `.gitignore` (§5) | The developer has reviewed and committed them |
+| **M1. The beta port, verbatim** — copied 2026-10-30 | `CWLibraries/CW.Common`, `Plugins/Nop.Plugin.CW.Core` and `Tests/CW.Tests/Core` copied unchanged from the beta port source (no `bin/`, `obj/`); the three projects added to `NopCommerce.sln`; `Tests/CW.Tests/CW.Tests.csproj` given its CW.Core reference. Beta strategy §4.2 rule 2: the verbatim copy is its own commit, so M2 reads as "what the final required" | The solution builds against the final nop; registration and cycle checks pass; the 625 CW.Core tests and the other suites pass |
 | **M2. What the final 5.00 changed** | §3's re-diffs (`SearchProductsAsync` copy, sign-in and landing, the product *Info* fork, the return post, the cart readers, reminders); the dead view-location entries (§2.3); `plugin.json` `Version` bumped if any `UpdateAsync` work changes; `CLAUDE.md` §10.3 table re-checked | Spec applied; build, checks and tests green; reviewed |
-| **M3. New database and runtime pass** | A fresh nop install on a new catalog; CW.Core installed (`SchemaMigration` + the SQL views, functions and procedures); §7.3's settings checked on the fresh install (withdrawal, auto-cancel, phone sign-in, vendors, price lists off; reminders on); a catalogue for §7.4 (size/colour combinations, a checkbox option, a required product, a three-level category, a closed ordering period); `CWPlans/TestData/` scripts rewritten for the new ids. Runtime checks: every CW storefront page opened by path (§2.2) loads under `DefaultClean`; one forked storefront view and one forked admin view render CW's version; the packname checkout's address and payment partials refresh through `RenderPartialViewToStringAsync`; then a smoke run of each phase-4/5 part's main flow | Install / uninstall clean; the checks pass |
+| **M3. New database and runtime pass** | A fresh nop install on the new catalog `testnop50`; CW.Core installed (`SchemaMigration` + the SQL views, functions and procedures); §7.3's settings checked on the fresh install (withdrawal, auto-cancel, phone sign-in, vendors, price lists off; reminders on); a catalogue for §7.4 (size/colour combinations, a checkbox option, a required product, a three-level category, a closed ordering period); `CWPlans/TestData/` scripts rewritten for the new ids. Runtime checks: every CW storefront page opened by path (§2.2) loads under `DefaultClean`; one forked storefront view and one forked admin view render CW's version; the packname checkout's address and payment partials refresh through `RenderPartialViewToStringAsync`; then a smoke run of each phase-4/5 part's main flow | Install / uninstall clean; the checks pass |
 | **M4. Deferred runtime tests** | 5h's T5, T8b, T9–T16, T18, T19 (beta §7.4) | Pass |
 | **Phase 6. Outputs** | Invoice and packing slip (SkiaSharp 4, the 5.00 PDF font), e-mails and tokens (packname rows, exchange e-mails), reports (profit with subsidy), each compared with 4.9's for the same order; the theme check of `CLAUDE.md` §10.4 | No difference that is not a 5.00 change |
 | **Phase 7. Regression** | Every phase-4/5 part's test plan end to end (beta port source `CWPlans/Deprecated/`, §6 of each); feature switches both ways; performance against 4.9 | No open defect from the port |
@@ -129,18 +131,21 @@ M1 and M2 could be one delivery to save a build, but they stay two commits: M1 i
 
 ---
 
-## 5. Open questions
+## 5. Decisions and open items
 
-1. **`.gitignore`:** add `/NOP50Beta` (it is a nested git repository; see the hand-over).
-2. **`CLAUDE.md` §3.2:** the root copy (another developer's) marks `CW.ThemeCore`, `CW.Theme.Standard`, `Themes/CW.Standard`
-   as ported and `Integration.Odoo` as tested against a real Odoo; none of that code is in this repository, and the
-   beta port's copy says "not started". The merge keeps the root rows. Keep them, or mark them "not in this repository"?
-3. **Lessons numbering:** the root `CLAUDE.md` §10.5 rows 11–13 cite lessons #22–#24, from a `tasks/lessons.md` that is
-   not in this repository (the beta port's ends at #21 and cites the same lesson as #21). Does the other developer have
-   a lessons file to merge?
-4. **The beta port's `CWPlans/`:** bring `CWCore_Port_Strategy.md` and `Deprecated/` into this repository's `CWPlans/`
-   (public repository), or keep reading them in the beta port source? This document assumes the second.
-5. **M1, who copies:** D5 had the developer copy folders. Copy them yourself with the commands M1's spec gives, or
-   allow Claude to copy them (application code, `CLAUDE.md` §0.1)?
-6. **New database:** the catalog name for M3 (`appsettings.json` names `testnop50` today).
-7. **`ViewPathsRegistrar`:** unused (§2.3), but kept on purpose in the beta's part 4.0. Remove it in M2, or keep it?
+Decided 2026-10-30:
+
+1. `.gitignore` takes `/NOP50Beta` (committed with M0).
+2. `CLAUDE.md` §3.2's rows for ThemeCore, Theme.Standard, `CW.Standard` and Odoo stay as the other developer wrote them;
+   what they mean for this repository is in the developer's `CLAUDE.local.md`.
+3. The lesson numbers in `CLAUDE.md` §10.5 rows 11–13 stay as they are; the other developer is asked for their lessons file.
+4. `CWCore_Port_Strategy.md` is copied into `CWPlans/`; `Deprecated/` and `TestData/` stay in the beta port source.
+5. M1's folders are copied by Claude (done).
+6. The database is `testnop50`.
+7. `ViewPathsRegistrar` is removed in M2 (§2.3).
+
+Open:
+
+- **`NopCommerce.sln`:** add `CW.Common` and `Nop.Plugin.CW.Core` (the developer applies the change).
+- **Build and tests:** Claude's build environment cannot reach nuget.org or the .NET downloads this session, so M1's
+  build, checks and test run are the developer's, or wait until those hosts are allowed.

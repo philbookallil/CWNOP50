@@ -1,0 +1,26 @@
+﻿@model FeeRuleSearchModel
+
+@{
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.Exchanges.Fees.GlobalTitle").Text;
+    NopHtml.SetActiveMenuItemSystemName(CWCoreDefaults.FeeSettingsAdminMenuSystemName);
+}
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        @T("Plugins.CW.Core.Admin.Exchanges.Fees.GlobalTitle")
+    </h1>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="cards-group">
+                <div class="callout callout-info">
+                    @T("Plugins.CW.Core.Admin.Exchanges.Fees.GlobalInfo")
+                </div>
+
+                @await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Exchanges/_FeeRules.cshtml", Model)
+            </div>
+        </div>
+    </div>
+</section>

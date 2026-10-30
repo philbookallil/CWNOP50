@@ -1,0 +1,266 @@
+﻿#pack-name-selector {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+}
+
+    #pack-name-selector > div {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        margin: 0 5px;
+        width: 35%;
+    }
+
+        /* the add icons sit side by side after the selects, not in a 35% column each */
+        #pack-name-selector > div.pack-name-selector-action {
+            width: auto;
+        }
+
+    #pack-name-selector .pack-name-selector-label {
+        margin-right: 10px;
+        white-space: nowrap;
+    }
+
+    #pack-name-selector .add-pack-name-icon {
+        display: flex;
+        width: 28px;
+        height: 28px;
+        align-items: center;
+        justify-content: center;
+        margin-left: 5px;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+        #pack-name-selector .add-pack-name-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
+    #pack-name-selector .add-pack-name {
+        background-color: #6ac46c;
+        color: #fff;
+        border-radius: 4px;
+    }
+
+        #pack-name-selector .add-pack-name:hover {
+            background-color: #55a957;
+        }
+
+    #pack-name-selector .add-pack-name-xls {
+        color: #178d19;
+    }
+
+        #pack-name-selector .add-pack-name-xls svg {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+.selector-pack-name-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 0;
+    gap: 6px;
+}
+
+    .selector-pack-name-item.not-selectable {
+        opacity: .5;
+        pointer-events: none;
+        cursor: not-allowed;
+    }
+
+    .selector-pack-name-item .pack-name-icon {
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .selector-pack-name-item .pack-name-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
+    .selector-pack-name-item .title {
+        flex: 1 1 0%;
+        font-weight: bold;
+        line-height: 16px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .selector-pack-name-item .pack-name-in-cart {
+        flex: 0 0 auto;
+        min-width: 35px;
+    }
+
+        .selector-pack-name-item .pack-name-in-cart > div {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .selector-pack-name-item .pack-name-in-cart svg {
+            width: 16px;
+            height: 16px;
+        }
+
+    .selector-pack-name-item .pack-name-edit {
+        flex: 0 0 20px;
+        margin-right: 5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .selector-pack-name-item .pack-name-edit svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .selector-pack-name-item .pack-name-edit:hover {
+            opacity: 0.7;
+        }
+
+    .selector-pack-name-item.not-editable .pack-name-edit {
+        display: none !important;
+    }
+
+#pack-name-selector .pack-name-item-selected-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+    #pack-name-selector .pack-name-item-selected-name svg {
+        width: 16px;
+        height: 16px;
+    }
+
+/* ── Tom Select overrides ── */
+
+#pack-name-selector .ts-wrapper {
+    width: 100% !important;
+}
+
+#pack-name-selector .ts-control > input {
+    height: auto !important;
+}
+
+#pack-name-selector .ts-dropdown .option {
+    text-align: left;
+}
+
+/* ── Skeleton loader ──────────────────────────────────────────────────────── */
+@keyframes loading-packname-shimmer {
+    0% {
+        background-position: -700px 0;
+    }
+
+    100% {
+        background-position: 700px 0;
+    }
+}
+
+.loading-packname-skeleton {
+    padding: 20px 20px 16px;
+}
+
+    .loading-packname-skeleton::before {
+        content: '';
+        display: block;
+        --sh: linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75% );
+        --gap: 14px;
+        --h: 38px;
+        --lh: 24px;
+        --r: 5px;
+        --r1: 0px;
+        --r2: calc(var(--h) + var(--gap));
+        --r3: calc(var(--r2) + var(--h) + var(--gap));
+        --l3: calc(var(--r3) + var(--h) + var(--gap));
+        --r4: calc(var(--l3) + var(--lh) + 8px);
+        --r5: calc(var(--r4) + var(--h) + var(--gap));
+        --l5: calc(var(--r5) + var(--h) + var(--gap));
+        --r6: calc(var(--l5) + var(--lh) + 8px);
+        --r7: calc(var(--r6) + var(--h) + var(--gap));
+        --btn: calc(var(--r7) + var(--h) + 20px);
+        height: calc(var(--btn) + 40px);
+        background-image: var(--sh), var(--sh), var(--sh), var(--sh), var(--sh), var(--sh), var(--sh), var(--sh), var(--sh), var(--sh);
+        background-size: 700px var(--h), 700px var(--h), 700px var(--h), 700px var(--lh), 700px var(--h), 700px var(--h), 700px var(--lh), 700px var(--h), 700px var(--h), 700px 40px;
+        background-position: 0 var(--r1), 0 var(--r2), 0 var(--r3), 0 var(--l3), 0 var(--r4), 0 var(--r5), 0 var(--l5), 0 var(--r6), 0 var(--r7), 0 var(--btn);
+        background-repeat: no-repeat;
+        mask-image: linear-gradient(#000 100%, transparent 0), linear-gradient(#000 100%, transparent 0), linear-gradient(#000 100%, transparent 0), linear-gradient(#000 100%, transparent 0), linear-gradient(#000 100%, transparent 0), linear-gradient(#000 100%, transparent 0), linear-gradient(#000 100%, transparent 0), linear-gradient(#000 100%, transparent 0), linear-gradient(#000 100%, transparent 0), linear-gradient(#000 100%, transparent 0);
+        mask-size: 100% var(--h), /* branch dropdown — full width */
+        100% var(--h), /* department — full width */
+        100% var(--h), /* cost centre — full width */
+        42% var(--lh), /* gender label — short */
+        100% var(--h), /* gender row */
+        100% var(--h), /* name */
+        42% var(--lh), /* colour label — short */
+        100% var(--h), /* colour row */
+        100% var(--h), /* comments/extra row */
+        160px 40px; /* save button */
+
+        mask-position: 0 var(--r1), 0 var(--r2), 0 var(--r3), 0 var(--l3), 0 var(--r4), 0 var(--r5), 0 var(--l5), 0 var(--r6), 0 var(--r7), 0 var(--btn);
+        mask-repeat: no-repeat;
+        border-radius: var(--r);
+        animation: loading-packname-shimmer 1.4s infinite linear;
+    }
+
+/* ── jQuery UI dialog refinements ────────────────────────────────────────── */
+.ui-dialog {
+    animation: packname-dialog-in 0.18s ease-out;
+}
+
+@keyframes packname-dialog-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Better title bar */
+.ui-dialog .ui-dialog-titlebar {
+    background: #f9f9f9;
+    border-bottom: 1px solid #e5e5e5;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* Better backdrop */
+.ui-widget-overlay {
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(1px);
+}
+
+/* The employee number beside the name in an option, when the store shows employee numbers */
+.selector-pack-name-item .pack-name-employee-number {
+    margin-left: 6px;
+    font-weight: normal;
+    color: #6c757d;
+}
+
+/* Under the options: the list (or the search) holds more packnames than the selector has received */
+.pack-name-selector-more {
+    padding: 6px 10px;
+    border-top: 1px solid #e5e5e5;
+    font-size: 12px;
+    color: #5f666d;
+    background: #fafafa;
+}

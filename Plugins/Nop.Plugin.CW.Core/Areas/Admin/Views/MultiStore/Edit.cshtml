@@ -1,0 +1,33 @@
+@model MultiStoreModel
+
+@{
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.MultiStores.StoreManagement").Text;
+
+    //active menu item (system name)
+    NopHtml.SetActiveMenuItemSystemName(CWCoreDefaults.MultiStoreAdminMenuSystemName);
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Admin/Common/loader.css");
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Admin/Common/admin-pager.css");
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Admin/MultiStore/multistore.css");
+
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/MultiStore/admin.store.navigation.js");
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/MultiStore/admin.packname.bulk.js");
+}
+
+<link rel="stylesheet" href="~/lib_npm/farbstastic/farbtastic.css" />
+
+<script src="~/lib_npm/farbstastic/farbtastic.min.js" asp-location="Head"></script>
+<script src="~/js/admin.table.js" asp-location="Footer"></script>
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        @Model.Name - @T("Plugins.CW.Core.Admin.MultiStores.StoreManagement")
+        <small>
+            <i class="fas fa-arrow-circle-left"></i>
+            <a asp-action="List" asp-controller="MultiStore">@T("Plugins.CW.Core.Admin.MultiStores.Store.BackToList")</a>
+        </small>
+    </h1>
+    <div class="float-right">
+    </div>
+</div>
+@await Html.PartialAsync("_CreateOrUpdate", Model)

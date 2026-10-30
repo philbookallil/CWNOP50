@@ -1,0 +1,151 @@
+﻿.packname-subsidies-container .subsidy-loading-message {
+    padding: 20px;
+    color: #6c757d;
+    font-size: 13px;
+}
+
+.packname-subsidy-container {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+    .packname-subsidy-container:not(:last-child) {
+        margin-bottom: 20px;
+    }
+
+    .packname-subsidy-container .subsidy-title {
+        font-size: 20px;
+        border-bottom: 1px solid #eee;
+        padding: 10px;
+    }
+
+    .packname-subsidy-container .subsidy-body {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 20px;
+    }
+
+        .packname-subsidy-container .subsidy-body .subsidy-description {
+            flex: 1 1 100%;
+            color: #777;
+        }
+
+        .packname-subsidy-container .subsidy-body .subsidy-info {
+            flex: 0 1 600px;
+            border: 1px solid #aaa;
+            border-radius: 5px;
+            margin: 10px 0px;
+        }
+
+            .packname-subsidy-container .subsidy-body .subsidy-info .subsidy-info-title {
+                border-bottom: 1px solid #aaa;
+                background-color: #f6f6f6;
+                border-radius: 5px 5px 0px 0px;
+                padding: 5px;
+            }
+
+                .packname-subsidy-container .subsidy-body .subsidy-info .subsidy-info-title > span {
+                    font-size: 17px;
+                }
+
+            .packname-subsidy-container .subsidy-body .subsidy-info .subsidy-info-body {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+                .packname-subsidy-container .subsidy-body .subsidy-info .subsidy-info-body > div {
+                    flex: 1 1 50%;
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    padding: 5px 0;
+                }
+
+                    .packname-subsidy-container .subsidy-body .subsidy-info .subsidy-info-body > div > span:first-child {
+                        flex: 1 1 40%;
+                        text-align: right;
+                        padding-right: 5px;
+                    }
+
+                    .packname-subsidy-container .subsidy-body .subsidy-info .subsidy-info-body > div > span:nth-child(2) {
+                        flex: 1 1 60%;
+                        text-align: left;
+                        padding-left: 5px;
+                    }
+
+                    .packname-subsidy-container .subsidy-body .subsidy-info .subsidy-info-body > div > div {
+                        flex: 1 1 60%;
+                        padding-left: 5px;
+                    }
+
+                        .packname-subsidy-container .subsidy-body .subsidy-info .subsidy-info-body > div > div .btn-change-topup {
+                            cursor: pointer;
+                            margin-left: 5px;
+                        }
+
+        .packname-subsidy-container .subsidy-body .subsidy-used {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            flex-grow: 1;
+            border: 1px solid #aaa;
+            border-radius: 5px;
+            margin: 10px 0;
+            margin-left: 50px;
+            padding: 20px;
+        }
+
+            .packname-subsidy-container .subsidy-body .subsidy-used > span {
+                flex: 1 1 50%;
+                font-size: 20px;
+            }
+
+                .packname-subsidy-container .subsidy-body .subsidy-used > span:first-child {
+                    text-align: right;
+                    margin-right: 5px
+                }
+
+                .packname-subsidy-container .subsidy-body .subsidy-used > span:nth-child(2) {
+                    text-align: left;
+                    margin-left: 5px;
+                }
+
+        .packname-subsidy-container .subsidy-body .subsidy-product-groups {
+            flex: 1 1 100%;
+            border: 1px solid #aaa;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+            .packname-subsidy-container .subsidy-body .subsidy-product-groups .subsidy-product-groups-title {
+                border-bottom: 1px solid #aaa;
+                background-color: #f6f6f6;
+                border-radius: 5px 5px 0 0;
+                padding: 5px;
+            }
+
+            .packname-subsidy-container .subsidy-body .subsidy-product-groups .subsidy-product-groups-table {
+                padding: 5px 10px 10px 10px;
+            }
+
+        .packname-subsidy-container .subsidy-body .subsidy-history {
+            flex: 1 1 100%;
+            border: 1px solid #aaa;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+            .packname-subsidy-container .subsidy-body .subsidy-history .subsidy-history-title {
+                border-bottom: 1px solid #aaa;
+                background-color: #f6f6f6;
+                border-radius: 5px 5px 0 0;
+                padding: 5px;
+            }
+
+            .packname-subsidy-container .subsidy-body .subsidy-history .subsidy-history-table {
+                padding: 5px 10px 10px 10px;
+            }

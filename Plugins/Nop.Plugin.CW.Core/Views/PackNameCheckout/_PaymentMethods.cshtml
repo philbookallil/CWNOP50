@@ -1,0 +1,141 @@
+﻿@using Nop.Core.Domain.Orders;
+@using Nop.Core.Domain.Catalog
+
+@model CheckoutPaymentMethodModel
+
+@{
+    // Nothing to pay ⇒ render nothing at all. Checkout.cshtml still emits .packname-checkout-panel-center,
+    // so the centre column keeps its 50% flex basis and the checkout attributes and order summary do not
+    // move — the space is simply left empty.
+    //
+    // An empty PaymentMethods list is NOT on its own enough to decide this: it also happens when payment
+    // IS required and the store has no usable method, which must still show the error. See
+    // PackNamePaymentMethodModel.
+    var paymentRequired = (Model as PackNamePaymentMethodModel)?.IsPaymentWorkflowRequired ?? true;
+}
+
+@if (paymentRequired)
+{
+    <div class="section payment-method packname-payment-method">
+        <div class="section-title title">
+            <strong>@T("Checkout.PaymentMethod")</strong>
+        </div>
+        <div class="section-body">
+            @await Component.InvokeAsync("Widget", new { widgetZone = "op_checkout_payment_method_top" })
+            <div class="section payment-method">
+                @if (Model.DisplayRewardPoints && Model.PaymentMethods.Count > 0)
+                {
+                    <div class="use-reward-points">
+                        <input asp-for="UseRewardPoints" />
+                        <label asp-for="UseRewardPoints">@string.Format(T("Checkout.UseRewardPoints").Text, Model.RewardPointsToUse, Model.RewardPointsBalance, Model.RewardPointsToUseAmount)</label>
+                        @if (Model.RewardPointsEnoughToPayForOrder)
+                        {
+                            <script>
+                                $(document).ready(function () {
+                                    $("#@Html.IdFor(model => model.UseRewardPoints)")
+                                        .on('change', toggleUseRewardPoints);
+                                    toggleUseRewardPoints();
+                                });
+
+                                function toggleUseRewardPoints() {
+                                    if ($('#@Html.IdFor(model => model.UseRewardPoints)').is(':checked')) {
+                                        $('#payment-method-block').hide();
+                                    } else {
+                                        $('#payment-method-block').show();
+                                    }
+                                }
+                            </script>
+                        }
+                    </div>
+                }
+                @if (Model.PaymentMethods.Count > 0)
+                {
+                    <ul class="method-list" id="payment-method-block">
+                        @for (var i = 0; i < Model.PaymentMethods.Count; i++)
+                        {
+                            var paymentMethod = Model.PaymentMethods[i];
+                            var paymentMethodName = paymentMethod.Name;
+                            if (!string.IsNullOrEmpty(paymentMethod.Fee))
+                            {
+                                paymentMethodName = T("Checkout.SelectPaymentMethod.MethodAndFee", paymentMethodName, paymentMethod.Fee).Text;
+                            }
+                            <li class="payment-option-item">
+                                <div class="method-name">
+                                    @if (!string.IsNullOrEmpty(paymentMethod.LogoUrl))
+                                    {
+                                        <div class="payment-logo">
+                                            <label for="paymentmethod_@(i)">
+                                                <img src="@paymentMethod.LogoUrl" alt="@paymentMethodName" />
+                                            </label>
+                                        </div>
+                                    }
+                                    <div class="payment-details">
+                                        <input id="paymentmethod_@(i)" type="radio" name="paymentmethod" value="@(paymentMethod.PaymentMethodSystemName)" checked="@paymentMethod.Selected" />
+                                        <label for="paymentmethod_@(i)">@paymentMethodName</label>
+                                        @if (!string.IsNullOrEmpty(paymentMethod.Description))
+                                        {
+                                            <div class="payment-description">@paymentMethod.Description</div>
+                                        }
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                    <script>
+                        var paymentOptionSelected = "";
+
+                        $(document).ready(function () {
+                            $('.payment-option-item').click(updatePaymentMethod);
+                            updatePaymentMethod();
+                        });
+
+                        function updatePaymentMethod() {
+                            let paymentoptionValue = $('input:radio[name="paymentmethod"]:checked').val();
+
+                            if (paymentOptionSelected == paymentoptionValue)
+                                return true;
+
+                            paymentOptionSelected = paymentoptionValue;
+
+                            PackNameCheckout.startRequest();
+
+                            var postData = {
+                                paymentoption: paymentoptionValue
+                            };
+                            addAntiForgeryToken(postData);
+
+                            $.ajax({
+                                cache: false,
+                                url: "@Html.Raw(Url.Action("UpdatePaymentMethod", "PackNameCheckout"))",
+                                data: postData,
+                                type: "POST",
+                                success: function (data) {
+                                    if (data.success) {
+                                        if (data.totalssectionhtml) {
+                                            $('.total-info').replaceWith(data.totalssectionhtml);
+                                        }
+                                        if (data.paymentinfosectionhtml) {
+                                            $(".payment-info").html(data.paymentinfosectionhtml);
+                                        }
+                                    }
+                                },
+                                complete: function () {
+                                    PackNameCheckout.endRequest();
+                                }
+                            });
+                        }
+                    </script>
+                }
+                else
+                {
+                    <div class="message-error">
+                        @T("Plugins.CW.Core.PackNameCheckout.NoPaymentMethodsOrRequired")
+                    </div>
+                }
+                <div class="section payment-info"></div>
+            </div>
+
+            @await Component.InvokeAsync("Widget", new { widgetZone = "op_checkout_payment_method_bottom" })
+        </div>
+    </div>
+}

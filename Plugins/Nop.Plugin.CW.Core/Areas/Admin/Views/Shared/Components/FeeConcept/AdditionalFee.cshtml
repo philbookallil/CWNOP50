@@ -1,0 +1,62 @@
+﻿@using Nop.Core;
+
+@model CWReturnRequestModel
+
+@inject IWorkContext _workContext
+
+@{
+    var currency = await _workContext.GetWorkingCurrencyAsync();
+    var allowEdit = Model.IsEditable;
+    var showFields = Model.EnableAdditionalFee;
+}
+
+@if (allowEdit)
+{
+    <tr class="fee-group additional-fee-toggle">
+        <td class="fees-label">
+            <label class="col-form-label">Additional Fee</label>
+        </td>
+        <td colspan="3">
+            <div class="form-check">
+                <input asp-for="EnableAdditionalFee" class="form-check-input" id="enable-additional-fee" />
+                <label class="form-check-label" for="enable-additional-fee">Enable Additional Fee</label>
+            </div>
+        </td>
+    </tr>
+    <tr class="fee-group additional-fee additional-fee-fields" style="@(showFields ? null : "display:none;")">
+        <td class="fees-label">
+            @Html.LabelFor(m => m.AdditionalFeeName)
+        </td>
+        <td>
+            <nop-editor asp-for="AdditionalFeeName" />
+        </td>
+        <td class="fees-label">
+            @Html.LabelFor(m => m.AdditionalFeeAmount)
+        </td>
+        <td class="fee-total">
+            <nop-editor asp-for="AdditionalFeeAmount" />
+            @currency.CurrencyCode
+        </td>
+    </tr>
+}
+else if (Model.EnableAdditionalFee)
+{
+    <tr class="fee-group additional-fee">
+        <td class="fees-label">
+            @Html.LabelFor(m => m.AdditionalFeeName)
+        </td>
+        <td>
+            <div class="form-text-row">@Model.AdditionalFeeName</div>
+        </td>
+        <td class="fees-label">
+            @Html.LabelFor(m => m.AdditionalFeeAmount)
+        </td>
+        <td class="fee-total">
+            <div class="form-text-row">
+                @*What is charged, not what was typed. On a resolved case the frozen charge is the money,
+                  and the panel total below already reads it — these two must not be able to disagree.*@
+                @currency.CurrencyCode @Model.AdditionalFeeChargedAmount.ToString("F")
+            </div>
+        </td>
+    </tr>
+}

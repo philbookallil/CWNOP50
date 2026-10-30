@@ -1,0 +1,172 @@
+﻿@model AddDepartmentManagerSearchModel
+
+@{
+    Layout = "_AdminPopupLayout";
+
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.Departments.Department.Managers.AddNew").Text;
+}
+
+@if (ViewBag.RefreshPage == true)
+{
+    <script>
+        try {window.opener.document.forms['@(Context.Request.Query["formId"])'].@(Context.Request.Query["btnId"]).click();}
+        catch (e){}
+        window.close();
+    </script>
+}
+else
+{
+    <form asp-controller="MultiStore" asp-action="DepartmentManagerAddPopup"
+          asp-route-departmentId="@Context.Request.Query["departmentId"]"
+          asp-route-btnId="@Context.Request.Query["btnId"]"
+          asp-route-formId="@Context.Request.Query["formId"]">
+        <div class="content-header clearfix">
+            <h1 class="float-left">
+                @T("Plugins.CW.Core.Admin.Departments.Department.Managers.AddNew") - @Model.Department
+            </h1>
+            <div class="float-right">
+                &nbsp;
+            </div>
+        </div>
+        <section class="content">
+            <div class="container-fluid">
+                <div class="form-horizontal">
+                    <div class="cards-group">
+                        <div class="card card-default card-search card-popup">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group row">
+                                            <div class="col-sm-5">
+                                                <nop-label asp-for="SearchManagerName" />
+                                            </div>
+                                            <div class="col-sm-7">
+                                                <nop-editor asp-for="SearchManagerName" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <button type="button" id="search-managers" class="btn btn-primary btn-search">
+                                            <i class="fas fa-search"></i>
+                                            @T("Admin.Common.Search")
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-default">
+                            <div class="card-body">
+                                @{
+                                    var gridModel = new DataTablesModel
+                                    {
+                                        Name = "managers-grid",
+                                        UrlRead = new DataUrl("DepartmentManagerAddPopupList", "MultiStore", new RouteValueDictionary { [nameof(Model.DepartmentId)] = Model.DepartmentId }),
+                                        SearchButtonId = "search-managers",
+                                        Length = Model.PageSize,
+                                        LengthMenu = Model.AvailablePageSizes,
+                                        Filters = new List<FilterParameter>
+                                        {
+                                            new FilterParameter(nameof(Model.SearchManagerName)),
+                                        },
+                                        ColumnCollection = new List<ColumnProperty>()
+                                    };
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Id))
+                                    {
+                                        IsMasterCheckBox = true,
+                                        Render = new RenderCheckBox(nameof(AddDepartmentManagerModel.SelectedManagerIds)),
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Width = "50"
+                                    });
+
+                                    if (Model.MultiStoreSettingsModel.EmployeeNumberEnabled)
+                                    {
+                                        gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.EmployeeNumber))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.EmployeeNumber").Text
+                                        });
+                                    }
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Name))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Name").Text
+                                    });
+
+                                    if (Model.MultiStoreSettingsModel.PrintNameEnabled)
+                                    {
+                                        gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.PrintName))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.PrintName").Text
+                                        });
+                                    }
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Branch))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Branch").Text
+                                    });
+
+                                    if (Model.MultiStoreSettingsModel.GenderEnabled)
+                                    {
+                                        gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Gender))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender").Text,
+                                            Width = "100",
+                                            ClassName = NopColumnClassDefaults.CenterAll,
+                                            Render = new RenderCustom("renderGender")
+                                        });
+                                    }
+
+                                    if (Model.MultiStoreSettingsModel.POEntryEnabled)
+                                    {
+                                        gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.POEntry))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.POEntry").Text
+                                        });
+                                    }
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.CustomerName))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer").Text
+                                    });
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Group))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Group").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Render = new RenderBoolean()
+                                    });
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Active))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Active").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Render = new RenderBoolean()
+                                    });
+                                }
+
+                                @await Html.PartialAsync("Table", gridModel)
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" name="save" class="btn btn-primary">
+                                    <i class="far fa-save"></i>
+                                    @T("Admin.Common.Save")
+                                </button>
+                                <script>
+                                    function renderGender(data) {
+                                        return data == "I" ? '@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Mixed")' : (data == "M" ? '@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Male")' : (data == "F" ? '@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Female")' : (data == "N" ? '@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Neutral")' : "" )));
+                                    }
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </form>
+}

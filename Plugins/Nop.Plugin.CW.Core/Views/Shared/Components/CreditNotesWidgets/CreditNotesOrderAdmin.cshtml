@@ -1,0 +1,15 @@
+﻿@model CreditNotesOrderSummaryModel
+
+@if (Model.NeedToShow)
+{
+    <div class="form-group row">
+        <div class="col-md-3">
+            <div class="label-wrapper">
+                <label class="col-form-label">@T("Plugins.CW.Core.Admin.Order.CreditNotes")</label>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="form-text-row">(@Model.Amount)</div>
+        </div>
+    </div>
+}

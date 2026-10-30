@@ -1,0 +1,470 @@
+﻿@using Nop.Core.Domain.Orders;
+@using Nop.Services;
+@using Nop.Plugin.CW.Core.Domain.Exchanges;
+@using Nop.Services.Catalog;
+
+@model CWReturnRequestModel
+
+@inject IPriceFormatter _priceFormatter
+
+@{
+    var customer = await workContext.GetCurrentCustomerAsync();
+
+    const string hideFeesBlockAttributeName = "ReturnRequestPage.HideFeeBlock";
+    var hideFeeBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideFeesBlockAttributeName);
+
+    const string hideBasicBlockAttributeName = "ReturnRequestPage.HideBasicBlock";
+    var hideBasicBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideBasicBlockAttributeName);
+
+    const string hideInfoBlockAttributeName = "ReturnRequestPage.HideInfoBlock";
+    var hideInfoBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideInfoBlockAttributeName);
+
+    var exchangeRequestModel = Model as CWReturnRequestModel;
+    var isExchangeModelData = exchangeRequestModel != null;
+    var allowEdit = isExchangeModelData ? exchangeRequestModel.IsEditable : true;
+    var needsCompletion = isExchangeModelData ? exchangeRequestModel.NeedsCompletion : false;
+    var isCompleted = isExchangeModelData ? exchangeRequestModel.IsCompleted : false;
+
+}
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="cards-group">
+                @await Component.InvokeAsync(typeof(AdminWidgetViewComponent), new { widgetZone = AdminWidgetZones.ReturnRequestDetailsTop, additionalData = Model })
+                <div class="card card-default">
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            @if (isExchangeModelData)
+                            {
+                                @if (!allowEdit)
+                                {
+                                    <div class="callout callout-info">
+                                        <h4>Return Request reached final status!</h4>
+                                        <p>
+                                            This Return Request has reached a final status and cannot be updated anymore. Only updates
+                                            to the staff comments are allowed.
+                                        </p>
+                                    </div>
+                                }
+                                @if (needsCompletion)
+                                {
+                                    <div class="callout callout-warning">
+                                        <h4>Return Request needs completion</h4>
+                                        <p>
+                                            This Return Request need further actions to be performed in order to be completed. You can either
+                                            use the <em>Impersonate</em> option to complete it in behalf of the customer or use the
+                                            <em>Checkout Notification</em> to notify the customer
+                                        </p>
+                                    </div>
+                                }
+                                @if (isCompleted)
+                                {
+                                    <div class="callout callout-success">
+                                        <h4>Return Request has been completed!</h4>
+                                        <p>
+                                            This Return Request is now completed. Next workflow steps can now be performed.
+                                        </p>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                    <nop-cards id="returnrequest-cards">
+                        <nop-card asp-name="returnrequest-basic" asp-icon="fas fa-basic" asp-title="Basic Data" asp-hide-block-attribute-name="@hideBasicBlockAttributeName" asp-hide="@hideBasicBlock" asp-advanced="false">
+                            <div class="card-body">
+                                @if (isExchangeModelData)
+                                {
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="@exchangeRequestModel.StoreName" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <div class="form-text-row">@exchangeRequestModel.StoreName</div>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(exchangeRequestModel.BranchName))
+                                    {
+                                        <div class="form-group row">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="@exchangeRequestModel.BranchName" />
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="form-text-row">@exchangeRequestModel.BranchName</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(exchangeRequestModel.ExchangeModeName))
+                                    {
+                                        <div class="form-group row">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="@exchangeRequestModel.ExchangeModeName" />
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="form-text-row">@exchangeRequestModel.ExchangeModeName</div>
+                                                <input type="hidden" name="ExchangeModeId" value="@exchangeRequestModel.ExchangeModeId" />
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(exchangeRequestModel.ExchangeTypeName))
+                                    {
+                                        <div class="form-group row @Html.Raw(exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.CreditNote ? " hidden" : string.Empty)">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="@exchangeRequestModel.ExchangeTypeName" />
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="form-text-row">@exchangeRequestModel.ExchangeTypeName</div>
+                                                <input type="hidden" name="ExchangeTypeId" value="@exchangeRequestModel.ExchangeTypeId" />
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </nop-card>
+                        @if (Model.Id > 0)
+                        {
+                            <nop-card asp-name="returnrequest-info" asp-icon="fas fa-info" asp-title="Misc Information" asp-hide-block-attribute-name="@hideInfoBlockAttributeName" asp-hide="@hideInfoBlock" asp-advanced="false">
+                                <div class="card-body">
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="CustomNumber" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <div class="form-text-row">@Model.CustomNumber</div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="CustomOrderNumber" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            @if (Model.OrderId > 0)
+                                            {
+                                                <a asp-controller="Order" asp-action="Edit" asp-route-id="@Model.OrderId">@Model.CustomOrderNumber</a>
+                                            }
+                                            else
+                                            {
+                                                <text>Order item is deleted</text>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (isExchangeModelData)
+                                    {
+                                        <div class="form-group row">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="@exchangeRequestModel.CustomerName" />
+
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="form-text-row">@exchangeRequestModel.CustomerName</div>
+                                                <input type="hidden" name="CustomerName" value="@exchangeRequestModel.CustomerName" />
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="CustomerId" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <a asp-controller="Customer" asp-action="Edit" asp-route-id="@Model.CustomerId">@Model.CustomerInfo</a>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="ProductName" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            @if (Model.ProductId > 0)
+                                            {
+                                                <a asp-controller="Product" asp-action="Edit" asp-route-id="@Model.ProductId">@Model.ProductName</a>
+                                            }
+                                            else
+                                            {
+                                                <text>Order item is deleted</text>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="Quantity" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            @*Read-only, deliberately. A line is accepted or rejected whole —
+                                              there is no partial approval — so the returned quantity is the
+                                              customer's, not the administrator's. 4.1 rendered it exactly this
+                                              way. Editing it here would also desynchronise
+                                              ReturnCaseLine.Quantity, which nothing updates.*@
+                                            <div class="form-text-row">@Model.Quantity</div>
+                                            @Html.HiddenFor(model => model.Quantity)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="ReturnedQuantity" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            @if (allowEdit)
+                                            {
+                                                <nop-editor asp-for="ReturnedQuantity" />
+                                                <span asp-validation-for="ReturnedQuantity"></span>
+                                            }
+                                            else
+                                            {
+                                                <div class="form-text-row">@Model.ReturnedQuantity</div>
+                                                @Html.HiddenFor(model => model.ReturnedQuantity)
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (isExchangeModelData)
+                                    {
+                                        <div class="form-group row">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="@exchangeRequestModel.ProductPrice" />
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="form-text-row">
+                                                    @await _priceFormatter.FormatPriceAsync(exchangeRequestModel.ProductPrice, true, false)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="ReturnRequestStatusId" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            @if (isExchangeModelData)
+                                            {
+                                                <input type="hidden" name="OriginalRequestStatusId" id="OriginalRequestStatusId" value="@exchangeRequestModel.OriginalRequestStatusId" />
+                                            }
+                                            @if (allowEdit)
+                                            {
+                                                <nop-select asp-for="ReturnRequestStatusId" asp-items="@(await ((ReturnRequestStatus)Model.ReturnRequestStatusId).ToSelectListAsync())" />
+                                                <span asp-validation-for="ReturnRequestStatusId"></span>
+                                            }
+                                            else
+                                            {
+                                                <div class="form-text-row">@Model.ReturnRequestStatusStr</div>
+                                                @Html.HiddenFor(model => model.ReturnRequestStatusId)
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="ReturnRequestReasonId" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            @if (allowEdit)
+                                            {
+                                                <nop-select asp-for="ReturnRequestReasonId" asp-items="@Model.ReturnReasonsList" />
+                                                <span asp-validation-for="ReturnRequestReasonId"></span>
+                                            }
+                                            else
+                                            {
+                                                <div class="form-text-row">@Model.ReasonForReturn</div>
+                                                @Html.HiddenFor(model => model.ReturnRequestReasonId)
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="ReturnRequestActionId" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            @if (allowEdit)
+                                            {
+                                                <nop-select asp-for="ReturnRequestActionId" asp-items="@Model.ReturnActionsList" />
+                                                <span asp-validation-for="ReturnRequestActionId"></span>
+                                            }
+                                            else
+                                            {
+                                                <div class="form-text-row">@Model.RequestedAction</div>
+                                                @Html.HiddenFor(model => model.ReturnRequestActionId)
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="DispositionReason" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            @if (allowEdit)
+                                            {
+                                                <nop-textarea asp-for="DispositionReason" />
+                                                <span asp-validation-for="DispositionReason"></span>
+                                                <span class="form-text text-muted">
+                                                    Recorded against this item when you authorise or reject it. Explain here if the item is being rejected.
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <div class="form-text-row">@Model.DispositionReason</div>
+                                                @Html.HiddenFor(model => model.DispositionReason)
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (Model.CaseLines.Count > 1)
+                                    {
+                                        <div class="form-group row">
+                                            <div class="col-md-3">
+                                                <div class="label-wrapper">
+                                                    <label class="col-form-label">Returned together</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="form-text-row">
+                                                    Return @Model.ReturnCaseNumber — @Model.CaseLines.Count items came back in this parcel.
+                                                    <strong>You are working on @Model.ProductName.</strong>
+                                                    Decisions and fees below apply to that item only.
+                                                </div>
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Item</th>
+                                                            <th>Qty</th>
+                                                            <th>Requested</th>
+                                                            <th>Decision</th>
+                                                            <th></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var line in Model.CaseLines)
+                                                        {
+                                                            <tr class="@(line.IsCurrent ? "case-line-current" : null)">
+                                                                <td>@line.ProductName</td>
+                                                                <td>@line.Quantity</td>
+                                                                <td>@line.Mode</td>
+                                                                <td>@line.Disposition</td>
+                                                                <td>
+                                                                    @if (line.IsCurrent)
+                                                                    {
+                                                                        <strong>this item</strong>
+                                                                    }
+                                                                    else if (line.ReturnRequestId > 0)
+                                                                    {
+                                                                        <a asp-controller="ReturnRequest" asp-action="Edit" asp-route-id="@line.ReturnRequestId" asp-route-area="Admin">open</a>
+                                                                    }
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (Model.UploadedFileGuid != Guid.Empty)
+                                    {
+                                        <div class="form-group row">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="UploadedFileGuid" />
+                                            </div>
+                                            <div class="col-md-9">
+                                                <a asp-controller="Download" asp-action="DownloadFile" asp-route-downloadGuid="@Model.UploadedFileGuid">@T("Admin.ReturnRequests.Fields.UploadedFile.Download")</a>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="CustomerComments" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-textarea asp-for="CustomerComments" readonly="@(!allowEdit)" />
+                                            <span asp-validation-for="CustomerComments"></span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="StaffNotes" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <nop-textarea asp-for="StaffNotes" />
+                                            <span asp-validation-for="StaffNotes"></span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-3">
+                                            <nop-label asp-for="CreatedOn" />
+                                        </div>
+                                        <div class="col-md-9">
+                                            <div class="form-text-row">@Model.CreatedOn</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </nop-card>
+                            <nop-card asp-name="returnrequest-fees" asp-icon="fas fa-square-plus" asp-title="Fees and Charges" asp-hide-block-attribute-name="@hideFeesBlockAttributeName" asp-hide="@hideFeeBlock" asp-advanced="true">
+                                <div class="card-body">
+                                    @await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/ReturnRequest/_CreateOrUpdate.FeesAndCharges.cshtml", Model)
+                                </div>
+                            </nop-card>
+                        }
+                    </nop-cards>
+                </div>
+                @await Component.InvokeAsync(typeof(AdminWidgetViewComponent), new { widgetZone = AdminWidgetZones.ReturnRequestDetailsBottom, additionalData = Model })
+            </div>
+        </div>
+    </div>
+</section>
+@if (isExchangeModelData)
+{
+    <div class="modal fade" id="change-confirmation" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="change-confirmation-title">@T("Admin.Common.AreYouSure")</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="form-horizontal">
+                    <div class="modal-body">
+                        <p>
+                            You are going to change the Return Request status, this might trigger workflow actions based
+                            on the currently configured rules. Are you sure you want to do this?
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <span class="btn btn-default" data-dismiss="modal">@T("Admin.Common.NoCancel")</span>
+                        <button type="button" class="btn btn-primary pull-right accept">
+                            Yes, I'm sure
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<script type="text/javascript">
+    var form = $('#edit-exchange-form');
+    var dialog =  $('#change-confirmation');
+    $('.modal-footer .accept', dialog).on('click', function () {
+        $(this).prop('disabled', true); // disable button to avoid double click
+        form.submit();
+        dialog.modal('hide');
+    });
+    $('button[name="save"],button[name="save-continue"]', form).click(function (e)
+    {
+        // Only confirm when the staff is actually changing the Return Request status
+        if (detectStatusChange()) {
+            addClickedInput(this, form);
+            $('#change-confirmation').modal('toggle');
+            e.preventDefault();
+        }
+    });
+
+    function detectStatusChange() {
+        var $original = $('#OriginalRequestStatusId');
+        var $current = $('#ReturnRequestStatusId');
+        // No status controls on the page (e.g. final status / non-exchange) -> no confirmation needed
+        if (!$original.length || !$current.length) {
+            return false;
+        }
+        return $original.val() !== $current.val();
+    }
+
+    function addClickedInput(input, form) {
+        $('#clicked-input').remove(); // Cleanup just in case
+        var tempElement = $("<input id='clicked-input' type='hidden'/>");
+        tempElement
+            .attr("name", input.name)
+            .val($(input).val())
+            .appendTo(form);
+    };
+</script>

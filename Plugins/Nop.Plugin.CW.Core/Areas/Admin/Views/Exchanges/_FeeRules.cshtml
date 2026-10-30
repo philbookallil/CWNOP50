@@ -1,0 +1,245 @@
+﻿@using Nop.Plugin.CW.Core.Domain.Exchanges
+@using Nop.Plugin.CW.Core.Helpers
+
+@model FeeRuleSearchModel
+
+@{
+    var storeId = Model.StoreId;
+    var isStoreLevel = storeId > 0;
+
+    var feeTypes = Enum.GetValues<FeeType>().Where(f => f != FeeType.AdditionalFee).ToList();
+    var operators = Enum.GetValues<FeeRuleOperator>().ToList();
+
+    var gridModel = new DataTablesModel
+    {
+        Name = "fee-rules-grid",
+        UrlRead = new DataUrl("GetFeeRules", "ExchangesConfig", new RouteValueDictionary { [nameof(FeeRuleSearchModel.StoreId)] = storeId }),
+        Length = 25,
+        LengthMenu = "10,25,50",
+        ColumnCollection = new List<ColumnProperty>
+        {
+            new ColumnProperty(nameof(FeeRuleModel.FeeTypeName)) 
+            { 
+                Title = T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.FeeType").Text 
+            },
+            new ColumnProperty(nameof(FeeRuleModel.Amount)) 
+            { 
+                Title = T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.Amount").Text, 
+                Width = "120", 
+                ClassName = NopColumnClassDefaults.CenterAll 
+            },
+            new ColumnProperty(nameof(FeeRuleModel.OperatorName)) 
+            { 
+                Title = T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.Operator").Text, 
+                Width = "130", 
+                ClassName = NopColumnClassDefaults.CenterAll 
+            },
+            new ColumnProperty(nameof(FeeRuleModel.UnitsQuantity)) 
+            { 
+                Title = T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.UnitsQuantity").Text, 
+                Width = "110", 
+                ClassName = NopColumnClassDefaults.CenterAll, 
+                Render = new RenderCustom("renderFeeRuleQty") 
+            }
+        }
+    };
+
+    if (isStoreLevel)
+    {
+        gridModel.ColumnCollection.Add(new ColumnProperty(nameof(FeeRuleModel.IsInherited))
+        {
+            Title = T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.Inherited").Text,
+            Width = "100",
+            ClassName = NopColumnClassDefaults.CenterAll,
+            Render = new RenderBoolean()
+        });
+    }
+
+    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(FeeRuleModel.Id))
+    {
+        Title = T("Admin.Common.Actions").Text,
+        Width = "180",
+        ClassName = NopColumnClassDefaults.Button,
+        Render = new RenderCustom("renderFeeRuleButtons")
+    });
+}
+
+<div class="card card-default">
+    <div class="card-header">
+        @T("Plugins.CW.Core.Admin.Exchanges.Fees.GridTitle")
+        <button type="button" class="btn btn-primary btn-sm float-right" onclick="openFeeRuleCreate()">
+            <i class="fas fa-square-plus"></i>
+            @T("Admin.Common.AddNew")
+        </button>
+    </div>
+    <div class="card-body">
+        @if (isStoreLevel)
+        {
+            <p class="text-muted">@T("Plugins.CW.Core.Admin.Exchanges.Fees.StoreInfo")</p>
+        }
+        @await Html.PartialAsync("Table", gridModel)
+    </div>
+</div>
+
+@* ===== Add / edit modal ===== *@
+<div class="modal fade" id="feerule-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feerule-modal-title">@T("Plugins.CW.Core.Admin.Exchanges.Fees.Modal.AddTitle")</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="feerule-id" value="0" />
+                <div class="form-group row">
+                    <div class="col-md-4"><label class="col-form-label">@T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.FeeType")</label></div>
+                    <div class="col-md-8">
+                        <select id="feerule-type" class="form-control">
+                            @foreach (var feeType in feeTypes)
+                            {
+                                <option value="@((int)feeType)">@ExchangesHelper.DetermineFeeTypeName(feeType)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-4"><label class="col-form-label">@T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.Amount")</label></div>
+                    <div class="col-md-8">
+                        <input type="number" id="feerule-amount" class="form-control" min="0.01" step="0.01" value="0" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-4"><label class="col-form-label">@T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.Operator")</label></div>
+                    <div class="col-md-8">
+                        <select id="feerule-operator" class="form-control">
+                            @foreach (var op in operators)
+                            {
+                                <option value="@((int)op)">@ExchangesHelper.DetermineFeeRuleOperatorName(op)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row" id="feerule-qty-group">
+                    <div class="col-md-4"><label class="col-form-label">@T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.UnitsQuantity")</label></div>
+                    <div class="col-md-8">
+                        <input type="number" id="feerule-qty" class="form-control" min="1" step="1" value="1" />
+                        <small class="form-text text-muted">@T("Plugins.CW.Core.Admin.Exchanges.Fees.Fields.UnitsQuantity.Hint")</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">@T("Admin.Common.Cancel")</button>
+                <button type="button" class="btn btn-primary" id="feerule-save">
+                    <i class="far fa-save"></i>
+                    @T("Admin.Common.Save")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script asp-location="Footer">
+    (function () {
+        var storeId = @storeId;
+        var createUrl = '@Url.Action("CreateFeeRule", "ExchangesConfig")';
+        var updateUrl = '@Url.Action("UpdateFeeRule", "ExchangesConfig")';
+        var deleteUrl = '@Url.Action("DeleteFeeRule", "ExchangesConfig")';
+        var perUnitsOperatorId = @((int)FeeRuleOperator.PerUnitsQuantity);
+
+        function reloadFeeGrid() {
+            //refresh grid
+            updateTable('#fee-rules-grid');
+        }
+
+        function toggleQtyGroup() {
+            var isPerUnits = parseInt($('#feerule-operator').val(), 10) === perUnitsOperatorId;
+            $('#feerule-qty-group').toggle(isPerUnits);
+        }
+
+        window.renderFeeRuleQty = function (data, type, row) {
+            // Units quantity only applies to per-units rules
+            return row.OperatorId === perUnitsOperatorId ? data : '-';
+        };
+
+        window.renderFeeRuleButtons = function (data, type, row) {
+            var editLabel = row.IsInherited
+                ? '@T("Plugins.CW.Core.Admin.Exchanges.Fees.Override")'
+                : '@T("Admin.Common.Edit")';
+            var html = '<button type="button" class="btn btn-default btn-sm" onclick="openFeeRuleEdit(' +
+                row.Id + ',' + row.FeeTypeId + ',' + row.Amount + ',' + row.OperatorId + ',' + row.UnitsQuantity + ')">' +
+                '<i class="fas fa-pencil-alt"></i> ' + editLabel + '</button>';
+            if (!row.IsInherited) {
+                html += ' <button type="button" class="btn btn-danger btn-sm" onclick="deleteFeeRule(' + row.Id + ')">' +
+                    '<i class="far fa-trash-can"></i> @T("Admin.Common.Delete")</button>';
+            }
+            return html;
+        };
+
+        window.openFeeRuleCreate = function () {
+            $('#feerule-modal-title').text('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Modal.AddTitle")');
+            $('#feerule-id').val(0);
+            $('#feerule-type').val($('#feerule-type option:first').val()).prop('disabled', false);
+            $('#feerule-amount').val(0);
+            $('#feerule-operator').val($('#feerule-operator option:first').val());
+            $('#feerule-qty').val(1);
+            toggleQtyGroup();
+            $('#feerule-modal').modal('show');
+        };
+
+        window.openFeeRuleEdit = function (id, feeTypeId, amount, operatorId, unitsQuantity) {
+            $('#feerule-modal-title').text('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Modal.EditTitle")');
+            $('#feerule-id').val(id);
+            // The fee type identifies the rule — changing it on edit would collide with the one-rule-per-type constraint
+            $('#feerule-type').val(feeTypeId).prop('disabled', true);
+            $('#feerule-amount').val(amount);
+            $('#feerule-operator').val(operatorId);
+            $('#feerule-qty').val(unitsQuantity);
+            toggleQtyGroup();
+            $('#feerule-modal').modal('show');
+        };
+
+        window.deleteFeeRule = function (id) {
+            if (!confirm('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Delete.Confirm")')) return;
+            var postData = { id: id, storeId: storeId };
+            addAntiForgeryToken(postData);
+            $.ajax({
+                cache: false, type: 'POST', url: deleteUrl, data: postData,
+                success: function (res) {
+                    if (res && res.error) { alert(res.error); return; }
+                    reloadFeeGrid();
+                }
+            });
+        };
+
+        $(document).ready(function () {
+            $('#feerule-operator').on('change', toggleQtyGroup);
+
+            $('#feerule-save').on('click', function () {
+                var id = parseInt($('#feerule-id').val(), 10);
+                var postData = {
+                    Id: id,
+                    StoreId: storeId,
+                    FeeTypeId: parseInt($('#feerule-type').val(), 10),
+                    Amount: parseFloat($('#feerule-amount').val()),
+                    OperatorId: parseInt($('#feerule-operator').val(), 10),
+                    UnitsQuantity: parseInt($('#feerule-qty').val(), 10) || 1
+                };
+                if (!(postData.Amount > 0)) { alert('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Validation.Amount")'); return; }
+                if (postData.OperatorId === perUnitsOperatorId && postData.UnitsQuantity < 1) {
+                    alert('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Validation.Qty")'); return;
+                }
+                addAntiForgeryToken(postData);
+                $.ajax({
+                    cache: false, type: 'POST',
+                    url: id > 0 ? updateUrl : createUrl,
+                    data: postData,
+                    success: function (res) {
+                        if (res && res.error) { alert(res.error); return; }
+                        $('#feerule-modal').modal('hide');
+                        reloadFeeGrid();
+                    }
+                });
+            });
+        });
+    })();
+</script>

@@ -1,0 +1,188 @@
+﻿@model PackNameCheckoutModel
+
+@using Nop.Web.Components
+@using Nop.Core.Domain.Orders
+@using Nop.Plugin.CW.Core.Components
+
+@inject OrderSettings orderSettings
+
+@{
+    Layout = "_ColumnsOne";
+
+    //title
+    NopHtml.AddTitleParts(T("PageTitle.Checkout").Text);
+    //page class
+    NopHtml.AppendPageCssClassParts("html-checkout-page");
+    NopHtml.AppendPageCssClassParts("html-payment-method-page");
+    NopHtml.AppendPageCssClassParts("html-payment-info-page");
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/PackName/checkout.css");
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/PackName/public.packname.checkout.js");
+}
+
+<div class="page checkout-page packname-checkout-page">
+    <div class="page-title">
+        <h1>@T("Checkout")</h1>
+    </div>
+    <div class="page-body checkout-data">
+        <div id="packname-checkout-loading" class="packname-checkout-loading" role="status" aria-label="@T("Common.Loading")">
+            <div class="packname-checkout-loading__spinner"></div>
+        </div>
+        @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OpcContentBefore, additionalData = Model })
+
+        @if (Model.ShoppingCart.HasItems)
+        {
+            <form asp-route="PackNameCheckout" method="post" id="checkoutForm">
+                <input hidden name="BillingAddressId" id="BillingAddressId" value="@(Model.BillingAddress.Id)" />
+                <div class="panel order-summary-panel">
+                    @{
+                        await Html.RenderPartialAsync("_OrderSummary", Model);
+                    }
+                </div>
+                <div class="cart-options packname-cart-options">
+                    <div class="packname-checkout-panel-left">
+                        <div class="packname-checkout-attributes">
+                            @await Html.PartialAsync("~/Plugins/CW.Core/Views/PackNameCheckout/_CheckoutAttributes.cshtml", Model.ShoppingCart)
+                        </div>
+                        @await Component.InvokeAsync(typeof(SelectedCheckoutAttributesViewComponent))
+                    </div>
+                    <div class="packname-checkout-panel-center">
+                        <div class="panel payment-method-panel packname-payment-method-panel">
+                            @await Html.PartialAsync("~/Plugins/CW.Core/Views/PackNameCheckout/_PaymentMethods.cshtml", Model.PaymentMethod)
+                        </div>
+                    </div>
+                    <div class="packname-checkout-panel-right">
+                        <div class="totals">
+                            <div class="section-title title">
+                                <strong>@T("Checkout.OrderSummary")</strong>
+                            </div>
+                            @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OrderSummaryTotals, additionalData = Model.ShoppingCart })
+                            <div class="section order-summary">
+                                @await Component.InvokeAsync(typeof(PackNameOrderTotalsViewComponent), new { isEditable = Model.ShoppingCart.IsEditable })
+                                @if (!string.IsNullOrEmpty(Model.ShoppingCart.MinOrderSubtotalWarning))
+                                {
+                                    <div class="min-amount-warning">
+                                        @Model.ShoppingCart.MinOrderSubtotalWarning
+                                    </div>
+                                }
+                                @if (Model.ShoppingCart.TermsOfServiceOnShoppingCartPage)
+                                {
+                                    <div id="terms-of-service-warning-box" title="@T("Checkout.TermsOfService")" style="display: none;">
+                                        <p>@T("Checkout.TermsOfService.PleaseAccept")</p>
+                                    </div>
+                                    <div class="terms-of-service">
+                                        <input id="termsofservice" type="checkbox" name="termsofservice" />
+                                        <label for="termsofservice">@T("Checkout.TermsOfService.IAccept")</label>
+                                        @if (Model.ShoppingCart.TermsOfServicePopup)
+                                        {
+                                            <a class="read" id="read-terms" role="button" tabindex="0">@T("Checkout.TermsOfService.Read")</a>
+                                            <script asp-location="Footer">
+                                                $(function() {
+                                                    $('#read-terms').on('click keyup', function(e) {
+                                                        e.preventDefault();
+
+                                                        if (e.type == 'click' || (e.type == 'keydown' && e.key === 'Enter'))
+                                                        {
+                                                            $(this).trigger("blur");
+                                                            displayPopupContentFromUrl(
+                                                                '@Url.RouteUrl(NopRouteNames.Ajax.TOPIC_POPUP, new { SystemName = "conditionsofuse" })',
+                                                                '@T("Checkout.TermsOfService")');
+                                                        }
+                                                    });
+                                                });
+                                            </script>
+                                        }
+                                        else
+                                        {
+                                            <a class="read" id="read-terms" href="@await NopUrl.RouteTopicUrlAsync("conditionsofuse")" role="button" tabindex="0">@T("Checkout.TermsOfService.Read")</a>
+                                        }
+                                    </div>
+                                }
+                                <div class="checkout-buttons complete-button">
+                                    @if (string.IsNullOrEmpty(Model.ShoppingCart.MinOrderSubtotalWarning) && !Model.ShoppingCart.HideCheckoutButton)
+                                    {
+                                        <script asp-location="Footer">
+                                            $(function() {
+                                                $('#checkout').on('click', function () {
+                                                    //terms of service
+                                                    var termOfServiceOk = true;
+                                                    if ($('#termsofservice').length > 0) {
+                                                        //terms of service element exists
+                                                        if (!$('#termsofservice').is(':checked')) {
+                                                            $("#terms-of-service-warning-box").dialog();
+                                                            termOfServiceOk = false;
+                                                        } else {
+                                                            termOfServiceOk = true;
+                                                        }
+                                                    }
+                                                    return termOfServiceOk;
+                                                });
+                                            });
+                                        </script>
+                                        if (orderSettings.CheckoutDisabled)
+                                        {
+                                            <div class="checkout-disabled">
+                                                @T("Checkout.Disabled")
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <button type="submit" id="checkout" name="checkout" value="checkout" class="button-1 checkout-button">
+                                                @T("Checkout.Button")
+                                            </button>
+                                        }
+                                    }
+                                </div>
+                                <div class="addon-buttons">
+                                    @*Payment method buttons (e.g. GoogleCheckoutButton, Paypal Express)*@
+                                    @foreach (var pm in Model.ShoppingCart.ButtonPaymentMethodViewComponents)
+                                    {
+                                        @await Component.InvokeAsync(pm)
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        @if (Model.Warnings.Count > 0)
+                        {
+                            <div class="message-error">
+                                <ul>
+                                    @foreach (var warning in Model.Warnings)
+                                    {
+                                        <li>@warning</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <script asp-location="Footer">
+                    $(function () {
+                        PackNameCheckout.init();
+
+                        // Block form submit while requests are in-flight
+                        $('#checkoutForm').on('submit', function (e) {
+                            if (PackNameCheckout.isBusy()) {
+                                e.preventDefault();
+                                return false;
+                            }
+                        });
+                    });
+
+                    function loadPaymentMethods() {
+                        if ($(".packname-payment-method-panel").length > 0) {
+                            PackNameCheckout.startRequest();
+                            $(".packname-payment-method-panel").load('@Url.Action("GetPaymentMethods", "PackNameCheckout")', function() {
+                                PackNameCheckout.endRequest();
+                            });
+                        }
+                    }
+                </script>
+            </form>
+        }
+        else
+        {
+            <span>@T("Plugins.CW.Core.PackNameCheckout.EmptyShoppingCart")</span>
+        }
+
+        @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OpcContentAfter, additionalData = Model })
+    </div>
+</div>

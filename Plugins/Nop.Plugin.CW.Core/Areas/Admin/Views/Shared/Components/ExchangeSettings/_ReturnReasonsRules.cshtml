@@ -1,0 +1,161 @@
+﻿@model ExchangeSettingsSearchModel
+
+<div class="content-header clearfix">
+    <div class="float-left">
+    </div>
+    <div class="float-right">
+        <button type="submit" onclick="javascript:OpenWindow('@(Url.Action("ReturnRequestReasonCreatePopup", "Returns", new { area = "Admin", btnId = "btnRefreshRequestReasons", formId = "returnreason-form" }))', 600, 300, true); return false;" class="btn btn-primary">
+            <i class="fa fa-plus-square"></i>
+            @T("Admin.Common.AddNew")
+        </button>
+    </div>
+</div>
+<form asp-controller="Returns" asp-action="ReturnRequestReasonCreatePopup" method="post" id="returnreason-form">
+    <div class="content">
+        <!-- Empty state message -->
+        <div id="no-reason-rules-message" class="alert alert-info" role="alert" style="display:none;">
+            <p>@T("Plugins.CW.Core.Admin.Exchanges.Rules.ReasonRules.NoRules")</p>
+        </div>
+
+        <!-- DataTables Implementation -->
+        @await Html.PartialAsync("Table", new DataTablesModel
+        {
+            Name = "return-reasons-grid",
+            UrlRead = new DataUrl("GetReturnReasonsRules", "ExchangesConfig", new RouteValueDictionary { [nameof(ReturnReasonRuleSearchModel.StoreId)] = Model.StoreId }),
+            UrlUpdate = new DataUrl("UpdateReturnReasonRule", "ExchangesConfig", new RouteValueDictionary { [nameof(ReturnReasonRuleModel.StoreId)] = Model.StoreId }),
+            PrimaryKeyColumn = nameof(ReturnReasonRuleModel.ReturnReasonId),
+            Length = Model.PageSize,
+            LengthMenu = Model.AvailablePageSizes,
+            ColumnCollection = new List<ColumnProperty>
+            {
+                new ColumnProperty(nameof(ReturnReasonRuleModel.ReturnReasonId))
+                {
+                    Title = "ReturnReasonId",
+                    Editable = false,
+                    Searchable = false,
+                    Visible = false
+                },
+                // Return Reason (Read-Only)
+                new ColumnProperty(nameof(ReturnReasonRuleModel.ReturnReason))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.ReasonRules").Text,
+                    Editable = false,
+                    Searchable = false
+                },
+                // Allow Store Credit
+                new ColumnProperty(nameof(ReturnReasonRuleModel.AllowStoreCredit))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.AllowStoreCredit").Text,
+                    Width = "120",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Allow Exchange
+                new ColumnProperty(nameof(ReturnReasonRuleModel.AllowExchange))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.AllowExchange").Text,
+                    Width = "120",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Allow Repackaging Fee
+                new ColumnProperty(nameof(ReturnReasonRuleModel.AllowRepackagingFee))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.AllowRepackagingFee").Text,
+                    Width = "120",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Allow Shipping Fee
+                new ColumnProperty(nameof(ReturnReasonRuleModel.AllowShippingFee))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.AllowShippingFee").Text,
+                    Width = "120",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Back in Stock
+                new ColumnProperty(nameof(ReturnReasonRuleModel.BackInStock))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.BackInStock").Text,
+                    Width = "120",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Is Active
+                new ColumnProperty(nameof(ReturnReasonRuleModel.IsActive))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.IsActive").Text,
+                    Width = "100",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Display Order
+                new ColumnProperty(nameof(ReturnReasonRuleModel.DisplayOrder))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.DisplayOrder").Text,
+                    Width = "100",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = false
+                },
+                // Linked Actions (Special column with modal trigger)
+                new ColumnProperty(nameof(ReturnReasonRuleModel.LinkedActionsNames))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.LinkedActions").Text,
+                    Width = "100",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Searchable = false,
+                    Render = new RenderCustom("renderLinkedActionsCell")
+                },
+                // Edit/Update/Cancel buttons
+                new ColumnProperty(nameof(ReturnReasonRuleModel.ReturnReasonId))
+                {
+                    Title = T("Admin.Common.Actions").Text,
+                    Width = "200",
+                    ClassName = NopColumnClassDefaults.Button,
+                    Render = new RenderButtonsInlineEdit(),
+                }
+            }
+        })
+    </div>
+
+    <button type="submit" id="btnRefreshRequestReasons" style="display: none"></button>
+    <script>
+        $(function() {
+            $('#btnRefreshRequestReasons').click(function () {
+                //refresh grid
+                updateTable('#return-reasons-grid');
+
+                //return false to don't reload a page
+                return false;
+            });
+        });
+    </script>
+</form>
+
+<script>
+    // Render linked actions cell - shows the linked action names and opens the modal on click
+    function renderLinkedActionsCell(data, type, row) {
+        if (type === 'display')
+        {
+            var texto = (row.LinkedActionsNames && row.LinkedActionsNames.length > 0) ? row.LinkedActionsNames : '@T("Plugins.CW.Core.Admin.Exchanges.Rules.ReasonRules.LinkActions").Text';
+            var commButton = '<button onclick=\"javascript:OpenWindow(\'@Url.Content("~/Admin/ExchangesConfig/AddLinkedActionsPopup/")' + row.ReturnReasonId + '?storeId=' +row.StoreId +'&btnId=btnRefreshRequestReasons&formId=returnreason-form\', 800, 700, true); return false;\" class="btn btn-success">' + texto + '</button>';
+
+            return commButton;
+        }
+
+        return data;
+    }
+</script>

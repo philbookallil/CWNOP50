@@ -1,0 +1,71 @@
+@using Nop.Plugin.CW.Core.Helpers
+
+@model ReplacementProductOptionsModel
+
+@{
+    var productDetails = Model.Product;
+    var initialPicture = Model.DefaultPictureUrl;
+
+    // A preselected attribute with its own picture wins - the preview must match the dropdowns
+    foreach (var attribute in productDetails.ProductAttributes)
+    {
+        var preselected = attribute.Values.FirstOrDefault(v => v.IsPreSelected && v.PictureId > 0);
+        if (preselected != null && Model.AttributeValuePictures.TryGetValue(preselected.Id, out var preselectedUrl))
+        {
+            initialPicture = preselectedUrl;
+            break;
+        }
+    }
+
+    // Null renders no attribute at all, which is what the script tests for. The product stays on
+    // screen and the button stays enabled on purpose: the customer is told the reason when they
+    // try to choose it, rather than the product quietly disappearing from the list.
+    var uncollectable = Model.UncollectableRequiredOptions.Any()
+        ? string.Join(", ", Model.UncollectableRequiredOptions)
+        : null;
+}
+
+<div class="rp-options">
+    @* Shown by openProductOptions only when the customer arrived from the stage 1 grid *@
+    <button type="button" class="rp-back" style="display: none;">&larr; @T("Plugins.CW.Core.Exchanges.Wizard.Picker.Back")</button>
+
+    <div class="rp-options-head">
+        <div class="rp-options-media">
+            <img class="rp-options-picture" src="@initialPicture" alt="@productDetails.Name" />
+        </div>
+        <div class="rp-options-info">
+            <h3 class="rp-options-name">@productDetails.Name</h3>
+            @if (!string.IsNullOrEmpty(productDetails.Sku))
+            {
+                <div class="rp-options-sku">@productDetails.Sku</div>
+            }
+            <div class="rp-options-price">@productDetails.ProductPrice.Price</div>
+        </div>
+    </div>
+
+    <form id="product-details-form-@productDetails.Id" class="product-details-form" data-uncollectable="@uncollectable">
+        <input type="hidden" class="product-id" name="productId" value="@productDetails.Id" />
+        <input type="hidden" class="product-name" name="productName" value="@productDetails.Name" />
+        <input type="hidden" class="product-picture" name="productPicture" value="@initialPicture" />
+
+        @if (ExchangesHelper.HasProductAttributes(productDetails))
+        {
+            <div class="product-attrs">
+                @await Html.PartialAsync("_ReplacementProductAttrs", Model)
+            </div>
+        }
+
+        @if (uncollectable != null)
+        {
+            <div class="rp-unavailable warning-msg">
+                @T("Plugins.CW.Core.Exchanges.Wizard.Picker.OptionsNotAvailable", uncollectable)
+            </div>
+        }
+
+        <div class="rp-options-actions">
+            <button type="button" class="rp-choose" onclick="validateSelection(@productDetails.Id)">
+                @T("Plugins.CW.Core.Exchanges.Wizard.Picker.ChooseThisProduct")
+            </button>
+        </div>
+    </form>
+</div>

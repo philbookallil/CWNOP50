@@ -1,0 +1,213 @@
+﻿@model SubsidyBarModel
+
+@{
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/SubsidyCatalog/subsidy-bar.css");
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/SubsidyCatalog/change-topup.css");
+    var iconClass = Model.PackNameIsGroup    ? "packname-group"
+                  : Model.PackNameIsCustomer ? "packname-customer"
+                  : "packname-no-customer";
+}
+
+<div class="subsidy-bar">
+
+    <!-- LEFT: Available -->
+    <div class="subsidy-available">
+        <div class="subsidy-bar-title"><span>@T("Plugins.CW.Core.SubsidyBar.Available.Title")</span></div>
+        <div class="subsidy-available-container">
+
+            <!-- PackName identity — color set on the container; icons inherit via fill: currentColor -->
+            <div class="bar-packname-identity" style="color: @Model.PackNameColour">
+                <div>
+                    @Html.PackNameTypeIcon(iconClass, "packname-identity-icon")
+                    <span class="packname-name">@Model.PackNameName</span>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.PackNameBranch))
+                {
+                    <div>
+                        @Html.CWIcon("cw-icon-truck", "packname-identity-icon")
+                        <span class="packname-branch">@Model.PackNameBranch</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.PackNameDepartment))
+                {
+                    <div>
+                        @Html.CWIcon("cw-icon-department", "packname-identity-icon")
+                        <span class="packname-department">@Model.PackNameDepartment</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.PackNameCostCenter))
+                {
+                    <div>
+                        @Html.CWIcon("cw-icon-costcenter", "packname-identity-icon")
+                        <span class="packname-costcenter">@Model.PackNameCostCenter</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.PackNamePOEntry))
+                {
+                    <div>
+                        @Html.CWIcon("cw-icon-po", "packname-identity-icon")
+                        <span class="packname-po">@Model.PackNamePOEntry</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Available credit / qty items -->
+            <div class="subsidy-bar-items available-items">
+                @if (Model.RemainCredit > 0 || Model.TotalCredit > 0)
+                {
+                    <div class="bar-item global-credit-item">
+                        @Html.CWIcon("cw-icon-Globe")
+                        <span class="pg-name">@T("Plugins.CW.Core.SubsidyBar.GlobalCreditRemaining")</span>
+                        <span class="pg-credit">@Model.RemainCreditFormatted</span>
+                    </div>
+                }
+
+                @foreach (var pg in Model.ProductGroups)
+                {
+                    var remainQty = pg.AvailableQuantity - pg.ShoppingCartQuantity;
+                    var usedQty = pg.TotalQuantity - pg.AvailableQuantity;
+
+                    <div class="bar-item pg-item">
+                        @Html.PgIcon(pg.Icon, null, pg.Colour)
+                        <span class="pg-name">@pg.Name</span>
+                        <div class="pg-usage">
+                            @if (pg.TotalQuantity > 6)
+                            {
+                                <div class="qty-badge available">@remainQty</div>
+                                <div class="qty-badge in-cart">@pg.ShoppingCartQuantity</div>
+                                <div class="qty-badge used">@usedQty</div>
+                            }
+                            else
+                            {
+                                @for (var i = 0; i < remainQty; i++) { <div class="circle available"></div> }
+                                @for (var i = 0; i < pg.ShoppingCartQuantity; i++) { <div class="circle in-cart"></div> }
+                                @for (var i = 0; i < usedQty; i++) { <div class="circle used"></div> }
+                            }
+                            @if (!string.IsNullOrEmpty(pg.RemainCreditFormatted))
+                            {
+                                <span class="pg-credit">+ @pg.RemainCreditFormatted</span>
+                            }
+                            @if (pg.TotalQuantity == 0 && string.IsNullOrEmpty(pg.RemainCreditFormatted) && Model.TotalCredit == 0)
+                            {
+                                <span class="pg-unavailable">@T("Plugins.CW.Core.SubsidyBar.NotAvailable")</span>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (Model.RemainCredit <= 0 && !Model.ProductGroups.Any())
+                {
+                    <div class="bar-item">
+                        <span>@T("Plugins.CW.Core.SubsidyBar.NothingAvailable")</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Legend + optional topup button -->
+            @if (Model.ProductGroups.Any(pg => pg.TotalQuantity > 0) || Model.CanEditSubsidyTopup)
+            {
+                <div class="subsidy-bar-legend">
+                    @if (Model.CanEditSubsidyTopup)
+                    {
+                        <button type="button" class="change-topup-btn" onclick="openSubsidyTopupDialog(this)">
+                            @T("Plugins.CW.Core.SubsidyBar.ChangeTopup")
+                        </button>
+                        <script>
+                            function openSubsidyTopupDialog(triggerEl) {
+                                if ($('#dialog-change-topup').length) return; // already open
+
+                                var subsidyTopupChanged = false;
+
+                                var $dialog = $('<div id="dialog-change-topup"><div class="cw-dialog-loading"><div class="cw-loading-spinner"></div></div></div>')
+                                    .dialog({
+                                        modal:     true,
+                                        width:     660,
+                                        maxHeight: $(window).height() - 40,
+                                        title:     '@T("Plugins.CW.Core.SubsidyBar.ChangeTopup.Title")',
+                                        resizable: false,
+                                        draggable: true,
+                                        close: function () {
+                                            $(document).off('subsidyTopupChanged.topup');
+                                            $(this).dialog('destroy').remove();
+
+                                            if (subsidyTopupChanged) {
+                                                var $bar = $('.subsidy-bar');
+                                                $.get('@Url.Action("Bar", "SubsidyCatalog")', function (html) {
+                                                    $bar.replaceWith(html);
+                                                });
+                                                if (typeof refreshProductGroupHeaders === 'function') {
+                                                    refreshProductGroupHeaders();
+                                                }
+                                            }
+                                        }
+                                    });
+
+                                $.ajax({
+                                    url:   '@Url.Action("ChangeTopup", "SubsidyCatalog")',
+                                    type:  'GET',
+                                    cache: false,
+                                    success: function (html) {
+                                        $dialog.html(html);
+                                        // Recenter after content changes the dialog height
+                                        $dialog.dialog('option', 'position', { my: 'center', at: 'center', of: window });
+                                    },
+                                    error: function () { $dialog.dialog('destroy').remove(); }
+                                });
+
+                                $(document).on('subsidyTopupChanged.topup', function () {
+                                    subsidyTopupChanged = true;
+                                });
+                            }
+                        </script>
+                    }
+                    @if (Model.ProductGroups.Any(pg => pg.TotalQuantity > 0))
+                    {
+                        <div class="legend-item"><div class="circle available"></div><span>@T("Plugins.CW.Core.SubsidyBar.Legend.Available")</span></div>
+                        <div class="legend-item"><div class="circle in-cart"></div><span>@T("Plugins.CW.Core.SubsidyBar.Legend.InCart")</span></div>
+                        <div class="legend-item"><div class="circle used"></div><span>@T("Plugins.CW.Core.SubsidyBar.Legend.Used")</span></div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- RIGHT: Cart summary -->
+    <div class="subsidy-cart">
+        <div class="subsidy-bar-title">
+            <span>@string.Format(T("Plugins.CW.Core.SubsidyBar.Cart.Title").Text, Model.PackNameName)</span>
+        </div>
+        <div class="subsidy-bar-items cart-items">
+            @if (!string.IsNullOrEmpty(Model.ShoppingCartCreditFormatted))
+            {
+                <div class="cart-item global-credit-item">
+                    @Html.CWIcon("cw-icon-Globe")
+                    <span class="pg-name">@T("Plugins.CW.Core.SubsidyBar.GlobalCreditUsed")</span>
+                    <span class="pg-credit">@Model.ShoppingCartCreditFormatted</span>
+                </div>
+            }
+
+            @foreach (var pg in Model.ProductGroups.Where(x => x.ShoppingCartQuantity > 0 || !string.IsNullOrEmpty(x.ShoppingCartCreditFormatted)))
+            {
+                <div class="cart-item">
+                    @Html.PgIcon(pg.Icon, null, pg.Colour)
+                    <span class="pg-name">@pg.Name</span>
+                    <div class="pg-cart-usage">
+                        <span class="pg-qty">@pg.ShoppingCartQuantity</span>
+                        @if (!string.IsNullOrEmpty(pg.ShoppingCartCreditFormatted))
+                        {
+                            <span class="pg-credit">+ @pg.ShoppingCartCreditFormatted</span>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (string.IsNullOrEmpty(Model.ShoppingCartCreditFormatted) &&
+                 !Model.ProductGroups.Any(x => x.ShoppingCartQuantity > 0 || !string.IsNullOrEmpty(x.ShoppingCartCreditFormatted)))
+            {
+                <div class="cart-item">
+                    <span>@T("Plugins.CW.Core.SubsidyBar.Cart.Empty")</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>

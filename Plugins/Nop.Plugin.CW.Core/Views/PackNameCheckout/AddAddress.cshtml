@@ -1,0 +1,65 @@
+﻿@model PackNameShippingAddressModel
+
+@using Nop.Plugin.CW.Core.Helpers
+
+<div class="page registration-page packname-add-address-page">
+	<div class="page-body">
+		<div id="packname-address-icon-data"
+			 data-colour="@PackNameColourHelper.Normalize(Model.Colour)"
+			 data-is-customer="@Model.IsCustomer.ToString().ToLower()"
+			 data-is-group="@Model.Group.ToString().ToLower()"
+			 hidden>
+		</div>
+		<form asp-controller="PackNameCheckout" asp-action="AddAddress" id="packname-address-form" method="post" autocomplete="off">
+			<div asp-validation-summary="ModelOnly" class="message-error"></div>
+			<input asp-for="PackNameId" type="hidden" />
+			<input asp-for="Group" style="display:none" />
+			<input asp-for="IsCustomer" style="display:none" />
+			<div class="fieldset add-address">
+				<div class="form-fields packname-add-address-fields">
+					@{
+						var dataDictAddress = new ViewDataDictionary(ViewData);
+						dataDictAddress.TemplateInfo.HtmlFieldPrefix = "Address";
+						@await Html.PartialAsync("_CreateOrUpdateAddress", Model.Address, dataDictAddress)
+					}
+				</div>
+				<script>
+					$(document).ready(function () {
+						if ($('.packname-add-address-fields').has('select[data-trigger="country-select"]')) {
+							$('.packname-add-address-fields select[data-trigger="country-select"]').countrySelect();
+						}
+					});
+				</script>
+			</div>
+			<div class="buttons">
+				<button type="submit" class="button-1 save-address-button" onclick="createAddress(); return false;">@T("Common.Save")</button>
+			</div>
+		</form>
+	</div>
+</div>
+<script>
+	function createAddress() {
+		PackNameCheckout.startRequest();
+
+		$.ajax({
+			cache: false,
+			url: '@Url.Action("AddAddress", "PackNameCheckout")',
+			data: $('#packname-address-form').serialize(),
+			type: "POST",
+			success: function (response) {
+				if (response.success) {
+					if (response.addressId > 0) {
+						updateShippingAddress(@Model.PackNameId, response.addressId);
+					}
+					$('#packname-address-dialog').dialog('close');
+				}
+				else {
+					$('#packname-address-dialog').html(response.addressinfosectionhtml);
+				}
+			},
+			complete: function () {
+				PackNameCheckout.endRequest();
+			}
+		});
+	}
+</script>

@@ -1,0 +1,27 @@
+﻿@model BranchModel
+
+<div asp-validation-summary="All"></div>
+<input asp-for="Id" type="hidden" />
+
+@{
+    const string hideInfoBlockAttributeName = "BranchPage.HideInfoBlock";
+    var customer = await workContext.GetCurrentCustomerAsync();
+    var hideInfoBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideInfoBlockAttributeName);
+
+    const string hideAddressesBlockAttributeName = "BranchPage.HideAddressesBlock";
+    var hideAddressesBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideAddressesBlockAttributeName, defaultValue: true);
+}
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <nop-cards id="branch-cards">
+                <nop-card asp-name="branch-info" asp-icon="fas fa-info" asp-title="@T("Plugins.CW.Core.Admin.Branches.Branch.Info")" asp-hide-block-attribute-name="@hideInfoBlockAttributeName" asp-hide="@hideInfoBlock" asp-advanced="false">@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Branch/_CreateOrUpdate.Info.cshtml", Model)</nop-card>
+                @if (Model.Id > 0)
+                {
+                    <nop-card asp-name="branch-address" asp-icon="far fa-address-book" asp-title="@T("Plugins.CW.Core.Admin.Branches.Branch.Addresses")" asp-hide-block-attribute-name="@hideAddressesBlockAttributeName" asp-hide="@hideAddressesBlock" asp-advanced="true">@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Branch/_CreateOrUpdate.Addresses.cshtml", Model)</nop-card>
+                }
+            </nop-cards>
+        </div>
+    </div>
+</section>

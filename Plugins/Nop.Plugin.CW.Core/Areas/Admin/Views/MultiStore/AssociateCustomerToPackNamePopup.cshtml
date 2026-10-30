@@ -1,0 +1,177 @@
+﻿@model AssociateCustomerToPackNameSearchModel
+
+@{
+    Layout = "_AdminPopupLayout";
+
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.AddNew").Text;
+}
+
+@if (ViewBag.RefreshPage == true)
+{
+    <script>
+        try {
+            window.opener.document.getElementById('@(Context.Request.Query["customerNameInput"])').innerHTML = '@(ViewBag.customerName)';
+            window.opener.$('#@(Context.Request.Query["customerIdInput"])').val('@(ViewBag.customerId)').trigger('change');
+        }
+        catch (e) { }
+        window.close();
+    </script>
+}
+
+<form asp-controller="MultiStore" asp-action="AssociateCustomerToPackNamePopup"
+      asp-route-customerIdInput="@Context.Request.Query["customerIdInput"]"
+      asp-route-customerNameInput="@Context.Request.Query["customerNameInput"]">
+
+    <input asp-for="BranchId" type="hidden" />
+
+    <div class="content-header clearfix">
+        <h1 class="float-left">
+            @T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.AddNew")
+        </h1>
+        <div class="float-right">
+            &nbsp;
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="form-horizontal">
+                <input asp-for="AssociateCustomerToPackNameModel.AssociatedToCustomerId" type="hidden" />
+                <div class="form-horizontal">
+                    <div class="cards-group">
+                        <div class="card card-default card-search card-popup">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group row">
+                                            <div class="col-sm-5">
+                                                <nop-label asp-for="SearchEmail" />
+                                            </div>
+                                            <div class="col-sm-7">
+                                                <nop-editor asp-for="SearchEmail" />
+                                            </div>
+                                        </div>
+                                        @if (Model.UsernamesEnabled)
+                                        {
+                                            <div class="form-group row">
+                                                <div class="col-sm-5">
+                                                    <nop-label asp-for="SearchUsername" />
+                                                </div>
+                                                <div class="col-sm-7">
+                                                    <nop-editor asp-for="SearchUsername" />
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group row">
+                                            <div class="col-sm-5">
+                                                <nop-label asp-for="SearchFirstName" />
+                                            </div>
+                                            <div class="col-sm-7">
+                                                <nop-editor asp-for="SearchFirstName" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-sm-5">
+                                                <nop-label asp-for="SearchLastName" />
+                                            </div>
+                                            <div class="col-sm-7">
+                                                <nop-editor asp-for="SearchLastName" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <button type="button" id="search-customers" class="btn btn-primary btn-search">
+                                            <i class="fas fa-search"></i>
+                                            @T("Admin.Common.Search")
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-default">
+                            <div class="card-body">
+                                @await Html.PartialAsync("Table", new DataTablesModel
+                                {
+                                    Name = "customers-grid",
+                                    UrlRead = new DataUrl("AssociateCustomerToPackNamePopupList", "MultiStore", new RouteValueDictionary { [nameof(Model.BranchId)] = Model.BranchId, [nameof(Model.CurrentCustomerId)] = Model.CurrentCustomerId }),
+                                    SearchButtonId = "search-customers",
+                                    Length = Model.PageSize,
+                                    LengthMenu = Model.AvailablePageSizes,
+                                    Filters = new List<FilterParameter>
+                                    {
+                                        new FilterParameter(nameof(Model.SearchEmail)),
+                                        new FilterParameter(nameof(Model.SearchUsername)),
+                                        new FilterParameter(nameof(Model.SearchFirstName)),
+                                        new FilterParameter(nameof(Model.SearchLastName)),
+                                    },
+                                    ColumnCollection = new List<ColumnProperty>
+                                    {
+                                        new ColumnProperty(nameof(ExtendedCustomerModel.Id))
+                                        {
+                                            Title = T("Admin.Common.Select").Text,
+                                            Width = "50",
+                                            ClassName =  NopColumnClassDefaults.Button,
+                                            Render = new RenderCustom("renderCustomerSelect")
+                                        },
+                                        new ColumnProperty(nameof(ExtendedCustomerModel.Email))
+                                        {
+                                            Title = T("Admin.Customers.Customers.Fields.Email").Text
+                                        },
+                                        new ColumnProperty(nameof(ExtendedCustomerModel.FullName))
+                                        {
+                                            Title = T("Admin.Customers.Customers.Fields.FullName").Text
+                                        },
+                                        new ColumnProperty(nameof(ExtendedCustomerModel.Branch))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Branch").Text
+                                        },
+                                        new ColumnProperty(nameof(ExtendedCustomerModel.HasPackName))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.HasPackName").Text,
+                                            Width = "70",
+                                            ClassName = NopColumnClassDefaults.CenterAll,
+                                            Render = new RenderBoolean()
+                                        },
+                                        new ColumnProperty(nameof(ExtendedCustomerModel.Active))
+                                        {
+                                            Title = T("Admin.Customers.Customers.Fields.Active").Text,
+                                            Width = "70",
+                                            ClassName = NopColumnClassDefaults.CenterAll,
+                                            Render = new RenderBoolean()
+                                        }
+                                    }
+                                })
+                            </div>
+                            <div class="card-footer" style="display: none">
+                                <button type="submit" id="save" name="save" class="btn btn-primary">
+                                    @T("Admin.Common.Save")
+                                </button>
+                            </div>
+
+                            <script>
+                                function renderCustomerSelect(data, type, row, meta) {
+                                    return '<button onclick=\"selectAssociatedCustomer(' + data + ', ' + row.HasPackName + '); return false;\" class="btn btn-default">@T("Admin.Common.Select").Text</button>';
+                                }
+
+                                function selectAssociatedCustomer(customerid, hasPackName) {
+                                    if (hasPackName) {
+                                        alert('@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.AlreadyHasPackName")');
+                                        return false;
+                                    }
+                                    $("#@Html.IdFor(model => model.AssociateCustomerToPackNameModel.AssociatedToCustomerId)").val(customerid);
+                                    $('#save').click();
+                                }
+                            </script>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</form>

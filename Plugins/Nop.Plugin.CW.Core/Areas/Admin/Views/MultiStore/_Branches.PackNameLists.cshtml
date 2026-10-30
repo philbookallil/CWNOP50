@@ -1,0 +1,393 @@
+﻿@model PackNameListsModel
+
+@*A COLLECTION IS A LABEL, NOT A CARD. It used to wear card card-default bp-card
+  card-ms-section - the same classes as the branch above it and as the detail forms below,
+  which is how a thing and the things it contains ended up at one weight. Those three classes
+  are shared by 13 to 28 other views across MultiStore and Subsidy, so they are left alone and
+  the collection gets classes of its own instead.*@
+<div class="ms-collection">
+
+    <div class="ms-collection-head">
+        <i class="fas fa-caret-right bp-expand-icon open" id="pnlists-ei"></i>
+        <h3 class="ms-collection-label">
+            @T("Plugins.CW.Core.Admin.PackNameLists")
+        </h3>
+        @*A BARE NUMBER, like the other two collections. The "list"/"lists" it replaced was a
+          hardcoded English literal and read differently from its siblings, which is the
+          inconsistency that made an empty collection look broken rather than empty.*@
+        <span class="ms-collection-count">@Model.Lists.Count</span>
+
+        <div class="ml-auto">
+            <button type="button" class="ms-collection-action"
+                    id="btn-add-pnlist">
+                <i class="fas fa-plus" aria-hidden="true"></i>
+                @T("Plugins.CW.Core.Admin.PackNameLists.Add")
+            </button>
+        </div>
+    </div>
+
+    <div id="pnlists-body" class="bp-card-body-collapsible">
+
+        @*NO SEPARATE EMPTY STATE. The add row below is the empty state: one dashed row offering
+          the only thing there is to do, instead of an icon and a sentence that offers nothing. The
+          fa-users illustration this replaced was also the only thing in the section that was not a
+          row.*@
+        <div class="ms-rows" id="pnlists-list">
+            @foreach (var list in Model.Lists)
+            {
+                <div class="ms-row"
+                        data-id="@list.Id"
+                        data-name="@Html.Encode(list.Name)">
+
+                    <div class="ms-row-main">
+
+                        <div class="ms-row-lead">
+                            @if (list.IsDefault)
+                            {
+                                <span class="ms-row-default-badge"
+                                        title="@T("Plugins.CW.Core.Admin.PackNameLists.PackNameList.Field.IsDefault")">
+                                    <i class="fas fa-circle" aria-hidden="true"></i>
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="ms-row-default-placeholder">
+                                    <i class="far fa-circle" aria-hidden="true"></i>
+                                </span>
+                            }
+                        </div>
+
+                        <div class="ms-row-info">
+                            <div class="ms-row-name">@list.Name</div>
+                            <div class="ms-row-meta">
+
+                                @if (list.AllManagers)
+                                {
+                                    <span class="ms-row-chip ms-row-chip-blue">
+                                        <i class="fas fa-users" aria-hidden="true"></i>
+                                        @T("Plugins.CW.Core.Admin.PackNameLists.PackNameList.Field.AllManagers")
+                                    </span>
+                                }
+                                else if (list.ParentManagers)
+                                {
+                                    <span class="ms-row-chip ms-row-chip-gray">
+                                        <i class="fas fa-user-shield" aria-hidden="true"></i>
+                                        @T("Plugins.CW.Core.Admin.PackNameLists.PackNameList.Field.ParentManagers")
+                                    </span>
+                                }
+                                @if (list.ManagerCount > 0)
+                                {
+                                    <span class="ms-row-chip ms-row-chip-gray">
+                                        <i class="fas fa-user" aria-hidden="true"></i>
+                                        @string.Format(T(list.ManagerCount == 1
+                                            ? "Plugins.CW.Core.Admin.PackNameLists.PackNameList.ManagerCount.One"
+                                            : "Plugins.CW.Core.Admin.PackNameLists.PackNameList.ManagerCount.Many").Text, list.ManagerCount)
+                                    </span>
+                                }
+
+                                <span class="ms-row-chip ms-row-chip-count"
+                                      title="@T("Plugins.CW.Core.Admin.Branches.Branch.Field.PackNamesCount")">
+                                    <i class="fas fa-id-badge" aria-hidden="true"></i>
+                                    @*THE COUNT STAYS IN ITS OWN SPAN: the inline packname panel updates
+                                      .pn-count in place when a packname is added or removed, so the
+                                      number cannot be baked into the formatted string. The resource
+                                      carries the word, the span carries the number. .pn-count keeps its
+                                      packname-specific name for that reason.*@
+                                    <span class="pn-count">@list.PackNameCount</span>
+                                    @string.Format(T(list.PackNameCount == 1
+                                        ? "Plugins.CW.Core.Admin.PackNameLists.PackNameList.PackNameCount.One"
+                                        : "Plugins.CW.Core.Admin.PackNameLists.PackNameList.PackNameCount.Many").Text, string.Empty).Trim()
+                                </span>
+
+                            </div>
+                        </div>
+
+                        <div class="ms-row-actions">
+                            <button type="button" 
+                                    style="@(list.IsDefault ? "display: none;" : "")"
+                                    class="btn btn-xs btn-outline-secondary btn-set-default"
+                                    data-id="@list.Id"
+                                    title="@T("Plugins.CW.Core.Admin.PackNameLists.PackNameList.SetDefault")">
+                                <i class="fas fa-check-circle" aria-hidden="true"></i>
+                                @T("Plugins.CW.Core.Admin.PackNameLists.PackNameList.SetDefault.Button")
+                            </button>
+                            <button type="button"
+                                    class="btn btn-xs btn-outline-primary btn-edit-list"
+                                    data-id="@list.Id"
+                                    data-name="@Html.Encode(list.Name)"
+                                    title="@T("Plugins.CW.Core.Admin.PackNameLists.PackNameList.Edit")">
+                                <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                                @T("Admin.Common.Edit")
+                            </button>
+                            <button type="button"
+                                    class="btn btn-xs btn-outline-danger btn-delete-list"
+                                    data-id="@list.Id"
+                                    title="@T("Plugins.CW.Core.Admin.PackNameLists.PackNameList.Delete")">
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    @*PACKNAME-SPECIFIC, so it keeps its name: the packnames that open inside a list row.
+                      Injected here when the list is selected.*@
+                    <div class="pnlist-inline-panel" id="pnlist-inline-@list.Id"
+                            style="display:none">
+                    </div>
+
+                </div>
+            }
+        </div>
+        <div class="ms-add-row" id="pnlist-add-row">
+            @*A REAL BUTTON, NOT A DECORATION. Enter was the only way to commit and nothing said so,
+              so the row read as inert. This is the obvious target and it does the obvious thing.*@
+            <button type="button" class="ms-add-plus" title="@T("Plugins.CW.Core.Admin.Common.AddHint")">+</button>
+            <input type="text"
+                   class="ms-add-input"
+                   id="pnlist-add-input"
+                   autocomplete="off"
+                   placeholder="@T("Plugins.CW.Core.Admin.PackNameLists.AddInline")" />
+            <span class="ms-add-error" style="display:none"></span>
+        </div>
+
+    </div>
+</div>
+
+@* EVERY RAZOR VALUE THE SCRIPT NEEDS ARRIVES THROUGH HERE, so the script stays plain JavaScript. *@
+<div class="pnlists-config"
+     data-branch-id="@Model.BranchId"
+     data-store-id="@Model.StoreId"
+     data-save-url="@Url.Action("SavePackNameList", "MultiStore")"
+     data-delete-url="@Url.Action("DeletePackNameList", "MultiStore")"
+     data-set-default-url="@Url.Action("SetDefaultPackNameList", "MultiStore")"
+     data-inline-url="@Url.Action("PackNamesInline", "MultiStore")"
+     style="display: none;"></div>
+
+<script>
+(function () {
+
+    //OFF BEFORE ON, AND EVERY HANDLER BELOW IS NAMESPACED .pnlists. This partial's handlers are
+    //delegated to #pnlists-panel, which is NOT part of what the reload replaces: ensureSubPanel
+    //creates that div once and loadPartial only swaps its innerHTML, so the element outlives
+    //every render while this script runs again on each one. Without
+    //this the four handlers below stacked - measured 1, 2, 3, 4 sets over three reloads - and since
+    //reloadPackNameLists() runs after every add and every delete, adding and removing a few lists was
+    //enough to make Delete ask for confirmation four times and then fire four DELETE posts.
+    //e.stopPropagation() in the handlers does not help: the duplicates are on the SAME element, and
+    //stopPropagation stops bubbling to ancestors, not siblings - that would need stopImmediatePropagation,
+    //which would only mask the leak. The namespace keeps this .off() from touching handlers that
+    //admin.store.navigation.js or another partial may have on the same div.
+    var $listsPanel = $('#pnlists-panel').off('.pnlists');
+
+    var $cfg = $listsPanel.find('.pnlists-config');
+    var branchId      = $cfg.data('branchId');
+    var storeId       = $cfg.data('storeId');
+    var saveUrl       = $cfg.data('saveUrl');
+    var deleteUrl     = $cfg.data('deleteUrl');
+    var setDefaultUrl = $cfg.data('setDefaultUrl');
+    var inlineUrl     = $cfg.data('inlineUrl');
+
+    // ── Collapse / expand the collection ───────────────────────────────
+    //WAS AN onclick= ON THE HEADER running a self-invoking function in an attribute, with a second
+    //onclick="event.stopPropagation()" on the actions wrapper to stop the Add button collapsing the
+    //list. One delegated handler that ignores clicks on the actions does both jobs.
+    $listsPanel.on('click.pnlists', '.ms-collection-head', function (e) {
+        if ($(e.target).closest('.ms-collection-action').length) return;
+
+        var $body = $('#pnlists-body');
+        $body.toggleClass('collapsed');
+        $('#pnlists-ei').toggleClass('open', !$body.hasClass('collapsed'));
+    });
+
+    // ── Add list -------------──────────────────────────────────────────
+    $listsPanel.on('click.pnlists', '#btn-add-pnlist', function (e) {
+        e.stopPropagation();
+        Admin.StoreNav.enterFocusMode('list', null);
+    });
+
+    //A NAME IS ALL A LIST NEEDS TO EXIST. PreparePackNameListModelAsync defaults a new list to
+    //Active = true with AllManagers and ParentManagers false, and SavePackNameList makes the first
+    //list on a branch the default by itself - so this posts exactly what the New form posts when
+    //you type only a name. The header button still opens the full form for the rest.
+    Admin.StoreNav.bindInlineAdd({
+        input: '#pnlist-add-input',
+        url:   saveUrl,
+        fields: function (name) {
+            return {
+                //STOREID IS REQUIRED BY THE VALIDATOR, not by the controller. PackNameListValidator
+                //has NotNull and NotEqual(0) on StoreId, and FluentValidation runs at model binding -
+                //before the ownership hardening in SavePackNameList gets to take the store from the posted
+                //branch. That hardening still governs what is written; this only gets the post past
+                //validation. PackNameListsModel.StoreId was added for exactly this.
+                Name: name,
+                BranchId: branchId,
+                StoreId: storeId,
+                Active: true,
+                IsNew: true
+            };
+        },
+        onCreated: function () {
+            //Not a grid: the whole panel re-renders, which also refreshes the count in the header
+            //and puts the new row in the server's own order.
+            Admin.StoreNav.reloadPackNameLists();
+        }
+    });
+
+    //ONE LOADER FOR THE INLINE PANEL. The row click and the selection restore below both did this,
+    //with two spellings of the same URL and only one of them handling a failure.
+    function loadInlinePackNames(listId) {
+        var $inlinePanel = $('#pnlist-inline-' + listId);
+
+        $inlinePanel.show().html(
+            '<div class="ms-loading-message">' + Admin.StoreNav.res('common.loading', 'Loading...') + '</div>'
+        );
+
+        $.get(inlineUrl, { listId: listId })
+            .done(function (html) {
+                $inlinePanel.html(html);
+            })
+            .fail(function () {
+                $inlinePanel.html(
+                    '<div class="ms-error-message">' + Admin.StoreNav.res('packNames.failedToLoad', 'Failed to load packNames.') + '</div>'
+                );
+            });
+    }
+
+    // ── Click list row — toggle inline packNames ───────────────────────
+    $listsPanel.on('click.pnlists', '.ms-row-main', function (e) {
+        // Ignore action button clicks
+        if ($(e.target).closest('.ms-row-actions').length) return;
+
+        var $row      = $(this).closest('.ms-row');
+        var id        = $row.data('id');
+        var name      = $row.data('name');
+        var wasSelected = $row.hasClass('selected');
+
+        // Collapse all
+        $listsPanel.find('.ms-row').removeClass('selected');
+        $listsPanel.find('.pnlist-inline-panel').hide().html('');
+
+        if (wasSelected) {
+            // Toggle off — update state
+            Admin.StoreNav.navigate({ listId: null }, false);
+            return;
+        }
+
+        // Select this row
+        $row.addClass('selected');
+        Admin.StoreNav.cacheName('list', String(id), name);
+        Admin.StoreNav.navigate({ listId: String(id) }, false);
+
+        loadInlinePackNames(id);
+    });
+
+    // ── Edit list → focus mode ─────────────────────────────────────────
+    $listsPanel.on('click.pnlists', '.btn-edit-list', function (e) {
+        e.stopPropagation();
+        var id   = $(this).data('id');
+        var name = $(this).data('name');
+        Admin.StoreNav.cacheName('list', String(id), name);
+        Admin.StoreNav.enterFocusMode('list', String(id));
+    });
+
+    // ── Set default ────────────────────────────────────────────────────
+    $listsPanel.on('click.pnlists', '.btn-set-default', function (e) {
+        e.stopPropagation();
+        var $btn   = $(this).prop('disabled', true);
+        var id     = $(this).data('id');
+        var rowBranchId = $('#pnlists-panel').closest('[data-branch-id]').data('branch-id')
+                          || getActiveBranchId();
+
+        //WAS A LEAKED GLOBAL - no var, so this wrote window.postData on every click.
+        var postData = {
+            listId:   id,
+            branchId: rowBranchId
+        };
+        addAntiForgeryToken(postData);
+
+        $.post(setDefaultUrl,
+            postData,
+            function (result) {
+                if (!result.success) {
+                    display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotSetDefault', 'Could not set default.') });
+                    $btn.prop('disabled', false);
+                    return;
+                }
+
+                // Update UI without full reload:
+                // Remove default state from all rows
+                $listsPanel.find('.ms-row').removeClass('is-default');
+                $listsPanel.find('.ms-row-default-badge')
+                    .replaceWith('<span class="ms-row-default-placeholder"><i class="far fa-circle" aria-hidden="true"></i></span>');
+                $listsPanel.find('.btn-set-default').prop('disabled', false).show();
+
+                // Apply default to this row
+                var $row = $listsPanel.find('.ms-row[data-id="' + id + '"]');
+                $row.addClass('is-default');
+                $row.find('.ms-row-default-placeholder')
+                    .replaceWith('<span class="ms-row-default-badge" title="'
+                        + Admin.StoreNav.res('packNameLists.isDefault', 'Is Default')
+                        + '"><i class="fas fa-circle" aria-hidden="true"></i></span>');
+                $row.find('.btn-set-default').hide();
+            }
+        );
+    });
+
+    // ── Delete list ────────────────────────────────────────────────────
+    $listsPanel.on('click.pnlists', '.btn-delete-list', function (e) {
+        e.stopPropagation();
+        var id = $(this).data('id');
+        if (!confirm(Admin.StoreNav.res('packNameLists.confirmDelete', 'Are you sure?'))) return;
+
+        //WAS A LEAKED GLOBAL - see the note on the one above.
+        var postData = { id: id };
+        addAntiForgeryToken(postData);
+
+        $.post(deleteUrl,
+            postData,
+            function (result) {
+                if (!result.success) {
+                    display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') });
+                    return;
+                }
+
+                Admin.StoreNav.navigate({ listId: null });
+
+                //RELOAD RATHER THAN PATCH THE DOM. This used to remove the row by hand and, when
+                //the last one went, swap in the fa-users empty state - which no longer exists: the
+                //add row is the empty state now, and it is already on the page. Reloading also
+                //keeps the header count right, which the hand-patching never did.
+                Admin.StoreNav.reloadPackNameLists();
+            }
+        );
+    });
+
+    // ── Helpers ────────────────────────────────────────────────────────
+
+    function getActiveListId() {
+        return Admin.StoreNav ? Admin.StoreNav.getState().listId : null;
+    }
+
+    function getActiveBranchId() {
+        var state = Admin.StoreNav ? Admin.StoreNav.getState() : null;
+        if (!state || !state.branchPath.length) return null;
+        return state.branchPath[state.branchPath.length - 1].id;
+    }
+
+    // ── Restore selected state on reload ──────────────────────────────
+    // (e.g. after back from focus mode, _state.listId is still set)
+    //RUNS LAST, not in the middle of the file: it calls loadInlinePackNames and getActiveListId,
+    //and only function declarations hoist - the var they are assigned to would not.
+    (function restoreSelection() {
+        var currentListId = getActiveListId();
+        if (!currentListId) return;
+
+        var $row = $listsPanel.find('.ms-row[data-id="' + currentListId + '"]');
+        if (!$row.length) return;
+
+        $row.addClass('selected');
+        loadInlinePackNames(currentListId);
+    })();
+
+})();
+</script>

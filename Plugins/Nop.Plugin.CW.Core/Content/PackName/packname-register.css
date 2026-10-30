@@ -1,0 +1,188 @@
+﻿/* Title bar */
+.packname-dialog-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.packname-title-text {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/* Icon container */
+.packname-register-title-icon {
+    margin-right: 10px;
+}
+
+    .packname-register-title-icon svg {
+        width: 16px;
+        height: 16px;
+        display: none;
+    }
+
+    .packname-register-title-icon .packname-customer,
+    .packname-register-title-icon .packname-group,
+    .packname-register-title-icon .packname-no-customer {
+        display: none;
+    }
+
+        .packname-register-title-icon.packname-customer .packname-customer {
+            display: inline-block;
+        }
+
+        .packname-register-title-icon.packname-group:not(.packname-customer) .packname-group {
+            display: inline-block;
+        }
+
+        .packname-register-title-icon.packname-no-customer:not(.packname-customer) .packname-no-customer {
+            display: inline-block;
+        }
+
+.packname-registration-page .inputs {
+    margin-bottom: 12px;
+}
+
+    .packname-registration-page .inputs > label {
+        font-weight: 600;
+        width: 140px;
+        white-space: break-spaces;
+    }
+
+    .packname-registration-page .inputs input[type="text"],
+    .packname-registration-page .inputs input[type="number"],
+    .packname-registration-page .inputs input[type="email"],
+    .packname-registration-page .inputs input[type="tel"],
+    .packname-registration-page .inputs select,
+    .packname-registration-page .inputs textarea {
+        width: 360px;
+        height: 38px;
+        box-sizing: border-box;
+        padding: 4px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    /* Colour picker — keep it inline with its label */
+    .packname-registration-page .inputs input[type="color"] {
+        width: 60px;
+        height: 38px;
+        padding: 2px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .packname-registration-page .inputs.date-of-birth select {
+        width: 112px;
+    }
+
+.packname-registration-page .page-body {
+    padding: 16px;
+}
+
+.packname-registration-page .fieldset {
+    margin-bottom: 20px;
+    border: none;
+    padding: 0;
+}
+
+    .packname-registration-page .fieldset.add-customer .title,
+    .packname-registration-page .fieldset.add-address .title {
+        font-size: 15px;
+        font-weight: bold;
+        text-align: center;
+    }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.packname-registration-page .buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    margin-bottom: 0px;
+}
+
+.packname-registration-page .save-packname-button {
+    flex: 1;
+    height: 40px;
+    padding: 0 20px;
+    font-size: 14px;
+    color: #fff;
+    background-color: #00549f;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+    .packname-registration-page .save-packname-button:hover {
+        background-color: #004080;
+    }
+
+.packname-registration-page .delete-packname-button {
+    flex: 1;
+    height: 40px;
+    padding: 0 20px;
+    font-size: 14px;
+    color: #fff;
+    background-color: #dd4b39;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+    .packname-registration-page .delete-packname-button:hover {
+        background-color: #c0392b;
+    }
+
+/* ── Checkbox/radio styling ───────────────────────────────── */
+.packname-registration-page .inputs input[type="radio"],
+.packname-registration-page .inputs input[type="checkbox"] {
+    width: auto;
+    height: auto;
+    margin-right: 6px;
+    opacity: 1;
+}
+
+/* Gender row — keep horizontal */
+.packname-registration-page .gender {
+    display: inline-block;
+}
+
+    .packname-registration-page .gender span {
+        display: inline-block;
+    }
+
+        .packname-registration-page .gender span label {
+            width: auto;
+        }
+
+/* ── Subsidies ────────────────────────────────────────────── */
+.packname-registration-page .packname-subsidies-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: inline-block;
+    vertical-align: top;
+}
+
+    .packname-registration-page .packname-subsidies-list li {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 0;
+    }
+
+        .packname-registration-page .packname-subsidies-list li label {
+            width: auto;
+            margin: 0;
+        }
+
+/* ── Validation ───────────────────────────────────────────── */
+.packname-registration-page .message-error {
+    color: #dd4b39;
+    margin-bottom: 12px;
+    padding: 8px;
+    background: #fff0ee;
+    border-radius: 4px;
+}

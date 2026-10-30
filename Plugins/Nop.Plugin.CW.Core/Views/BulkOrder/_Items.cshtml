@@ -1,0 +1,172 @@
+﻿@using Nop.Core.Domain.Catalog;
+
+@model BulkOrderingModel
+
+@if (!Model.Items.Any())
+{
+    <div class="no-result">@T("Plugins.CW.Core.BulkOrder.NoProducts")</div>
+    return;
+}
+
+<div class="bulk-order-products @(Model.ViewMode == BulkOrderDefaults.VIEW_MODE_LIST ? "list-view" : "tiled-view")">
+    @foreach (var item in Model.Items)
+    {
+        <div class="bulk-order-product" data-product-id="@item.Id">
+            @{
+                var productUrl = await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.SeName });
+            }
+
+            @*Image left, everything else right. The header and the grid are stacked INSIDE the right
+              column, so the grid still gets a full column to itself while the image stays a single
+              column down the page.*@
+            @if (Model.ShowImages)
+            {
+                <div class="product-image" style="--imageSize: @Model.ImageSize;">
+                    <a href="@productUrl" tabindex="-1">
+                        <img src="@item.ImageUrl" alt="@item.ImageAlternateText" loading="lazy" />
+                    </a>
+                </div>
+            }
+
+            <div class="product-body">
+                <div class="product-info">
+                    <div class="product-name"><a href="@productUrl">@item.Name</a></div>
+                    <div class="product-meta">
+                        <span class="product-sku">@item.Sku</span>
+                        @*A range when the cells disagree and the per-cell column is off, so the headline
+                          figure is never one number that most of the grid contradicts.
+                          Range and single price are mutually exclusive by construction - PriceRange is only
+                          set when SameAttributesPrice is false.*@
+                        @if (!string.IsNullOrEmpty(item.PriceRange))
+                        {
+                            <span class="product-price product-price-range">@item.PriceRange</span>
+                        }
+                        else if (!string.IsNullOrEmpty(item.Price))
+                        {
+                            <span class="product-price">@item.Price</span>
+                        }
+                    </div>
+                    @*The script refreshes this after an add, and a node that does not exist cannot be
+                      refreshed - so it is always rendered and hidden when the cart holds none. The format
+                      string rides along in data-format so the script never has to know the wording or the
+                      language, and the formatting stays in the view.*@
+                    <div class="product-in-cart"
+                         data-format="@T("Plugins.CW.Core.BulkOrder.QuantityInCart").Text"
+                         hidden="@(item.QuantityInCart > 0 ? null : "hidden")">
+                        @if (item.QuantityInCart > 0)
+                        {
+                            @string.Format(T("Plugins.CW.Core.BulkOrder.QuantityInCart").Text, item.QuantityInCart)
+                        }
+                    </div>
+                </div>
+
+                <div class="product-grid">
+                    @await Html.PartialAsync("~/Plugins/CW.Core/Views/BulkOrder/_Grid.cshtml", item.Grid)
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@*"Everything on this page" belongs beside the pager, because the page is exactly what it means -
+  move to page 5 and its scope changes with it. That puts it INSIDE #bulk-order-content, which is
+  replaced wholesale on every list load, so its listener is delegated rather than direct.
+  The antiforgery token stays outside the container in BulkOrdering.cshtml: it must survive the
+  swaps, and it is not part of this bar.*@
+<div class="bulk-order-actions">
+            <span class="bulk-add-status" role="status" aria-live="polite" hidden></span>
+    <button type="button" class="bulk-add-all add-to-cart-button">
+        @T("Plugins.CW.Core.BulkOrder.AddToCart.AddAll")
+    </button>
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    @*The window is nop's own five numbers (BulkOrderDefaults.PAGER_WINDOW, matching its
+      IndividualPagesDisplayedCount) and BuildPageNumbers is Pager.cs ported verbatim - so on page 3
+      of 34 the window is 1-5 and pages 6 to 34 are simply absent. nop's catalogue pager behaves identically,
+      which is why this is an interface item and not a porting defect: it is a place where copying nop
+      faithfully produced something worse than the sentence sitting beside it. Measured on the catalogue: 4,198
+      visible products is 280 pages at the default page size, and 34 in the largest category - so the pages
+      the window hides are the overwhelming majority of them.
+
+      The first and last numbers are added HERE rather than inside BuildPageNumbers, deliberately. That
+      method's XML doc claims to be nop's arithmetic ported verbatim, and the claim is what lets the next
+      reader diff the two files; injecting extra entries into its result would quietly make it false. What
+      follows is not arithmetic about which pages exist - it is two comparisons against numbers the model
+      already carries.*@
+    var windowFirst = Model.PageNumbers.Count > 0 ? Model.PageNumbers[0] : Model.PageNumber;
+    var windowLast = Model.PageNumbers.Count > 0 ? Model.PageNumbers[^1] : Model.PageNumber;
+
+    <nav class="bulk-order-pager" data-page="@Model.PageNumber" data-total-pages="@Model.TotalPages"
+         aria-label="@T("Plugins.CW.Core.BulkOrder.PagerLabel")">
+        <button type="button" class="bulk-pager-step" data-page="1"
+                aria-label="@T("Plugins.CW.Core.BulkOrder.First")"
+                @(Model.PageNumber <= 1 ? "disabled" : null)>&laquo;</button>
+        <button type="button" class="bulk-pager-step" data-page="@(Model.PageNumber - 1)"
+                aria-label="@T("Plugins.CW.Core.BulkOrder.Previous")"
+                @(Model.PageNumber <= 1 ? "disabled" : null)>&lsaquo;</button>
+
+        @*Page 1 stays visible whatever the window is doing, so the range is legible at a glance. It can
+          never duplicate a number from the window and never needs the "current" branch: nop's arithmetic
+          always contains the current page, so windowFirst > 1 means page 1 is not the current one.*@
+        @if (windowFirst > 1)
+        {
+            <button type="button" class="bulk-pager-page" data-page="1"
+                    aria-label="@string.Format(T("Plugins.CW.Core.BulkOrder.GoToPage").Text, 1)">1</button>
+
+            @*A gap marker, not a destination - a span, no data-page, and aria-hidden because the live region
+              already announces "Page 3 of 34" and a screen reader reading "ellipsis" adds nothing to it.*@
+            if (windowFirst > 2)
+            {
+                <span class="bulk-pager-gap" aria-hidden="true">&hellip;</span>
+            }
+        }
+
+        @foreach (var number in Model.PageNumbers)
+        {
+            if (number == Model.PageNumber)
+            {
+                <span class="bulk-pager-page current" aria-current="page">@number</span>
+            }
+            else
+            {
+                <button type="button" class="bulk-pager-page" data-page="@number"
+                        aria-label="@string.Format(T("Plugins.CW.Core.BulkOrder.GoToPage").Text, number)">@number</button>
+            }
+        }
+
+        @if (windowLast < Model.TotalPages)
+        {
+            if (windowLast < Model.TotalPages - 1)
+            {
+                <span class="bulk-pager-gap" aria-hidden="true">&hellip;</span>
+            }
+
+            <button type="button" class="bulk-pager-page" data-page="@Model.TotalPages"
+                    aria-label="@string.Format(T("Plugins.CW.Core.BulkOrder.GoToPage").Text, Model.TotalPages)">@Model.TotalPages</button>
+        }
+
+        <button type="button" class="bulk-pager-step" data-page="@(Model.PageNumber + 1)"
+                aria-label="@T("Plugins.CW.Core.BulkOrder.Next")"
+                @(Model.PageNumber >= Model.TotalPages ? "disabled" : null)>&rsaquo;</button>
+        <button type="button" class="bulk-pager-step" data-page="@Model.TotalPages"
+                aria-label="@T("Plugins.CW.Core.BulkOrder.Last")"
+                @(Model.PageNumber >= Model.TotalPages ? "disabled" : null)>&raquo;</button>
+
+        @*Kept, and kept OUTSIDE the buttons: this is the string the live region announces after a page
+          change (bulk-order.js). Deleting it silently removes the screen-reader announcement.*@
+        <span class="bulk-pager-state">
+            @string.Format(T("Plugins.CW.Core.BulkOrder.PageOf").Text, Model.PageNumber, Model.TotalPages, Model.TotalItems)
+        </span>
+    </nav>
+}
+else
+{
+    @*one page: no controls, but the announcement string still has to exist*@
+    <div class="bulk-order-pager" data-page="1" data-total-pages="1">
+        <span class="bulk-pager-state">
+            @string.Format(T("Plugins.CW.Core.BulkOrder.PageOf").Text, 1, 1, Model.TotalItems)
+        </span>
+    </div>
+}

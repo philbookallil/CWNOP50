@@ -1,0 +1,349 @@
+﻿@using Nop.Core.Domain.Catalog;
+
+@model BulkOrderGridModel
+
+@*OptionTagHelper targets every <option> with no required attribute, unlike SelectTagHelper and
+  InputTagHelper. Razor therefore wraps each one in tag-helper scaffolding whose runner is awaited -
+  and the <option>s here live inside RenderCellBody, a synchronous void method in @functions, so the
+  file will not compile (CS4033). Nothing in this file uses asp-* or nop-*, so the helper is dead
+  weight. nop's own _ViewImports removes InputTagHelper for the same class of reason.*@
+@removeTagHelper Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@functions {
+    void RenderValue(BulkOrderGridValueModel value)
+    {
+        @*a local function, not a partial: this renders once per column and once per row label, so a partial
+          would be ~900 invocations on a full page.*@
+        @*id 0 is the synthetic "(none)" of an optional axis - marked so it can read as the
+          absence it is rather than as a value called "None"*@
+        <span class="attr-value @(value.Id == 0 ? "attr-none" : null)">
+            @if (!string.IsNullOrEmpty(value.ColorSquaresRgb))
+            {
+                <span class="attr-colour-square" style="background-color: @value.ColorSquaresRgb;" title="@value.Name"></span>
+            }
+            else if (!string.IsNullOrEmpty(value.ImageSquaresUrl))
+            {
+                <span class="attr-image-square" style="--squareSize: @Model.AttributeImageSquaresSize;">
+                    <img src="@value.ImageSquaresUrl" alt="@value.Name" />
+                </span>
+            }
+            else if (Model.ShowAttributeImages && !string.IsNullOrEmpty(value.ImageUrl))
+            {
+                <span class="attr-image" style="--imageSize: @Model.AttributeImageSize;">
+                    <img src="@value.ImageUrl" alt="@value.Name" />
+                </span>
+            }
+
+            <span class="attr-name">@value.Name</span>
+        </span>
+    }
+
+    @*One cell's contents, so the table path and the single-cell path cannot drift apart. They
+      answer the same three questions in the same order: is this combination sold at all, will nop take an
+      order for it, and if not, WHY not.*@
+    void RenderCellBody(BulkOrderGridCellModel cell, string inputId)
+    {
+        if (!cell.Exists)
+        {
+            @*This combination is not sold. The dash is the ONLY symbol in the grid, which is what
+              lets it mean exactly one thing: a customer who sees it knows no such variant exists, rather than
+              having to guess between that and "we have run out".*@
+            <span class="dash" title="@T("Plugins.CW.Core.BulkOrder.Grid.NotACombination")" aria-hidden="true">&ndash;</span>
+            <span class="bulk-order-sr-only">@T("Plugins.CW.Core.BulkOrder.Grid.NotACombination")</span>
+        }
+        else if (cell.RequiresPinChoice)
+        {
+            @*A required pin above has no value yet. Asked BEFORE the text rule
+              and the stock rules because it is the one the customer can fix without leaving the card, and a
+              cell that could be unblocked in one click must not first tell them to go elsewhere.*@
+            <span class="cell-note needs-choice">@T("Plugins.CW.Core.BulkOrder.Grid.ChooseAbove")</span>
+        }
+        else if (cell.RequiresTextAttribute)
+        {
+            @*A required attribute applies to THIS cell and the grid has no input
+              for it, so nop would refuse the line. Asked BEFORE price and stock on purpose - "this cell cannot
+              be ordered from this screen" is a structural fact about the product's attributes, while call-for-
+              price and out-of-stock are answers about a purchase. Ordering them the other way would make one
+              cell explain itself two different ways as stock moved, and would hide the only reason that tells
+              the customer where to go instead.
+              The wording is short and fixed; the attribute's NAME is in the notice above the grid, because a
+              name that long inside a table cell widens its whole column.*@
+            <span class="cell-note needs-details">@T("Plugins.CW.Core.BulkOrder.Grid.RequiresText")</span>
+        }
+        else if (cell.CallForPrice)
+        {
+            @*"ask us" is not the same answer as "you cannot have this".*@
+            <span class="cell-note callforprice">@T("Products.CallForPrice")</span>
+        }
+        else if (cell.Disabled)
+        {
+            @*The variant exists and nop would refuse the sale, and nop already has the REASON:
+              "Out of stock", "Available in 2-4 days", "Backordering". Rendering that instead of a marker is
+              the whole point - no symbol can distinguish "we do not sell this" from "we have run out of it",
+              and the customer needs to know which.
+              Shown even when ShowCellStock is off: that setting suppresses the stock note on cells you CAN
+              order, and a control that refuses input has to explain itself either way. When the store hides
+              availability entirely, StockMessage is empty and the generic line below is all we may say.*@
+            <span class="cell-note blocked">
+                @(!string.IsNullOrEmpty(cell.StockMessage)
+                    ? cell.StockMessage
+                    : T("Plugins.CW.Core.BulkOrder.Grid.Unavailable").Text)
+            </span>
+        }
+        else
+        {
+            @*A whitelisted product takes a dropdown, not a number box (ShoppingCartService :416-420), which is
+              what nop's own product page renders for it. Options above what this cell can supply are dropped,
+              because nop would refuse those too - so the control offers exactly the set that would be
+              accepted - the same parity rule applied to the quantity instead of the coordinate.*@
+            var allowed = Model.AllowedQuantities
+                .Where(quantity => !cell.MaxAvailable.HasValue || quantity <= cell.MaxAvailable.Value)
+                .ToList();
+
+            if (Model.AllowedQuantities.Count > 0 && allowed.Count == 0)
+            {
+                @*every allowed quantity is more than this cell can supply, so there is no order to place here.
+                  Same answer as the Disabled branch, reached for the same reason - a dropdown whose only
+                  option is "None" is a control that pretends to work.*@
+                <span class="cell-note blocked">
+                    @(!string.IsNullOrEmpty(cell.StockMessage)
+                        ? cell.StockMessage
+                        : T("Plugins.CW.Core.BulkOrder.Grid.Unavailable").Text)
+                </span>
+            }
+            else if (allowed.Count > 0)
+            {
+                <select id="@inputId" class="bulk-qty"
+                        data-selection="@cell.Selection"
+                        data-axis-key="@cell.AxisKey"
+                        aria-label="@cell.Label"
+                        title="@cell.Sku">
+                    <option value="0">@T("Plugins.CW.Core.BulkOrder.Grid.NoQuantity")</option>
+                    @foreach (var quantity in allowed)
+                    {
+                        <option value="@quantity">@quantity</option>
+                    }
+                </select>
+            }
+            else
+            {
+                <input type="number" min="@Model.MinQuantity" max="@cell.MaxAvailable" id="@inputId"
+                       class="bulk-qty @(Model.HideQtyArrows ? "no-arrows" : null)"
+                       data-selection="@cell.Selection"
+                       data-axis-key="@cell.AxisKey"
+                       aria-label="@cell.Label"
+                       title="@cell.Sku" />
+            }
+        }
+
+        if (Model.ShowCellPrices && !string.IsNullOrEmpty(cell.Price))
+        {
+            <span class="cell-price">@cell.Price</span>
+        }
+
+        if (Model.ShowCellStock && !string.IsNullOrEmpty(cell.StockMessage) && !cell.Disabled)
+        {
+            <span class="cell-stock">@cell.StockMessage</span>
+        }
+    }
+}
+
+@*Whether this card has any quantity control on it at all. Two things below need the same
+  answer - the minimum-quantity notice and the Add button - and asking twice is how they
+  drift apart. An unsupported product, a pin state with no matching cells and a grid
+  that could not be built all answer false: each of those already shows its own notice, and
+  "the minimum quantity is 25" under "gift cards are ordered from the product page" is noise.*@
+@{
+    var takesQuantities = string.IsNullOrEmpty(Model.UnsupportedReason)
+        && (Model.IsSingleCell || Model.Rows.Any());
+}
+
+<div class="bulk-order-grid" data-product-id="@Model.ProductId"
+     data-url="@Url.RouteUrl(CWCoreDefaults.BULKORDER_GRID)">
+
+    @if (Model.Pins.Any())
+    {
+        @await Html.PartialAsync("~/Plugins/CW.Core/Views/BulkOrder/_PinnedStrip.cshtml", Model)
+    }
+
+    @if (Model.DemotedAxisNames.Any())
+    {
+        <div class="grid-notice">
+            @string.Format(T("Plugins.CW.Core.BulkOrder.Grid.Demoted").Text, string.Join(", ", Model.DemotedAxisNames))
+        </div>
+    }
+
+    @*Some cells need a value this screen cannot take and the rest do not, so the
+      product IS orderable and the explanation belongs above the grid rather than repeated inside every
+      affected cell - a sentence this long in a table cell widens its whole column.
+      productUrl is resolved inside this branch rather than hoisted above them: this notice and the
+      unsupported card below are mutually exclusive by construction, and hoisting would call
+      RouteGenericUrlAsync once per product on every page render, including the products that show neither.*@
+    @if (!string.IsNullOrEmpty(Model.RequiredTextAttributeName))
+    {
+        var blockedUrl = await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = Model.ProductSeName });
+
+        <div class="grid-notice grid-unsupported">
+            <span>
+                @string.Format(T("Plugins.CW.Core.BulkOrder.Grid.RequiresText.Notice").Text,
+                               Model.RequiredTextAttributeName)
+            </span>
+            <a href="@blockedUrl">@T("Plugins.CW.Core.BulkOrder.Grid.Unsupported.Link")</a>
+        </div>
+    }
+
+    @*A required pin holds nothing, so its cells take no quantity until it is chosen. The name is here,
+      once, for the same reason as the text notice: a sentence inside a table cell widens its whole
+      column. Plain notice, no link - the fix is on this card.*@
+    @if (!string.IsNullOrEmpty(Model.RequiredChoiceAttributeName))
+    {
+        <div class="grid-notice">
+            @string.Format(T("Plugins.CW.Core.BulkOrder.Grid.ChooseAbove.Notice").Text, Model.RequiredChoiceAttributeName)
+        </div>
+    }
+
+    @*The card's failed lines, filled by applyLineResults after an add. Rendered ALWAYS and hidden,
+      never created on demand - a node that does not exist cannot be written to, which is the same reason
+      _Items.cshtml renders "n in cart" empty rather than conditionally.
+      Guarded by takesQuantities because a card with no quantity control can never produce a line, let alone
+      a refused one. A <ul> rather than a <div>: several refusals are a list, and one is a list of one.*@
+    @if (takesQuantities)
+    {
+        @*A live region, because both writers fill it after the page has loaded: applyLineResults with the
+          server's refusals, flagOverMax with an over-max hint as the customer types. The border and the mark
+          say "this one" to everyone who can see it; without this, nothing says it to anyone else.*@
+        <ul class="grid-warnings" role="status" aria-live="polite" hidden></ul>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.UnsupportedReason))
+    {
+        @*The sale is fine, it just cannot happen here. Send the customer to the form rather
+          than greying out a box: the product page already collects and validates exactly what nop wants.
+
+          RouteGenericUrlAsync, not Url.RouteUrl("Product", ...). There is no route by that NAME in 4.9 -
+          product URLs are generic routes resolved through the entity type - so the old call returned null,
+          Razor dropped the href, and this rendered as a link-coloured anchor that went nowhere. Same call
+          _Items.cshtml:16 already makes for the product name on this card.*@
+        var productUrl = await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = Model.ProductSeName });
+
+        <div class="grid-notice grid-unsupported">
+            <span>@Model.UnsupportedReason</span>
+            <a href="@productUrl">
+                @T("Plugins.CW.Core.BulkOrder.Grid.Unsupported.Link")
+            </a>
+        </div>
+    }
+    else if (Model.IsSingleCell)
+    {
+        <div class="grid-single">
+            <label class="sr-label" for="qty-@Model.ProductId">@T("Plugins.CW.Core.BulkOrder.Grid.Quantity")</label>
+
+            @*This cell comes from the builder like any other, so the refusal rule, the price and
+              the stock message reach it. Its identity is still a constant - a product with no axes has no
+              coordinates - but the constant is produced by the factory now, not hard-coded here.
+
+              The null guard is unreachable as the builder stands: a product with no attributes returns a row
+              holding one cell, and Compose gives a pins-only product one cell too. It is kept because a view
+              that dereferences null after someone edits Compose fails worse than a branch that never runs -
+              but it renders what a blocked cell renders, because an unreachable branch showing the WRONG
+              thing is worth nothing. It carried the last x in the grid until now.*@
+            @if (Model.SingleCell == null)
+            {
+                <span class="cell-note blocked">@T("Plugins.CW.Core.BulkOrder.Grid.Unavailable")</span>
+            }
+            else
+            {
+                RenderCellBody(Model.SingleCell, $"qty-{Model.ProductId}");
+            }
+        </div>
+    }
+    else if (Model.HasNoMatchingCombinations)
+    {
+        <div class="grid-notice grid-empty">@T("Plugins.CW.Core.BulkOrder.Grid.NoCombinations")</div>
+    }
+    else if (Model.IsNotOrderable)
+    {
+        <div class="grid-notice grid-empty">@T("Plugins.CW.Core.BulkOrder.Grid.NotOrderable")</div>
+    }
+    else
+    {
+        <div class="grid-scroll">
+            <table class="grid-table">
+                <thead>
+                    <tr>
+                        @foreach (var axisName in Model.RowAxisNames)
+                        {
+                            <th scope="col" class="row-axis">@axisName</th>
+                        }
+                        <th scope="col" class="column-axis" colspan="@Model.Columns.Count">@Model.ColumnAxisName</th>
+                    </tr>
+                    <tr>
+                        @foreach (var axisName in Model.RowAxisNames)
+                        {
+                            <td class="row-axis"></td>
+                        }
+                        @foreach (var column in Model.Columns)
+                        {
+                            <th scope="col">@{ RenderValue(column); }</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr>
+                            @foreach (var label in row.Labels)
+                            {
+                                <th scope="row" class="row-label">@{ RenderValue(label); }</th>
+                            }
+                            @foreach (var cell in row.Cells)
+                            {
+                                @*A cell that takes no quantity is shaded whatever the reason - out of stock
+                                  or a required value this screen cannot collect.
+                                  Hoisted out of the tag because a third state made the nested ternary
+                                  unreadable, which is how the third state gets forgotten in the fourth.*@
+                                var cellClass = !cell.Exists ? "cell empty"
+                                    : cell.Disabled || cell.RequiresTextAttribute || cell.RequiresPinChoice ? "cell unavailable"
+                                    : "cell";
+
+                                <td class="@cellClass">
+                                    @{ RenderCellBody(cell, null); }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.ExceedsBudget)
+        {
+            <div class="grid-notice">@T("Plugins.CW.Core.BulkOrder.Grid.TooManyCells")</div>
+        }
+    }
+    @*nop refuses a line below the product's minimum (ShoppingCartService :405) and this is the only place the
+      customer can be told before they type. nop's OWN resource, not one of ours: the notice and the warning
+      they would otherwise get must be the same sentence.*@
+    @if (takesQuantities && Model.MinQuantity > 1)
+    {
+        <div class="grid-notice">@string.Format(T("ShoppingCart.MinimumQuantity").Text, Model.MinQuantity)</div>
+    }
+    @*No button on a card with nothing to add: an unsupported product, a product whose grid could not
+      be built, or a pin state with no cells. The notice above already explains each of those.*@
+    @if (takesQuantities)
+    {
+        @*Status BEFORE the button so the button stays flush with the card's right edge however
+          long the message gets - the row is right-aligned, and a trailing status would push the
+          button off that edge. .add-to-cart-button rather than .button-1: nop gives .button-1 only
+          a cursor and styles every real appearance per page, so outside those pages it renders as
+          a native browser button. .add-to-cart-button is the class this control actually is, and
+          the one CW.Standard's brand sheet claims.*@
+        <div class="grid-actions">
+            <span class="bulk-add-status" role="status" aria-live="polite" hidden></span>
+            <button type="button" class="bulk-add add-to-cart-button"
+                    aria-label="@string.Format(T("Plugins.CW.Core.BulkOrder.AddToCart.ButtonFor").Text, Model.ProductName)">
+                @T("Plugins.CW.Core.BulkOrder.AddToCart.Button")
+            </button>
+        </div>
+    }
+</div>

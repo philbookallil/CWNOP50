@@ -1,0 +1,250 @@
+﻿@model CustomerSubsidiesModel
+
+@using Nop.Plugin.CW.Core.Helpers
+
+@{
+    Layout = "_ColumnsTwo";
+
+    NopHtml.AddTitleParts(T("Account.MyAccount").Text);
+    NopHtml.AppendPageCssClassParts("html-account-page");
+    NopHtml.AppendPageCssClassParts("html-customer-subsidies-page");
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/MyAccount/customer-subsidies.css");
+
+    var packNameIconClass = Model.PackNameIsGroup ? "packname-group"
+                          : Model.PackNameIsCustomer ? "packname-customer"
+                          : "packname-no-customer";
+}
+
+@section left
+{
+    @await Component.InvokeAsync(typeof(CustomerNavigationViewComponent), new { selectedTabId = CWCoreDefaults.CustomerSubsidiesMenuTab })
+}
+
+<div class="page account-page customer-subsidies-page">
+    <div class="page-title">
+        <h1>@T("Account.MyAccount") - @T("Plugins.CW.Core.CustomerSubsidies.PageTitle")</h1>
+    </div>
+    <div class="page-body">
+        <div class="subsidies-packname">
+            <span class="subsidies-packname-name" style="color: @Model.PackNameColour">
+                @Html.PackNameTypeIcon(packNameIconClass, "subsidies-packname-icon")
+                <span>@Model.PackNameName</span>
+            </span>
+            @if (!string.IsNullOrEmpty(Model.PackNameBranch))
+            {
+                <span class="subsidies-packname-detail">
+                    @Html.CWIcon("cw-icon-truck", "subsidies-packname-detail-icon")
+                    @Model.PackNameBranch
+                </span>
+            }
+            @if (!string.IsNullOrEmpty(Model.PackNameDepartment))
+            {
+                <span class="subsidies-packname-detail">
+                    @Html.CWIcon("cw-icon-department", "subsidies-packname-detail-icon")
+                    @Model.PackNameDepartment
+                </span>
+            }
+            @if (Model.IsManagedPackName)
+            {
+                <span class="subsidies-packname-note">@T("Plugins.CW.Core.CustomerSubsidies.ShowingPackName")</span>
+            }
+        </div>
+
+        @if (Model.Subsidies.Count == 0)
+        {
+            <div class="no-data">@T("Plugins.CW.Core.CustomerSubsidies.NoSubsidies")</div>
+        }
+
+        @foreach (var subsidy in Model.Subsidies)
+        {
+            var statusClass = subsidy.Status switch
+            {
+                CustomerSubsidyStatus.Open => "open",
+                CustomerSubsidyStatus.NotStarted => "soon",
+                _ => "closed"
+            };
+            var statusText = subsidy.Status switch
+            {
+                CustomerSubsidyStatus.Open => subsidy.AnnualRecurrence
+                    ? T("Plugins.CW.Core.CustomerSubsidies.Status.OpenRecurring", subsidy.SeasonEnd).Text
+                    : T("Plugins.CW.Core.CustomerSubsidies.Status.Open", subsidy.SeasonEnd).Text,
+                CustomerSubsidyStatus.NotStarted => T("Plugins.CW.Core.CustomerSubsidies.Status.NotStarted", subsidy.SeasonStart).Text,
+                _ => T("Plugins.CW.Core.CustomerSubsidies.Status.Closed", subsidy.SeasonEnd).Text
+            };
+            var historyId = $"subsidy-history-{subsidy.SubsidyPackNameId}";
+
+            <div class="subsidy-card @(subsidy.IsOpen ? "" : "subsidy-card-inactive")">
+                <div class="subsidy-card-header">
+                    <div class="subsidy-card-title">
+                        <h2>@subsidy.Name</h2>
+                        @if (!string.IsNullOrEmpty(subsidy.Description))
+                        {
+                            <div class="subsidy-card-description">@subsidy.Description</div>
+                        }
+                    </div>
+                    <span class="subsidy-status subsidy-status-@statusClass">@statusText</span>
+                </div>
+
+                @if (subsidy.IsOpen)
+                {
+                    <div class="subsidy-remaining">
+                        <div class="subsidy-remaining-figure">
+                            @if (subsidy.HasCredit)
+                            {
+                                <div class="subsidy-eyebrow">@T("Plugins.CW.Core.CustomerSubsidies.Remaining")</div>
+                                <div class="subsidy-big">@subsidy.RemainingCreditFormatted</div>
+                            }
+                            else
+                            {
+                                <div class="subsidy-eyebrow">@T("Plugins.CW.Core.CustomerSubsidies.RemainingUnits")</div>
+                                <div class="subsidy-big">@T("Plugins.CW.Core.CustomerSubsidies.Units", subsidy.RemainingUnits)</div>
+                            }
+                        </div>
+                        <div class="subsidy-remaining-detail">
+                            @if (subsidy.HasCredit)
+                            {
+                                <div class="subsidy-bar"><i style="width: @(subsidy.UsedCreditPercent)%"></i></div>
+                                <div class="subsidy-legend">
+                                    <span>@T("Plugins.CW.Core.CustomerSubsidies.Used") <b>@subsidy.UsedCreditFormatted</b></span>
+                                    <span>@T("Plugins.CW.Core.CustomerSubsidies.Total") <b>@subsidy.TotalCreditFormatted</b></span>
+                                    <span class="subsidy-dim">@T("Plugins.CW.Core.CustomerSubsidies.CreditBreakdown", subsidy.CreditFormatted, subsidy.TopupCreditFormatted)</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="subsidy-bar"><i style="width: @(subsidy.UsedUnitsPercent)%"></i></div>
+                                <div class="subsidy-legend">
+                                    <span>@T("Plugins.CW.Core.CustomerSubsidies.Used") <b>@subsidy.UsedUnits</b></span>
+                                    <span>@T("Plugins.CW.Core.CustomerSubsidies.Total") <b>@T("Plugins.CW.Core.CustomerSubsidies.Units", subsidy.TotalUnits)</b></span>
+                                    <span class="subsidy-dim">@T("Plugins.CW.Core.CustomerSubsidies.NoMoneyCredit")</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="subsidy-remaining">
+                        <div class="subsidy-remaining-figure">
+                            @if (subsidy.HasCredit)
+                            {
+                                <div class="subsidy-eyebrow">@T("Plugins.CW.Core.CustomerSubsidies.CreditWhenOpen")</div>
+                                <div class="subsidy-big">@subsidy.TotalCreditFormatted</div>
+                            }
+                            else if (subsidy.HasUnits)
+                            {
+                                <div class="subsidy-eyebrow">@T("Plugins.CW.Core.CustomerSubsidies.CreditWhenOpen")</div>
+                                <div class="subsidy-big">@T("Plugins.CW.Core.CustomerSubsidies.Units", subsidy.TotalUnits)</div>
+                            }
+                        </div>
+                        <div class="subsidy-remaining-detail subsidy-dim">
+                            @(subsidy.Status == CustomerSubsidyStatus.NotStarted
+                                ? T("Plugins.CW.Core.CustomerSubsidies.NotStartedNote")
+                                : T("Plugins.CW.Core.CustomerSubsidies.ClosedNote"))
+                        </div>
+                    </div>
+                }
+
+                @if (subsidy.ProductGroups.Count > 0)
+                {
+                    <div class="subsidy-table-wrapper">
+                        <table class="subsidy-table">
+                            <thead>
+                                <tr>
+                                    <th>@T("Plugins.CW.Core.CustomerSubsidies.ProductGroup")</th>
+                                    <th>@T("Plugins.CW.Core.CustomerSubsidies.UnitsLeft")</th>
+                                    <th>@T("Plugins.CW.Core.CustomerSubsidies.UnitsUsed")</th>
+                                    <th>@T("Plugins.CW.Core.CustomerSubsidies.UnitsTotal")</th>
+                                    <th>@T("Plugins.CW.Core.CustomerSubsidies.CreditLeft")</th>
+                                    <th>@T("Plugins.CW.Core.CustomerSubsidies.CreditUsed")</th>
+                                    <th>@T("Plugins.CW.Core.CustomerSubsidies.CreditTotal")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var productGroup in subsidy.ProductGroups)
+                                {
+                                    <tr>
+                                        <td class="subsidy-group-name">
+                                            @Html.PgIcon(productGroup.Icon, "subsidy-group-icon", productGroup.Colour)
+                                            <span>@productGroup.Name</span>
+                                        </td>
+                                        @if (productGroup.HasUnits)
+                                        {
+                                            <td>@productGroup.RemainingUnits</td>
+                                            <td>@productGroup.UsedUnits</td>
+                                            <td>@productGroup.TotalUnits</td>
+                                        }
+                                        else
+                                        {
+                                            <td class="subsidy-dim">&mdash;</td>
+                                            <td class="subsidy-dim">&mdash;</td>
+                                            <td class="subsidy-dim">&mdash;</td>
+                                        }
+                                        @if (productGroup.HasCredit)
+                                        {
+                                            <td>@productGroup.RemainingCreditFormatted</td>
+                                            <td>@productGroup.UsedCreditFormatted</td>
+                                            <td>@productGroup.TotalCreditFormatted</td>
+                                        }
+                                        else
+                                        {
+                                            <td class="subsidy-dim">&mdash;</td>
+                                            <td class="subsidy-dim">&mdash;</td>
+                                            <td class="subsidy-dim">&mdash;</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <details class="subsidy-history" id="@historyId">
+                    <summary>@T("Plugins.CW.Core.CustomerSubsidies.History")</summary>
+                    @if (subsidy.History.Count == 0)
+                    {
+                        <div class="subsidy-dim subsidy-history-empty">@T("Plugins.CW.Core.CustomerSubsidies.History.Empty")</div>
+                    }
+                    else
+                    {
+                        @await Html.PartialAsync("~/Plugins/CW.Core/Views/CustomerSubsidies/_HistoryTable.cshtml", subsidy.History)
+                    }
+                    @if (subsidy.EarlierSeasons.Count > 0)
+                    {
+                        <details class="subsidy-seasons">
+                            <summary>@string.Format(T("Plugins.CW.Core.CustomerSubsidies.History.EarlierSeasons").Text, subsidy.EarlierSeasons.Count)</summary>
+                            @foreach (var season in subsidy.EarlierSeasons)
+                            {
+                                <div class="subsidy-season">
+                                    <div class="subsidy-season-title">@string.Format(T("Plugins.CW.Core.CustomerSubsidies.History.Season").Text, season.SeasonStart, season.SeasonEnd)</div>
+                                    @if (season.HasActivity)
+                                    {
+                                        <div class="subsidy-season-summary">
+                                            @if (!string.IsNullOrEmpty(season.ToppedUpFormatted))
+                                            {
+                                                <span>@T("Plugins.CW.Core.CustomerSubsidies.History.Season.ToppedUp") <b>@season.ToppedUpFormatted</b></span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(season.UsedFormatted))
+                                            {
+                                                <span>@T("Plugins.CW.Core.CustomerSubsidies.History.Season.Used") <b>@season.UsedFormatted</b></span>
+                                            }
+                                            @if (season.UsedUnits != 0)
+                                            {
+                                                <span>@T("Plugins.CW.Core.CustomerSubsidies.History.Season.UnitsUsed") <b>@season.UsedUnits</b></span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="subsidy-dim subsidy-season-summary">@T("Plugins.CW.Core.CustomerSubsidies.History.Season.NoActivity")</div>
+                                    }
+                                    @await Html.PartialAsync("~/Plugins/CW.Core/Views/CustomerSubsidies/_HistoryTable.cshtml", season.History)
+                                </div>
+                            }
+                        </details>
+                    }
+                </details>
+            </div>
+        }
+    </div>
+</div>

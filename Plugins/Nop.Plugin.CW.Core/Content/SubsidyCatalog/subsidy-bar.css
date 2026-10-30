@@ -1,0 +1,395 @@
+/* ================================================================
+   BAR OUTER WRAPPER
+   ================================================================ */
+
+.subsidy-bar {
+    display: flex;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+
+/* ================================================================
+   TWO PANELS — AVAILABLE (left) and CART (right)
+   ================================================================ */
+
+.subsidy-available {
+    flex: 2;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+}
+
+.subsidy-cart {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ================================================================
+   PANEL TITLE BAR
+   ================================================================ */
+
+.subsidy-bar-title {
+    padding: 5px 12px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6c757d;
+    flex-shrink: 0;
+}
+
+
+/* ================================================================
+   AVAILABLE PANEL — CONTENT
+   gap replaces the old margin-bottom/padding-bottom spacers
+   ================================================================ */
+
+.subsidy-available-container {
+    padding: 10px 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+
+/* ================================================================
+   PACKNAME IDENTITY BLOCK
+   Horizontal wrapping row: name • branch • department • cost center
+   ================================================================ */
+
+.bar-packname-identity {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+    .bar-packname-identity > div {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* the packname's colour stays on who it is: its type icon and name take the container's colour. Its details
+       (branch, department, cost centre, PO) follow a thin divider, with grey icons of one size and darker grey text */
+    .bar-packname-identity .packname-name {
+        color: inherit;
+    }
+
+    .bar-packname-identity > div:first-child + div {
+        padding-left: 14px;
+        border-left: 1px solid #d5d9dd;
+    }
+
+    .bar-packname-identity > div + div span {
+        color: #495057;
+    }
+
+    .bar-packname-identity > div + div svg.cw-icon.packname-identity-icon {
+        color: #868e96;
+    }
+
+    /* CWIcon output: <svg class="cw-icon packname-identity-icon"> */
+    .bar-packname-identity svg.cw-icon.packname-identity-icon {
+        width: 13px;
+        height: 13px;
+        flex-shrink: 0;
+    }
+
+    /* PackNameTypeIcon output: <div class="packname-identity-icon packname-group|customer|no-customer"> */
+    .bar-packname-identity div.packname-identity-icon {
+        width: 13px;
+        height: 13px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .bar-packname-identity div.packname-identity-icon svg {
+            width: 13px;
+            height: 13px;
+            display: none;
+        }
+
+    /* Show only the SVG that matches the active packname type */
+    .bar-packname-identity .packname-identity-icon.packname-group .packname-group {
+        display: inline-block;
+    }
+
+    .bar-packname-identity .packname-identity-icon.packname-customer .packname-customer {
+        display: inline-block;
+    }
+
+    .bar-packname-identity .packname-identity-icon.packname-no-customer .packname-no-customer {
+        display: inline-block;
+    }
+
+.packname-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #212529;
+}
+
+.packname-branch,
+.packname-department,
+.packname-costcenter,
+.packname-po {
+    font-size: 0.78rem;
+    color: #6c757d;
+}
+
+
+/* ================================================================
+   BAR ITEMS LIST
+   Available panel: 2-column grid
+   Cart panel: stays flex column (overridden below)
+   ================================================================ */
+
+.subsidy-bar-items {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+}
+
+    /* 2-column grid for product groups */
+    .subsidy-bar-items.available-items {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 12px;
+        align-content: start;
+    }
+
+/* Global credit item spans the full 2-column width */
+.available-items .global-credit-item {
+    grid-column: 1 / -1;
+}
+
+
+/* ---- Single bar row ---- */
+
+.bar-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.83rem;
+    min-height: 20px;
+}
+
+    .bar-item .pg-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+
+    .bar-item .pg-name {
+        flex: 1;
+        font-size: 0.83rem;
+        color: #495057;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        text-align: left;
+    }
+
+    /* Global credit chip */
+    .bar-item.global-credit-item .pg-credit {
+        font-weight: 700;
+        color: #004085;
+        background-color: #cce5ff;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 0.78rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+
+/* ---- PG quantity usage (circles + badges) ---- */
+
+.pg-usage {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+    .pg-usage .circle {
+        width: 12px;
+        height: 12px;
+    }
+
+    .pg-usage .qty-badge {
+        min-width: 20px;
+        height: 16px;
+        font-size: 0.65rem;
+        padding: 0 3px;
+        border-radius: 8px;
+    }
+
+    .pg-usage .pg-credit {
+        font-size: 0.75rem;
+        color: #004085;
+        font-weight: 600;
+        white-space: nowrap;
+        margin-left: 2px;
+    }
+
+.pg-unavailable {
+    font-size: 0.72rem;
+    color: #adb5bd;
+    font-style: italic;
+}
+
+
+/* ================================================================
+   LEGEND + TOPUP BUTTON
+   Spacing comes from parent gap (8px) — no margin-top needed
+   ================================================================ */
+
+.subsidy-bar-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    color: #6c757d;
+    white-space: nowrap;
+}
+
+    .legend-item .circle {
+        width: 10px;
+        height: 10px;
+    }
+
+.change-topup-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-right: auto;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #00549f;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    line-height: 1;
+}
+
+    .change-topup-btn:hover {
+        color: #003d7a;
+        text-decoration: underline;
+    }
+
+    .change-topup-btn:focus {
+        outline: 2px solid rgba(0, 84, 159, 0.25);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+/* ================================================================
+   CART PANEL — ITEMS
+   ================================================================ */
+
+.subsidy-bar-items.cart-items {
+    padding: 10px 12px;
+    gap: 0;
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.83rem;
+    padding: 4px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+    .cart-item .pg-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+    }
+
+    .cart-item:last-child {
+        border-bottom: none;
+    }
+
+    .cart-item.global-credit-item .pg-credit {
+        background-color: #cce5ff;
+        color: #004085;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+.pg-cart-usage {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+    .pg-cart-usage .pg-qty {
+        font-weight: 700;
+        color: #343a40;
+        min-width: 16px;
+        text-align: center;
+        font-size: 0.83rem;
+    }
+
+    .pg-cart-usage .pg-credit {
+        font-size: 0.75rem;
+        color: #004085;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+
+@media (max-width: 767px) {
+    .subsidy-bar {
+        flex-direction: column;
+    }
+
+    .subsidy-available {
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    /* Collapse to single column on mobile */
+    .subsidy-bar-items.available-items {
+        grid-template-columns: 1fr;
+    }
+
+    .pg-name {
+        white-space: normal;
+    }
+}

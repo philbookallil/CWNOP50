@@ -1,0 +1,293 @@
+﻿@model PackNameRegisterModel
+
+@if (Model.CanAddCustomer)
+{
+    <div class="fieldset add-customer-checkbox">
+        <div class="inputs">
+            <label asp-for="AddCustomer"></label>
+            <input asp-for="AddCustomer" />
+            <span asp-validation-for="AddCustomer"></span>
+        </div>
+    </div>
+    <script asp-location="Footer">
+        $(document).ready(function () {
+            function toggleAddCustomer () {
+                if ($('#@Html.IdFor(model => model.AddCustomer)').is(':checked')) {
+                    $('.add-customer').show();
+                    $('.packname-register-title-icon').addClass('packname-customer');
+                } else {
+                    $('.add-customer').hide();
+                    $('.packname-register-title-icon').removeClass('packname-customer');
+                }
+            }
+
+            $('#@Html.IdFor(model => model.AddCustomer)').click(toggleAddCustomer);
+            toggleAddCustomer();
+
+            function toggleCustomerData () {
+                if ($('#@Html.IdFor(model => model.Group)').is(':checked')) {
+                    if ($('#@Html.IdFor(model => model.AddCustomer)').is(':checked')) {
+                        // Uncheck AddCustomer
+                        $('#@Html.IdFor(model => model.AddCustomer)').prop('checked', false);
+                        toggleAddCustomer();
+                    }
+                    $('.add-customer-checkbox').hide();
+                } else {
+                    $('.add-customer-checkbox').show();
+                    toggleAddCustomer();
+                }
+            }
+
+            $('#@Html.IdFor(model => model.Group)').click(toggleCustomerData);
+            toggleCustomerData();
+
+            if ($('.packname-customer-fields').has('select[data-trigger="country-select"]')) {
+                $('.packname-customer-fields select[data-trigger="country-select"]').countrySelect();
+            }
+        });
+    </script>
+    <div class="fieldset add-customer">
+        <div class="form-fields">
+            <div class="title">
+                @T("Account.YourPersonalDetails")
+            </div>
+            @if (Model.Customer.GenderEnabled)
+            {
+                <div class="inputs">
+                    <label for="customer-gender">@T("Account.Fields.Gender"):</label>
+                    <div id="customer-gender" class="gender">
+                        <span class="male">
+                            <input type="radio" asp-for="Customer.Gender" value="M" checked="@(Model.Customer.Gender == "M")" id="customer-gender-male" />
+                            <label class="forcheckbox" for="customer-gender-male">@T("Account.Fields.Gender.Male")</label>
+                        </span>
+                        <span class="female">
+                            <input type="radio" asp-for="Customer.Gender" value="F" checked="@(Model.Customer.Gender == "F")" id="customer-gender-female" />
+                            <label class="forcheckbox" for="customer-gender-female">@T("Account.Fields.Gender.Female")</label>
+                        </span>
+                    </div>
+                    <span asp-validation-for="Customer.Gender"></span>
+                </div>
+            }
+            @if (Model.Customer.FirstNameEnabled)
+            {
+                <div class="inputs">
+                    <label asp-for="Customer.FirstName" asp-postfix=":"></label>
+                    <input asp-for="Customer.FirstName" />
+                    @if (Model.Customer.FirstNameRequired)
+                    {
+                        <nop-required />
+                    }
+                    <span asp-validation-for="Customer.FirstName"></span>
+                </div>
+            }
+            @if (Model.Customer.LastNameEnabled)
+            {
+                <div class="inputs">
+                    <label asp-for="Customer.LastName" asp-postfix=":"></label>
+                    <input asp-for="Customer.LastName" />
+                    @if (Model.Customer.LastNameRequired)
+                    {
+                        <nop-required />
+                    }
+                    <span asp-validation-for="Customer.LastName"></span>
+                </div>
+            }
+            @if (Model.Customer.DateOfBirthEnabled)
+            {
+                <div class="inputs date-of-birth">
+                    <label>@T("Account.Fields.DateOfBirth"):</label>
+                    <nop-date-picker asp-day-name="@Html.NameFor(x => x.Customer.DateOfBirthDay)"
+                                     asp-month-name="@Html.NameFor(x => x.Customer.DateOfBirthMonth)"
+                                     asp-year-name="@Html.NameFor(x => x.Customer.DateOfBirthYear)"
+                                     asp-begin-year="@(DateTime.Now.AddYears(-110))"
+                                     asp-end-year="@(DateTime.UtcNow)"
+                                     asp-selected-date="@Model.Customer.ParseDateOfBirth()" />
+                    @if (Model.Customer.DateOfBirthRequired)
+                    {
+                        <nop-required />
+                    }
+                    <span asp-validation-for="Customer.DateOfBirthDay"></span>
+                    <span asp-validation-for="Customer.DateOfBirthMonth"></span>
+                    <span asp-validation-for="Customer.DateOfBirthYear"></span>
+                </div>
+            }
+            <div class="inputs">
+                <label asp-for="Customer.Email" asp-postfix=":"></label>
+                <input asp-for="Customer.Email" />
+                <nop-required />
+                <span asp-validation-for="Customer.Email"></span>
+            </div>
+            @if (Model.Customer.UsernamesEnabled)
+            {
+                <div class="inputs">
+                    <label asp-for="Customer.Username" asp-postfix=":"></label>
+                    <input asp-for="Customer.Username" />
+                    <nop-required />
+                    <span asp-validation-for="Customer.Username"></span>
+                    @if (Model.Customer.CheckUsernameAvailabilityEnabled)
+                    {
+                        @await Html.PartialAsync("_CheckUsernameAvailability")
+                    }
+                </div>
+
+            }
+        </div>
+    </div>
+    @if (Model.Customer.StreetAddressEnabled ||
+               Model.Customer.StreetAddress2Enabled ||
+               Model.Customer.ZipPostalCodeEnabled ||
+               Model.Customer.CityEnabled ||
+               Model.Customer.CountyEnabled ||
+               Model.Customer.CountryEnabled)
+    {
+        <div class="fieldset add-customer packname-customer-fields">
+            <div class="form-fields">
+                <div class="title">
+                    @T("Account.YourAddress")
+                </div>
+                @if (Model.Customer.StreetAddressEnabled)
+                {
+                    <div class="inputs">
+                        <label asp-for="Customer.StreetAddress" asp-postfix=":"></label>
+                        <input asp-for="Customer.StreetAddress" />
+                        @if (Model.Customer.StreetAddressRequired)
+                        {
+                            <nop-required />
+                        }
+                        <span asp-validation-for="Customer.StreetAddress"></span>
+                    </div>
+                }
+                @if (Model.Customer.StreetAddress2Enabled)
+                {
+                    <div class="inputs">
+                        <label asp-for="Customer.StreetAddress2" asp-postfix=":"></label>
+                        <input asp-for="Customer.StreetAddress2" />
+                        @if (Model.Customer.StreetAddress2Required)
+                        {
+                            <nop-required />
+                        }
+                        <span asp-validation-for="Customer.StreetAddress2"></span>
+                    </div>
+                }
+                @if (Model.Customer.ZipPostalCodeEnabled)
+                {
+                    <div class="inputs">
+                        <label asp-for="Customer.ZipPostalCode" asp-postfix=":"></label>
+                        <input asp-for="Customer.ZipPostalCode" />
+                        @if (Model.Customer.ZipPostalCodeRequired)
+                        {
+                            <nop-required />
+                        }
+                        <span asp-validation-for="Customer.ZipPostalCode"></span>
+                    </div>
+                }
+                @if (Model.Customer.CountyEnabled)
+                {
+                    <div class="inputs">
+                        <label asp-for="Customer.County" asp-postfix=":"></label>
+                        <input asp-for="Customer.County" />
+                        @if (Model.Customer.CountyRequired)
+                        {
+                            <nop-required />
+                        }
+                        <span asp-validation-for="Customer.County"></span>
+                    </div>
+                }
+                @if (Model.Customer.CityEnabled)
+                {
+                    <div class="inputs">
+                        <label asp-for="Customer.City" asp-postfix=":"></label>
+                        <input asp-for="Customer.City" />
+                        @if (Model.Customer.CityRequired)
+                        {
+                            <nop-required />
+                        }
+                        <span asp-validation-for="Customer.City"></span>
+                    </div>
+                }
+                @if (Model.Customer.CountryEnabled)
+                {
+                    <div class="inputs">
+                        <label asp-for="Customer.CountryId" asp-postfix=":"></label>
+                        <select asp-for="Customer.CountryId" asp-items="Model.Customer.AvailableCountries"
+                                data-trigger="country-select"
+                                data-url="@(Url.RouteUrl("GetStatesByCountryId"))"
+                                data-stateprovince="#@Html.IdFor(model => model.Customer.StateProvinceId)"
+                                data-loading="#states-loading-progress"></select>
+                        @if (Model.Customer.CountryRequired)
+                        {
+                            <nop-required />
+                        }
+                        <span asp-validation-for="Customer.CountryId"></span>
+                    </div>
+                }
+                @if (Model.Customer.CountryEnabled && Model.Customer.StateProvinceEnabled)
+                {
+                    <div class="inputs">
+                        <label asp-for="Customer.StateProvinceId" asp-postfix=":"></label>
+                        <select asp-for="Customer.StateProvinceId" asp-items="Model.Customer.AvailableStates"></select>
+                        @if (Model.Customer.StateProvinceRequired)
+                        {
+                            <nop-required />
+                        }
+                        <span id="states-loading-progress" style="display: none;" class="please-wait">@T("Common.Wait")</span>
+                        <span asp-validation-for="Customer.StateProvinceId"></span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    @if (Model.Customer.PhoneEnabled || Model.Customer.FaxEnabled)
+    {
+        <div class="fieldset add-customer">
+            <div class="form-fields">
+                <div class="title">
+                    @T("Account.YourContactInformation")
+                </div>
+                @if (Model.Customer.PhoneEnabled)
+                {
+                    <div class="inputs">
+                        <label asp-for="Customer.Phone" asp-postfix=":"></label>
+                        <input asp-for="Customer.Phone" />
+                        @if (Model.Customer.PhoneRequired)
+                        {
+                            <nop-required />
+                        }
+                        <span asp-validation-for="Customer.Phone"></span>
+                    </div>
+                }
+                @if (Model.Customer.FaxEnabled)
+                {
+                    <div class="inputs">
+                        <label asp-for="Customer.Fax" asp-postfix=":"></label>
+                        <input asp-for="Customer.Fax" />
+                        @if (Model.Customer.FaxRequired)
+                        {
+                            <nop-required />
+                        }
+                        <span asp-validation-for="Customer.Fax"></span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    @if (Model.Customer.CustomerAttributes.Count > 0)
+    {
+        <div class="fieldset add-customer">
+            <div class="form-fields">
+                <div class="title">
+                    @T("Account.Options")
+                </div>
+                @await Html.PartialAsync("~/Views/Customer/_CustomerAttributes.cshtml", Model.Customer.CustomerAttributes)
+            </div>
+        </div>
+    }
+}
+else if (Model.IsCustomer)
+{
+    <script asp-location="Footer">
+        $(document).ready(function () {
+            $('.packname-register-title-icon').addClass('customer');
+        });
+    </script>
+}

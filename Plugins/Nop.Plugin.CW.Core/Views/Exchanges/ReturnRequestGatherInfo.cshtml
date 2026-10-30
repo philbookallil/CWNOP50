@@ -1,0 +1,319 @@
+@using Nop.Core
+@using Nop.Plugin.CW.Core.Models.Exchanges;
+@using Nop.Plugin.CW.Core.Domain.Exchanges;
+@using Nop.Plugin.CW.Core.Models.ReturnRequests;
+@using Nop.Plugin.CW.Core.Extensions;
+@using Nop.Plugin.CW.Core.Services.Exchanges
+
+@model ReturnRequestGatherInfoModel
+
+@inject IStoreContext storeContext
+@inject IExchangesDisplayService exchangesDisplayService
+
+@{
+    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
+
+    //title
+    NopHtml.AddTitleParts(T("Plugins.CW.Core.Exchanges.Wizard.PageTitle").Text);
+    //page class
+    NopHtml.AppendPageCssClassParts("html-return-request-page");
+
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Exchanges/exchanges-wizard.css");
+
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Exchanges/exchanges-gather.js");
+
+    var storeId = (await storeContext.GetCurrentStoreAsync()).Id;
+    var exactExchangeName = await exchangesDisplayService.GetExchangeTypeNameAsync(ExchangeType.Exact);
+}
+
+<div class="page return-request-page additional-data cw-return-wizard">
+    <div class="page-body">
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="wizard-error" role="alert" tabindex="-1" id="wizard-error">
+                <span class="wizard-error-icon" aria-hidden="true">!</span>
+                <div asp-validation-summary="All"></div>
+            </div>
+        }
+        @await Html.PartialAsync("_WizardSteps", 3)
+        @if (Model.EnabledExchangeModes.Count > 0)
+        {
+            <form asp-action="ReturnRequestSummary" asp-controller="Exchanges" method="post" id="gather-info-form">
+
+                @Html.AntiForgeryToken()
+
+                <!-- Hidden fields to preserve model data across steps -->
+                @Html.HiddenFor(m => m.Comments)
+                @Html.HiddenFor(m => m.OrderId)
+                @Html.HiddenFor(m => m.ReturnRequestActionId)
+                @Html.HiddenFor(m => m.ReturnRequestReasonId)
+                @Html.HiddenFor(m => m.UploadedFileGuid)
+                @Html.HiddenFor(m => m.ReturnRequestGroupId)
+                <input type="hidden" name="exchange_mode" id="exchange_mode" value="@((int?)Model.Mode)" />
+
+                <!-- STEP 1: Mode Selection -->
+                <div class="step-1-mode-selection">
+                    <div class="step-container">
+                        <div class="step-text">
+                            @T("Plugins.CW.Core.Exchanges.Wizard.ChooseMode")
+                        </div>
+                    </div>
+
+                    <div class="return-modes-wrapper">
+                        <div class="form-fields centered-text">
+                            @foreach (var exchangeMode in Model.EnabledExchangeModes)
+                            {
+                                switch (exchangeMode)
+                                {
+                                    case ExchangeReturnMode.CreditNote:
+                                        <button type="submit" name="mode_button" value="@Html.Raw((int)ExchangeReturnMode.CreditNote)" class="button-1 mode-button" data-mode="creditnote">
+                                            @T("Plugins.CW.Core.Exchanges.Wizard.RequestCreditNote")
+                                        </button>
+                                        break;
+
+                                    case ExchangeReturnMode.Exchange:
+                                        <button id="btnExchangeMode" type="button" name="mode_button" value="@Html.Raw((int)ExchangeReturnMode.Exchange)" class="button-1 mode-button" data-mode="exchange">
+                                            @T("Plugins.CW.Core.Exchanges.Wizard.RequestExchange")
+                                        </button>
+                                        break;
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Item Details & Exchange Type Selection -->
+                @if (Model.ReturnedItems != null && Model.ReturnedItems.Count > 0)
+                {
+                    <div class="step-2-item-details">
+                        <!-- Credit Note Mode Header -->
+                        <div class="step-container creditnote-section is-hidden">
+                            <div class="step-text">
+                                @T("Plugins.CW.Core.Exchanges.Wizard.CreditNoteItems")
+                            </div>
+                        </div>
+
+                        <!-- Exchange Mode Header -->
+                        <div class="step-container exchange-section is-hidden">
+                            <div class="step-text">
+                                @T("Plugins.CW.Core.Exchanges.Wizard.ExchangeItems")
+                            </div>
+                        </div>
+
+                        <!-- Returned Items Table -->
+                        <div class="table-wrapper returned-items-list">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-num"><span class="item-count">#</span></th>
+                                        <th class="col-product">@T("Plugins.CW.Core.Exchanges.Wizard.Columns.Product")</th>
+                                        <th class="col-price">@T("Plugins.CW.Core.Exchanges.Wizard.Columns.UnitFullPrice")</th>
+                                        <th class="col-qty">@T("Plugins.CW.Core.Exchanges.Wizard.Columns.Quantity")</th>
+                                        <th class="col-exchange-type exchange-table is-hidden">@T("Plugins.CW.Core.Exchanges.Wizard.Columns.ExchangeType")</th>
+                                        <th class="col-product exchange-table is-hidden">@T("Plugins.CW.Core.Exchanges.Wizard.Columns.ExchangeProduct")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        var counter = 0;
+                                    }
+                                    @foreach (var item in Model.ReturnedItems)
+                                    {
+                                        counter++;
+                                        var returnedOrderItem = item.Item;
+                                        var cwReturnedOrderItem = returnedOrderItem as CWSubmitReturnRequestModel.CWOrderItemModel;
+
+                                        <tr class="returned-item" data-orderitem-id="@returnedOrderItem.Id">
+                                            <td>
+                                                <span class="item-count">@counter</span>
+                                            </td>
+                                            <td class="product" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.Product")">
+                                                <input type="hidden" class="product-id" name="product_id_@returnedOrderItem.Id" value="@returnedOrderItem.ProductId" />
+                                                <input type="hidden" name="returned_item_qty_@returnedOrderItem.Id" value="@item.ReturnedQuantity" />
+
+                                                <div class="item-with-thumb">
+                                                    @if (!string.IsNullOrEmpty(cwReturnedOrderItem?.PictureUrl))
+                                                    {
+                                                        <span class="item-thumb">
+                                                            <img src="@cwReturnedOrderItem.PictureUrl" alt="@returnedOrderItem.ProductName" loading="lazy" />
+                                                        </span>
+                                                    }
+                                                    <span class="item-detail">
+                                                        <span class="product-name">@returnedOrderItem.ProductName</span>
+                                                        @if (!string.IsNullOrEmpty(returnedOrderItem.AttributeInfo))
+                                                        {
+                                                            <span class="attributes">@Html.Raw(returnedOrderItem.AttributeInfo)</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(cwReturnedOrderItem?.Packname))
+                                                        {
+                                                            <span class="item-packname"><strong>@T("Plugins.CW.Core.Exchanges.Wizard.Fields.Packname"):</strong> @cwReturnedOrderItem.Packname</span>
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="unit-price" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.UnitFullPrice")">
+                                                @item.UnitPriceDisplay
+                                            </td>
+                                            <td class="quantity" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.Quantity")">
+                                                @item.ReturnedQuantity
+                                            </td>
+                                            <!-- Exchange Type Dropdown (Exchange mode only) -->
+                                            <td class="exchange-table exchange-type-cell is-hidden" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.ExchangeType")">
+                                                @Html.DropDownList("exchange_mode_" + returnedOrderItem.Id, item.AvailableExchangeTypes, new { @class = "exchange-type-selector", data_orderitem_id = returnedOrderItem.Id, data_product_id = returnedOrderItem.ProductId, aria_label = string.Format(T("Plugins.CW.Core.Exchanges.Wizard.ExchangeTypeFor").Text, returnedOrderItem.ProductName) })
+                                            </td>
+                                            <!-- Replacement Product Container (Exchange mode only) -->
+                                            <td class="exchange-table replacement-product-cell is-hidden" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.ExchangeProduct")">
+                                                <div class="replacement-item-container" data-orderitem-id="@returnedOrderItem.Id">
+                                                    <div class="item-selection-placeholder">
+                                                        <div class="item-with-thumb">
+                                                            @if (item.ReplacementProduct != null && !string.IsNullOrEmpty(item.ReplacementProduct.PictureUrl))
+                                                            {
+                                                                <span class="item-thumb">
+                                                                    <img src="@item.ReplacementProduct.PictureUrl" alt="@item.ReplacementProduct.ProductName" loading="lazy" />
+                                                                </span>
+                                                            }
+                                                            <span class="item-detail">
+                                                                <span class="item-name product-name">@(item.ReplacementProduct?.ProductName ?? (item.ExchangeTypeId == (int)ExchangeType.Exact ? exactExchangeName : T("Plugins.CW.Core.Exchanges.Wizard.NoReplacement").Text))</span>
+                                                                <span class="item-attrs attributes">@Html.Raw(item.ReplacementProduct?.AttributesInfo)</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="item-actions@(item.ReplacementProduct != null ? " has-replacement" : "")">
+                                                        <a class="action-link edit" href="#" role="button" data-orderitem-id="@returnedOrderItem.Id" data-product-name="@returnedOrderItem.ProductName" onclick="return false;">@T("Plugins.CW.Core.Exchanges.Wizard.Change")</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Fees that may apply (exchange mode only, and only when any are configured) -->
+                        @if (Model.EstimatedFees.Count > 0)
+                        {
+                            <div class="fees-summary-section exchange-section is-hidden">
+                                <div class="step-container">
+                                    <div class="step-text">
+                                        @T("Plugins.CW.Core.Exchanges.Wizard.Fees.Title")
+                                    </div>
+                                </div>
+
+                                <div class="fees-list">
+                                    <ul class="fee-items">
+                                        @foreach (var fee in Model.EstimatedFees)
+                                        {
+                                            <li class="fee-item">
+                                                <span class="fee-name">@fee.Concept</span>
+                                                <span class="fee-amount">@fee.AmountDisplay</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                    <p class="info-text">
+                                        @T("Plugins.CW.Core.Exchanges.Wizard.Fees.Disclaimer")
+                                    </p>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Action Buttons -->
+                        <div class="buttons wizard-actions">
+                            <p class="next-step-hint exchange-section is-hidden" id="next-step-hint" role="status"></p>
+
+                            <div class="wizard-actions-row">
+                                <a class="wizard-back" asp-controller="ReturnRequest" asp-action="ReturnRequest" asp-route-orderId="@Model.OrderId">
+                                    @T("Plugins.CW.Core.Exchanges.Wizard.Back")
+                                </a>
+                                <span class="wizard-actions-spacer"></span>
+                                <button type="submit" class="button-1 confirm-return-request-button creditnote-section is-hidden">
+                                    @T("Plugins.CW.Core.Exchanges.Wizard.NextStep")
+                                </button>
+                                <button type="submit" id="confirmExchangeRequest" class="button-1 confirm-return-request-button exchange-section is-hidden">
+                                    @T("Plugins.CW.Core.Exchanges.Wizard.NextStep")
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <div class="replacements-wrapper">
+                    @foreach (var restored in Model.ReturnedItems.Where(i => i.ReplacementProduct != null))
+                    {
+                        <div class="inputs-wrapper-@restored.Item.Id">
+                            <input type="hidden" name="replacement_id_@restored.Item.Id" value="@restored.ReplacementProduct.ProductId" />
+                            @foreach (var attr in restored.ReplacementProduct.Attributes)
+                            {
+                                <input type="hidden" name="attr_id_@(restored.Item.Id)_@(restored.ReplacementProduct.ProductId)_@attr.AttributeId" value="@attr.AttributeValueId" />
+                            }
+                        </div>
+                    }
+                </div>
+            </form>
+
+            <!-- Modal for Style/Product Selection (Exchange mode) -->
+            @await Html.PartialAsync("_ExchangePickerModal")
+        }
+        else
+        {
+            <!-- No exchange modes available for this reason/action combination -->
+            <div class="wizard-error" role="alert" tabindex="-1" id="wizard-error">
+                <span class="wizard-error-icon" aria-hidden="true">!</span>
+                <div class="wizard-error-body">
+                    <p class="wizard-error-text">
+                        @T("Plugins.CW.Core.Exchanges.Wizard.NoReturnOptions")
+                    </p>
+                    <a class="button-1 wizard-error-action" asp-controller="ReturnRequest" asp-action="ReturnRequest" asp-route-orderId="@Model.OrderId">
+                        @T("Plugins.CW.Core.Exchanges.Wizard.ChooseDifferentReason")
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<script asp-location="Footer">
+    $(function () {
+        cwExchangesGather.init({
+            replacementListUrl: '@Url.Action("ReplacementProductList", "Exchanges")',
+            replacementOptionsUrl: '@Url.Action("ReplacementProductOptions", "Exchanges")',
+            actionsForReasonUrl: '@Html.Raw(Url.Action("GetActionsForReason", "Exchanges"))',
+            storeId: @(storeId),
+            reasonSelectId: 'ReturnRequestReasonId',
+            actionSelectId: 'ReturnRequestActionId',
+            exchangeType: {
+                sameStyle: @((int)ExchangeType.SameStyle),
+                differentStyle: @((int)ExchangeType.DifferentStyle),
+                exact: @((int)ExchangeType.Exact)
+            },
+            exchangeMode: {
+                exchange: @((int)ExchangeReturnMode.Exchange),
+                creditNote: @((int)ExchangeReturnMode.CreditNote)
+            },
+            @* JSON-encoded, so a translation with a quote cannot break the script *@
+            text: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                ["pickerTitle"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.Title").Text,
+                ["loadingProducts"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.LoadingProducts").Text,
+                ["loadingOptions"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.LoadingOptions").Text,
+                ["loadProductsError"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.LoadProductsError").Text,
+                ["loadOptionsError"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.LoadOptionsError").Text,
+                ["selectAllOptions"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.SelectAllOptions").Text,
+                ["optionsNotAvailable"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.OptionsNotAvailable").Text,
+                ["chooseTypeSingular"] = T("Plugins.CW.Core.Exchanges.Wizard.Hint.ChooseTypeSingular").Text,
+                ["chooseTypePlural"] = T("Plugins.CW.Core.Exchanges.Wizard.Hint.ChooseTypePlural").Text,
+                ["chooseReplacementSingular"] = T("Plugins.CW.Core.Exchanges.Wizard.Hint.ChooseReplacementSingular").Text,
+                ["chooseReplacementPlural"] = T("Plugins.CW.Core.Exchanges.Wizard.Hint.ChooseReplacementPlural").Text,
+                ["noReplacement"] = T("Plugins.CW.Core.Exchanges.Wizard.NoReplacement").Text,
+                ["exactExchange"] = exactExchangeName,
+                ["chooseReplacement"] = T("Plugins.CW.Core.Exchanges.Wizard.ChooseReplacement").Text,
+                ["changeReplacement"] = T("Plugins.CW.Core.Exchanges.Wizard.Change").Text,
+                ["chooseReplacementFor"] = T("Plugins.CW.Core.Exchanges.Wizard.ChooseReplacementFor").Text,
+                ["changeReplacementFor"] = T("Plugins.CW.Core.Exchanges.Wizard.ChangeReplacementFor").Text
+            }))
+        });
+
+        var errorPanel = document.getElementById('wizard-error');
+        if (errorPanel) {
+            errorPanel.focus();
+            errorPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+</script>

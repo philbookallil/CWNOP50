@@ -1,0 +1,40 @@
+﻿@model BulkOrderGridModel
+
+@*The product page's equivalent of #bulk-order-content. The data-* attributes are the ones bulk-order.js
+  reads off its scope root - the add endpoint, the antiforgery-protected POST's messages, and the
+  over-maximum wording that flagOverMax quotes. The list's paging attributes (data-url, data-typed-lost,
+  data-load-failed) are deliberately absent: there is no pager here and nothing to page away from.
+
+  The token sits OUTSIDE the scope root for the same reason it does on the list page (BulkOrdering.cshtml
+  :90-95): a grid reload replaces the card's markup, and a token destroyed mid-session takes every add
+  with it. Here the card is replaced by the Grid endpoint on every pin change, so the risk is identical.
+
+  No product name, SKU, price or image: the product page has just said all four, directly above this.*@
+
+<div class="bulk-order-product-page"
+     data-add-url="@Url.RouteUrl(CWCoreDefaults.BULKORDER_ADDTOCART)"
+     data-added="@T("Plugins.CW.Core.BulkOrder.AddToCart.Added")"
+     data-some-failed="@T("Plugins.CW.Core.BulkOrder.AddToCart.SomeFailed")"
+     data-add-failed="@T("Plugins.CW.Core.BulkOrder.AddToCart.Failed")"
+     data-nothing="@T("Plugins.CW.Core.BulkOrder.AddToCart.Nothing")"
+     data-exceeds-stock="@T("ShoppingCart.QuantityExceedsStock")"
+     data-invalid-quantity="@T("Plugins.CW.Core.BulkOrder.InvalidQuantity")"
+     data-add-busy="@T("Plugins.CW.Core.BulkOrder.AddToCart.Busy")"
+     data-grid-busy="@T("Plugins.CW.Core.BulkOrder.Grid.Busy")"
+     data-grid-failed="@T("Plugins.CW.Core.BulkOrder.Grid.Failed")"
+     data-grid-lost="@T("Plugins.CW.Core.BulkOrder.Grid.QuantitiesLost")">
+    @await Html.PartialAsync("~/Plugins/CW.Core/Views/BulkOrder/_Grid.cshtml", Model)
+</div>
+
+@*No antiforgery token of its own: nop writes one at the top of every page, and in the product form's zone a second
+  field of the same name breaks that form's own posts (Estimate shipping). The script reads the page's token.*@
+
+<script asp-location="Footer">
+    document.addEventListener('DOMContentLoaded', function () {
+        @*guarded because initCard arrives in step 5. Until then the grid renders and reads correctly and
+          its controls do nothing, which is the intended state for the step that only asks "does it appear,
+          in the right place, in both themes".*@
+        if (window.CW && CW.BulkOrder && CW.BulkOrder.initCard)
+            CW.BulkOrder.initCard(document.querySelector('.bulk-order-product-page'));
+    });
+</script>

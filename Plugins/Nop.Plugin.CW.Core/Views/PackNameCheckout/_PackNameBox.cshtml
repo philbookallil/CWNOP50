@@ -1,0 +1,66 @@
+@model PackNameBoxModel
+
+@using Nop.Plugin.CW.Core.Helpers
+
+@{
+    var packNameIconClass = Model.Item.PackNameModel.Group ? "packname-group" : (Model.Item.PackNameModel.IsCustomer ? "packname-customer" : "packname-no-customer");
+    var shippingAddress = Model.ShippingData.Address;
+    var colour = PackNameColourHelper.Normalize(Model.Item.PackNameModel.Colour);
+}
+
+<div class="pack-name-panel pack-name-panel-@Model.Item.PackNameModel.Id with-body @(Model.ShippingData.ShippingMethod.Warnings.Count > 0 ? "with-errors" : string.Empty)" data-itemid="@Model.Item.Id">
+    <div class="pack-name-panel-header collapsed">
+        <div class="pack-name-header-info">
+            <div class="pack-name-info">
+                <div class="pack-name-name" style="color: @colour">
+                    @Html.PackNameTypeIcon(packNameIconClass, "pack-name-icon")
+                    <span>@Model.Item.PackNameModel.Name</span>
+                </div>
+                <div class="pack-name-branch">
+                    @Html.CWIcon("cw-icon-truck", "pack-name-branch-icon")
+                    <span>@Model.Item.PackNameModel.Branch</span>
+                </div>
+            </div>
+            <div class="pack-name-shipping-method">
+                @Html.CWIcon("cw-icon-truck", "pack-name-shipping-method-icon")
+                <div class="pack-name-shipping-method-info">
+                    @if (!string.IsNullOrEmpty(Model.ShippingData.SelectedShippingMethod))
+                    {
+                        <span class="pack-name-shipping-method-name">@Model.ShippingData.SelectedShippingMethod</span>
+                    }
+                    else
+                    {
+                        <span class="pack-name-shipping-method-name">@T("Plugins.CW.Core.PackNameCheckout.ShippingMethod.NotSelected")</span>
+                    }
+                </div>
+            </div>
+            <div class="pack-name-shipping-address">
+                @Html.CWIcon("cw-icon-location", "pack-name-shipping-address-icon")
+                <div class="pack-name-shipping-address-info">
+                    @if (shippingAddress != null && shippingAddress.Id > 0)
+                    {
+                        <span class="pack-name-shipping-address-name">@await Html.PartialAsync("_ShippingAddressName", shippingAddress)</span>
+                    }
+                    else
+                    {
+                        <span class="pack-name-shipping-address-name">@T("Plugins.CW.Core.PackNameCheckout.ShippingAddresses.NotSelected")</span>
+                    }
+                    @if (Model.AvailableAddresses.Count > 1)
+                    {
+                        <div class="pack-name-shipping-addresses-available">
+                            <span>@T("Plugins.CW.Core.PackNameCheckout.ShippingAddresses.Available", Model.AvailableAddresses.Count)</span>
+                            <span class="pack-name-shipping-addresses-see-more">@T("Plugins.CW.Core.PackNameCheckout.ShippingAddresses.Available.SeeMore")</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="toggle-icon">
+            <div class="arrow"></div>
+        </div>
+    </div>
+    <div class="pack-name-panel-body" style="display: none;">
+        @await Html.PartialAsync("_PackNameBoxBody", Model)
+    </div>
+    <div id="pack-name-errors-@Model.Item.Id" class="pack-name-panel-errors message-error"></div>
+</div>

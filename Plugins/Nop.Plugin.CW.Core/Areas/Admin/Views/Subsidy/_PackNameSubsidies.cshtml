@@ -1,0 +1,379 @@
+﻿@model PackNameSubsidiesModel
+
+@* The refresh buttons keep their ids: the four popups are handed them as btnRefreshId and click them on
+   close. Their behaviour, and the grid buttons', lives in the delegated handlers that
+   Shared/Components/PackNameSubsidies/Default.cshtml attaches to .packname-subsidies-container, so this
+   partial carries no script. The values that script needs arrive through .pns-config below. *@
+<div class="pns-config"
+     data-prefix="@Model.Prefix"
+     data-topup-popup-url="@Url.Action("ProductGroupTopupEditPopup", "Subsidy")"
+     style="display: none;"></div>
+<button type="button" id="@Model.Prefix-btnRefreshSubsidyTopupInfo" class="pns-reload" style="display: none;"></button>
+
+@if (Model.Subsidies.Count == 0)
+{
+    <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.NoSubsidies")</span>
+}
+else
+{
+    foreach (var subsidy in Model.Subsidies)
+    {
+        <div class="packname-subsidy-container">
+            <div class="subsidy-title">
+                <span>@subsidy.Name</span>
+            </div>
+            <div class="subsidy-body">
+                <div class="subsidy-description">
+                    <span>@subsidy.Description</span>
+                </div>
+                <div class="subsidy-info">
+                    <div class="subsidy-info-title">
+                        <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Info")</span>
+                    </div>
+                    <div class="subsidy-info-body">
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.Credit")</span>
+                            @if (Model.MultiStoreSettingsModel.PackNamesOwnGlobalValue)
+                            {
+                                <div class="subsidy-topup">
+                                    <span>@subsidy.CreditFormatted</span>
+                                    <a title="@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Variation.Change")" onclick="javascript:OpenWindow('@(Url.Action("SubsidyVariationEditPopup", "Subsidy", new {subsidyPackNameId = subsidy.Id, btnRefreshId = Model.Prefix + "-btnRefreshSubsidyTopupInfo"}))', 600, 400, true); return false;" class="btn-change-topup">
+                                        @T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Variation.Change")
+                                    </a>
+                                </div>
+                            }
+                            else
+                            {
+                                <span>@subsidy.CreditFormatted</span>
+                            }
+                        </div>
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.TopupCredit")</span>
+                            <div class="subsidy-topup">
+                                <span>@subsidy.TopupCreditFormatted</span>
+                                @if (subsidy.InOrderingPeriod)
+                                {
+                                    <a title="@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.Topup.Change.Hint")" onclick="javascript:OpenWindow('@(Url.Action("SubsidyTopupEditPopup", "Subsidy", new {subsidyPackNameId = subsidy.Id, btnRefreshId = Model.Prefix + "-btnRefreshSubsidyTopupInfo"}))', 600, 400, true); return false;" class="btn-change-topup">
+                                        @T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.Topup.Change")
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted" title="@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Topup.PeriodClosed")">@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.Topup.Closed")</span>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.TotalCredit")</span>
+                            <span>@subsidy.TotalCreditFormatted</span>
+                        </div>
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.UsedCredit")</span>
+                            <span>@subsidy.UsedCreditFormatted</span>
+                        </div>
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.RemainingCredit")</span>
+                            <span>@subsidy.RemainingCreditFormatted</span>
+                        </div>
+                        @if (subsidy.HasQuantity)
+                        {
+                            <div>
+                                <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.TotalQuantity")</span>
+                                <span>@subsidy.TotalQuantity</span>
+                            </div>
+                            <div>
+                                <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.UsedQuantity")</span>
+                                <span>@subsidy.UsedQuantity</span>
+                            </div>
+                            <div>
+                                <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.RemainingQuantity")</span>
+                                <span>@subsidy.RemainingQuantity</span>
+                            </div>
+                        }
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.StartDate")</span>
+                            <span>@subsidy.StartDate</span>
+                        </div>
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.EndDate")</span>
+                            @if (!Model.MultiStoreSettingsModel.PackNamesOwnGlobalValue && Model.MultiStoreSettingsModel.PackNamesOwnStartAndFinishDates)
+                            {
+                                <div class="subsidy-topup">
+                                    <span>@subsidy.EndDate</span>
+                                    <a title="@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Variation.Change")" onclick="javascript:OpenWindow('@(Url.Action("SubsidyVariationEditPopup", "Subsidy", new {subsidyPackNameId = subsidy.Id, btnRefreshId = Model.Prefix + "-btnRefreshSubsidyTopupInfo"}))', 600, 400, true); return false;" class="btn-change-topup">
+                                        @T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Variation.Change")
+                                    </a>
+                                </div>
+                            }
+                            else
+                            {
+                                <span>@subsidy.EndDate</span>
+                            }
+                        </div>
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.AnnualRecurrence")</span>
+                            <div class="subsidy-check-input"><input type="checkbox" @(subsidy.AnnualRecurrence ? Html.Raw("checked") : null) disabled></div>
+                        </div>
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.OrderOutsidePeriod")</span>
+                            <div class="subsidy-check-input"><input type="checkbox" @(subsidy.OrderOutsidePeriod ? Html.Raw("checked") : null) disabled></div>
+                        </div>
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.OnlyAllocatedProducts")</span>
+                            <div class="subsidy-check-input"><input type="checkbox" @(subsidy.OnlyAllocatedProducts ? Html.Raw("checked") : null) disabled></div>
+                        </div>
+                        @if (subsidy.OnlyAllocatedProducts)
+                        {
+                            <div>
+                                <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.IncludeManagers")</span>
+                                <div class="subsidy-check-input"><input type="checkbox" @(subsidy.IncludeManagers ? Html.Raw("checked") : null) disabled></div>
+                            </div>
+                            <div>
+                                <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.RestrictToAllocatedQty")</span>
+                                <div class="subsidy-check-input"><input type="checkbox" @(subsidy.RestrictToAllocatedQty ? Html.Raw("checked") : null) disabled></div>
+                            </div>
+                        }
+                        <div>
+                            <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.Active")</span>
+                            <div class="subsidy-check-input"><input type="checkbox" @(subsidy.Active ? Html.Raw("checked") : null) disabled></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="subsidy-used">
+                    <span>@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Field.UsedPercent")</span>
+                    @if (subsidy.InOrderingPeriod)
+                    {
+                        <span>@subsidy.UsedPercent</span>
+                    }
+                    else
+                    {
+                        <span title="@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.NotInOrderingPeriod")">@subsidy.UsedPercent</span>
+                    }
+                </div>
+                @if (subsidy.ProductGroupsCount > 0)
+                {
+                    <div class="subsidy-product-groups">
+                        <div class="subsidy-product-groups-title">
+                            <span>@T("Plugins.CW.Core.Admin.Subsidies.ProductGroups")</span>
+                        </div>
+                        <div class="subsidy-product-groups-table">
+                            @await Html.PartialAsync("Table", new DataTablesModel
+                            {
+                                Name = Model.Prefix + "-packnameproductgroups-grid-" + subsidy.SubsidyId,
+                                UrlRead = new DataUrl("PackNameSubsidyProductGroupList", "Subsidy", new RouteValueDictionary { [nameof(subsidy.PackNameSubsidyProductGroupSearchModel.SubsidyPackNameId)] = subsidy.PackNameSubsidyProductGroupSearchModel.SubsidyPackNameId }),
+                                Length = subsidy.PackNameSubsidyProductGroupSearchModel.PageSize,
+                                LengthMenu = subsidy.PackNameSubsidyProductGroupSearchModel.AvailablePageSizes,
+                                PrimaryKeyColumn = nameof(PackNameSubsidyProductGroupModel.ProductGroupId),
+                                ColumnCollection = new List<ColumnProperty>
+                                {
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.ProductGroupId))
+                                    {
+                                        Render = new RenderChildCaret(),
+                                        Width = "5",
+                                        Searchable = false,
+                                        ClassName = NopColumnClassDefaults.ChildControl
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.Icon))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Icon").Text,
+                                        Width = "50",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Render = new RenderCustom("CW.PackNameSubsidies.render.productGroupIcon")
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.Name))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Name").Text
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.Description))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Description").Text
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.DisplayOrder))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.DisplayOrder").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.Quantity))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Quantity").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.Credit))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.Credit").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.TopupQuantity))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Topup.Field.Quantity").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.TopupCredit))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Topup.Field.Credit").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.UsedQuantity))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.UsedQuantity").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.UsedCredit))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.UsedCredit").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                    },
+                                    new ColumnProperty(nameof(PackNameSubsidyProductGroupModel.Id))
+                                    {
+                                        Title = T("Admin.Common.Edit").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.Button,
+                                        Render = new RenderCustom("CW.PackNameSubsidies.render.productGroupTopupEdit")
+                                    }
+                                },
+                                ChildTable = new DataTablesModel
+                                {
+                                    Name = Model.Prefix + "-packnameproductgroups-products-grid-" + subsidy.SubsidyId,
+                                    UrlRead = new DataUrl("ProductGroupProducts", "Subsidy", null),
+                                    IsChildTable = true,
+                                    Length = subsidy.PackNameSubsidyProductGroupSearchModel.PageSize,
+                                    LengthMenu = subsidy.PackNameSubsidyProductGroupSearchModel.AvailablePageSizes,
+                                    Filters = new List<FilterParameter>
+                                    {
+                                        new FilterParameter(nameof(ProductGroupProductSearchModel.ProductGroupId), nameof(PackNameSubsidyProductGroupModel.ProductGroupId), true)
+                                    },
+                                    ColumnCollection = new List<ColumnProperty>
+                                    {
+                                        new ColumnProperty(nameof(ProductModel.PictureThumbnailUrl))
+                                        {
+                                            Title = T("Admin.Catalog.Products.Fields.PictureThumbnailUrl").Text,
+                                            Width = "100",
+                                            Render = new RenderPicture()
+                                        },
+                                        new ColumnProperty(nameof(ProductModel.Sku))
+                                        {
+                                            Title = T("Admin.Catalog.Products.Fields.Sku").Text,
+                                            Width = "100"
+                                        },
+                                        new ColumnProperty(nameof(ProductModel.Name))
+                                        {
+                                            Title = T("Admin.Catalog.Products.Fields.Name").Text
+                                        },
+                                        new ColumnProperty(nameof(ProductModel.ShortDescription))
+                                        {
+                                            Title = T("Admin.Catalog.Products.Fields.ShortDescription").Text
+                                        },
+                                        new ColumnProperty(nameof(ProductModel.Published))
+                                        {
+                                            Title = T("Admin.Catalog.Products.Fields.Published").Text,
+                                            Width = "80",
+                                            ClassName = NopColumnClassDefaults.CenterAll,
+                                            Render = new RenderBoolean()
+                                        },
+                                        new ColumnProperty(nameof(ProductModel.Id))
+                                        {
+                                            Title = T("Admin.Common.View").Text,
+                                            Width = "80",
+                                            ClassName =  NopColumnClassDefaults.Button,
+                                            Render = new RenderButtonView(new DataUrl("~/Admin/Product/Edit/"))
+                                        }
+                                    }
+                                }
+                            })
+                        </div>
+                    </div>
+                    <button type="button" id="@Model.Prefix-btnRefreshPackNameProductGroups-@subsidy.SubsidyId" class="pns-refresh"
+                            data-grids="#@Model.Prefix-packnameproductgroups-grid-@subsidy.SubsidyId,#@Model.Prefix-packnamehistory-grid-@subsidy.SubsidyId"
+                            style="display: none"></button>
+                }
+                <div class="subsidy-history">
+                    <div class="subsidy-history-title">
+                        <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History")</span>
+                    </div>
+                    <div class="subsidy-history-table">
+                        @await Html.PartialAsync("Table", new DataTablesModel
+                        {
+                            Name = Model.Prefix + "-packnamehistory-grid-" + subsidy.SubsidyId,
+                            UrlRead = new DataUrl("PackNameSubsidyHistoryList", "Subsidy", new RouteValueDictionary { [nameof(subsidy.PackNameSubsidyProductGroupSearchModel.SubsidyPackNameId)] = subsidy.PackNameSubsidyProductGroupSearchModel.SubsidyPackNameId }),
+                            Length = subsidy.PackNameSubsidyProductGroupSearchModel.PageSize,
+                            LengthMenu = subsidy.PackNameSubsidyProductGroupSearchModel.AvailablePageSizes,
+                            ColumnCollection = new List<ColumnProperty>
+                            {
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.AssignmentRemovedText))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.AssignmentRemoved").Text,
+                                    Width = "90",
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.OrderIdText))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.OrderId").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.CreatedOnFormatted))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.CreatedOn").Text,
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.CreditFormatted))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.Credit").Text,
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.CreditTopupFormatted))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.CreditTopup").Text,
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.ProductGroup))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.ProductGroup").Text,
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.Quantity))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.Quantity").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.ProductGroupCreditFormatted))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.ProductGroupCredit").Text,
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.QuantityTopup))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.QuantityTopup").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.ProductGroupCreditTopupFormatted))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.ProductGroupCreditTopup").Text,
+                                    Width = "100",
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.Reason))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.Reason").Text
+                                },
+                                new ColumnProperty(nameof(PackNameSubsidyHistoryModel.CreatorName))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.CreatorName").Text
+                                },
+                            }
+                        })
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}

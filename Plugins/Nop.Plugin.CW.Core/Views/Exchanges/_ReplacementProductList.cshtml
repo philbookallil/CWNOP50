@@ -1,0 +1,66 @@
+@model ReplacementProductListModel
+
+<div class="rp-browser">
+    <form class="rp-search-form" onsubmit="return false;">
+        <input type="search" class="rp-search-input" value="@Model.Keywords"
+               placeholder="@T("Plugins.CW.Core.Exchanges.Wizard.Picker.SearchPlaceholder")"
+               aria-label="@T("Plugins.CW.Core.Exchanges.Wizard.Picker.SearchLabel")" />
+        <button type="submit" class="rp-search-button">@T("Plugins.CW.Core.Exchanges.Wizard.Picker.Search")</button>
+    </form>
+
+    @if (Model.Products.Count == 0)
+    {
+        <p class="rp-empty">
+            @(string.IsNullOrWhiteSpace(Model.Keywords)
+                ? T("Plugins.CW.Core.Exchanges.Wizard.Picker.NoProducts").Text
+                : string.Format(T("Plugins.CW.Core.Exchanges.Wizard.Picker.NoMatches").Text, Model.Keywords))
+        </p>
+    }
+    else
+    {
+        <div class="rp-grid">
+            @foreach (var product in Model.Products)
+            {
+                var picture = product.PictureModels.FirstOrDefault();
+
+                <div class="rp-card @(product.Id == Model.ExcludeProductId ? "is-current" : "")">
+                    <div class="rp-card-media">
+                        @if (picture != null && !string.IsNullOrEmpty(picture.ImageUrl))
+                        {
+                            <img src="@picture.ImageUrl" alt="@picture.AlternateText" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span class="rp-card-noimage" aria-hidden="true"></span>
+                        }
+                    </div>
+                    <div class="rp-card-body">
+                        <div class="rp-card-name">@product.Name</div>
+                        @if (!string.IsNullOrEmpty(product.Sku))
+                        {
+                            <div class="rp-card-sku">@product.Sku</div>
+                        }
+                        <div class="rp-card-price">@product.ProductPrice.Price</div>
+                    </div>
+                    @if (product.Id == Model.ExcludeProductId)
+                    {
+                        <span class="rp-card-current">@T("Plugins.CW.Core.Exchanges.Wizard.Picker.ItemBeingReturned")</span>
+                    }
+                    else
+                    {
+                        <button type="button" class="rp-card-select" data-product-id="@product.Id">@T("Plugins.CW.Core.Exchanges.Wizard.Picker.Choose")</button>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="rp-pager">
+                <button type="button" class="rp-page" data-page="@(Model.PageIndex - 1)" disabled="@(!Model.HasPreviousPage)">@T("Plugins.CW.Core.Exchanges.Wizard.Picker.Previous")</button>
+                <span class="rp-pager-status">@string.Format(T("Plugins.CW.Core.Exchanges.Wizard.Picker.PageStatus").Text, Model.PageIndex + 1, Model.TotalPages)</span>
+                <button type="button" class="rp-page" data-page="@(Model.PageIndex + 1)" disabled="@(!Model.HasNextPage)">@T("Plugins.CW.Core.Exchanges.Wizard.Picker.Next")</button>
+            </div>
+        }
+    }
+</div>

@@ -1,0 +1,702 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Copyright>Copyright © Nop Solutions, Ltd</Copyright>
+    <Company>Nop Solutions, Ltd</Company>
+    <Authors>Nop Solutions, Ltd</Authors>
+    <PackageLicenseUrl></PackageLicenseUrl>
+    <PackageProjectUrl>https://www.nopcommerce.com/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nopSolutions/nopCommerce</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <OutputPath>$(SolutionDir)\Presentation\Nop.Web\Plugins\CW.Core</OutputPath>
+    <OutDir>$(OutputPath)</OutDir>
+    <!--Set this parameter to true to get the dlls copied from the NuGet cache to the output of your project. 
+    You need to set this parameter to true if your plugin has a nuget package 
+    to ensure that the dlls copied from the NuGet cache to the output of your project-->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Internal members are tested from Tests/CW.Tests -->
+    <InternalsVisibleTo Include="CW.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Content\Admin\MultiStore\admin.packname.bulk.js" />
+    <None Remove="Content\Admin\MultiStore\admin.store.navigation.js" />
+    <None Remove="Content\Admin\Orders\admin.order.badges.js" />
+    <None Remove="Content\Common\cw-cart-events.js" />
+    <None Remove="Content\PackName\packname-import.js" />
+    <None Remove="logo.png" />
+    <None Remove="plugin.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content\Admin\MultiStore\admin.packname.bulk.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Admin\MultiStore\admin.store.navigation.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Admin\Orders\admin.order.badges.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Common\cw-cart-events.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\PackName\packname-import.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="plugin.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(SolutionDir)\Presentation\Nop.Web\Nop.Web.csproj" />
+    <ProjectReference Include="..\..\CWLibraries\CW.Common\CW.Common.csproj" />
+    <ClearPluginAssemblies Include="$(SolutionDir)\Build\ClearPluginAssemblies.proj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Areas\Admin\Views\Branch\AddressCreate.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Branch\AddressEdit.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Branch\Create.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Branch\Edit.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Branch\List.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Branch\_CreateOrUpdate.Addresses.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Branch\_CreateOrUpdate.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Branch\_CreateOrUpdate.Info.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Branch\_CreateOrUpdateAddress.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Category\_CreateOrUpdate.Mappings.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\CreditNotes\MainReport.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Customer\Create.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Customer\Edit.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Customer\List.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Customer\_CreateOrUpdate.Addresses.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Customer\_CreateOrUpdate.CreditNotes.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Customer\_CreateOrUpdate.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Customer\_CreateOrUpdate.Info.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Customer\_CreateOrUpdate.PackName.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Exchanges\AddLinkedActionsPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Exchanges\GlobalFeeSettings.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Exchanges\_FeeRules.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Manufacturer\_CreateOrUpdate.Mappings.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\AssociateCustomerToPackNamePopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\BranchAddressPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\CostCenterAddressPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\CustomerPackNameCannotCreatePopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\CustomerPackNameCreatePopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\CustomersWithNoPackNamePopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\DepartmentManagerAddPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\Edit.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\ImportPackNames.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\List.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\ManagerAddPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\PackNameAddressPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\Settings.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.Addresses.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.BranchDetail.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.BranchNodes.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.BranchTree.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.CostCenterDetail.Addresses.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.CostCenterDetail.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.CostCenters.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.PackNameDetail.Addresses.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.PackNameDetail.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.PackNameListDetail.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.PackNameListDetail.Managers.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.PackNameLists.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Branches.PackNamesInline.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_CostCenters.CostCenterDetail.Addresses.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_CostCenters.CostCenterDetail.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_CostCenters.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_CreateOrUpdate.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Departments.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Departments.DepartmentDetail.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_Departments.DepartmentDetail.Managers.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_PackNames.BulkToolbar.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_PackNames.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_PackNames.PackNameDetail.Addresses.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_PackNames.PackNameDetail.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_StoreInfo.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\MultiStore\_StoreSettings.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Order\Edit.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Order\_CWOrderDetails.BillingAddress.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Order\_CWOrderDetails.BillingShipping.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Order\_CWOrderDetails.Info.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Order\_CWOrderDetails.Payments.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Product\_CreateOrUpdate.Info.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\ReturnRequest\Edit.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\ReturnRequest\ReturnRequestActionCreatePopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\ReturnRequest\ReturnRequestReasonCreatePopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\ReturnRequest\_CreateOrUpdate.FeesAndCharges.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\ReturnRequest\_CreateOrUpdateExchange.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\ReturnRequest\_CreateOrUpdateReturnRequestAction.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\ReturnRequest\_CreateOrUpdateReturnRequestReason.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\AclDepartments\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\BulkOrderProductPageAdmin\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\CWShipmentDestination\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\ExchangeSettings\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\ExchangeSettings\_ReturnActionsRules.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\ExchangeSettings\_ReturnReasonsRules.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\ExchangeSettings\_ReturnStatusRules.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\FeeConcept\AdditionalFee.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\FeeConcept\RePackagingFee.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\FeeConcept\ReShippingFee.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\OrderListBadges\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\OrderReturnRequests\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\OrderSubsidyCredit\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\PackNameExtensionPanels\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\PackNameOrderAdminDetails\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\PackNameSubsidies\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\_FeeConceptRow.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\ProductGroupProductPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\ProductGroupTopupEditPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\SubsidyPackNamePopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\SubsidyProductGroupPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\SubsidyTopupEditPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\SubsidyVariationEditPopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\_PackNameSubsidies.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\_ProductGroups.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\_ProductGroups.ProductGroupDetail.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\_ProductGroups.ProductGroupDetail.Products.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\_Subsidies.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\_Subsidies.SubsidyDetail.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\_Subsidies.SubsidyDetail.PackNames.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Subsidy\_Subsidies.SubsidyDetail.ProductGroups.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\_ViewImports.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\_ViewStart.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Admin\Common\admin-pager.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Admin\Common\loader.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Admin\Exchanges\return-request-fees.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Admin\MultiStore\multistore.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Admin\Subsidy\packname-subsidies.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Admin\Subsidy\product-groups.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\BulkOrder\bulk-order.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\BulkOrder\bulk-order.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Common\cw-dialog.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Exchanges\exchanges-gather.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Exchanges\exchanges-wizard.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\icons\cw-icons.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\icons\cw-icons.svg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\icons\pg-icons.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\icons\pg-icons.svg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\MyAccount\customer-subsidies.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\MyAccount\store-credit.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Order\packname-order-details.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\PackNameSelector\pack-name-selector.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\PackName\checkout-completed.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\PackName\checkout.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\PackName\flyout-cart.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\PackName\packname-import.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\PackName\packname-info.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\PackName\packname-register.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\PackName\public.packname.checkout.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\PackName\shopping-cart.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\SubsidyCatalog\change-topup.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\SubsidyCatalog\subsidy-bar.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\SubsidyCatalog\subsidy-catalog.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\SubsidyCatalog\subsidy-catalog.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\SubsidyCatalog\subsidy-flyout.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="lib\tom-select\tom-select.complete.min.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="lib\tom-select\tom-select.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\BulkOrder\BulkOrdering.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\BulkOrder\_Content.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\BulkOrder\_Grid.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\BulkOrder\_Items.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\BulkOrder\_PinnedStrip.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\CreditNotes\CreditsForMe.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\CustomerSubsidies\_HistoryTable.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\CustomerSubsidies\Index.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\ReturnRequestGatherInfo.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\ReturnRequestSummary.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\_ExchangePickerModal.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\_FeesAndChargesList.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\_ReplacementProductAttrs.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\_ReplacementProductList.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\_ReplacementProductOptions.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\_ReplacementProductPriceDiff.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\_SummaryTotals.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Exchanges\_WizardSteps.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Order\Details.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\AddAddress.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\Checkout.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\Completed.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\PaymentHandoff.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\_CartByPackName.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\_CartByProduct.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\_CheckoutAttributes.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\_OrderSummary.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\_PackNameBox.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\_PackNameBoxBody.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\_PaymentMethodInfo.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\_PaymentMethods.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackNameCheckout\_ShippingAddressName.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackName\ImportPackNames.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackName\_AddPackName.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackName\_EditPackName.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackName\_PackName.Fields.Address.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackName\_PackName.Fields.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackName\_PackName.Fields.Customer.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackName\_PackName.Fields.Info.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackName\_PackName.Fields.Subsidies.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\PackName\_PackNameImport.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\ReturnRequest\CustomerReturnRequests.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\ReturnRequest\ReturnRequest.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\BulkOrderCategoryNavigation\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\BulkOrderLink\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\BulkOrderProductPage\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\CreditNotesWidgets\CreditNotesOrderAdmin.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\CreditNotesWidgets\CreditNotesOrderSummary.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\ExchangesWidgets\ExchangesFeesForCartOrOrder.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\ExchangesWidgets\ExchangesFeesForOrderAdmin.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\FlyoutShoppingCart\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\OrderTotals\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\PackNameInfo\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\PackNameOrderDetails\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\PackNameOrderTotals\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\PackNameSelector\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\ReturnRequestsConfirmations\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\SubsidyBar\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\SubsidyBar\Flyout.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\_ShippingAddress.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\SubsidyCatalog\ChangeTopup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\SubsidyCatalog\ChangeTopupProductGroup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\SubsidyCatalog\ChangeTopupSubsidy.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\SubsidyCatalog\Index.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\SubsidyCatalog\_ProductGroupHeader.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\SubsidyCatalog\_ProductGroups.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\SubsidyCatalog\_ProductsGrid.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\_ViewImports.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Areas\Admin\Validators\Customers\" />
+  </ItemGroup>
+  <!-- This target execute after "Build" target -->
+  <Target Name="NopTarget" AfterTargets="Build">
+    <!-- Delete unnecessary libraries from plugins path -->
+    <MSBuild Projects="@(ClearPluginAssemblies)" Properties="PluginPath=$(OutDir)" Targets="NopClear" />
+    <!-- Remove cross-platform runtime assets copied by CopyLocalLockFileAssemblies -->
+    <RemoveDir Directories="$(OutDir)\runtimes" />
+  </Target>
+</Project>

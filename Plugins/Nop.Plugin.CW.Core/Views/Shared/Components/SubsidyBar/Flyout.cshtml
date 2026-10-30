@@ -1,0 +1,67 @@
+﻿@model SubsidyBarModel
+
+<div class="subsidy-flyout-content">
+
+    <div class="flyout-items">
+
+        @if (Model.RemainCredit > 0 || Model.TotalCredit > 0)
+        {
+            <div class="bar-item global-credit-item">
+                @Html.CWIcon("cw-icon-Globe")
+                <span class="pg-name">@T("Plugins.CW.Core.SubsidyBar.GlobalCreditRemaining")</span>
+                <span class="pg-credit">@Model.RemainCreditFormatted</span>
+            </div>
+        }
+
+        @foreach (var pg in Model.ProductGroups)
+        {
+            var remainQty = pg.AvailableQuantity - pg.ShoppingCartQuantity;
+            var usedQty   = pg.TotalQuantity - pg.AvailableQuantity;
+
+            <div class="bar-item pg-item">
+                @Html.PgIcon(pg.Icon, null, pg.Colour)
+                <span class="pg-name">@pg.Name</span>
+                <div class="pg-usage">
+                    @if (pg.TotalQuantity > 6)
+                    {
+                        <div class="qty-badge available">@remainQty</div>
+                        <div class="qty-badge in-cart">@pg.ShoppingCartQuantity</div>
+                        <div class="qty-badge used">@usedQty</div>
+                    }
+                    else
+                    {
+                        @for (var i = 0; i < remainQty; i++) { <div class="circle available"></div> }
+                        @for (var i = 0; i < pg.ShoppingCartQuantity; i++) { <div class="circle in-cart"></div> }
+                        @for (var i = 0; i < usedQty; i++) { <div class="circle used"></div> }
+                    }
+                    @if (!string.IsNullOrEmpty(pg.RemainCreditFormatted))
+                    {
+                        <span class="pg-credit">+ @pg.RemainCreditFormatted</span>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (Model.RemainCredit <= 0 && !Model.ProductGroups.Any())
+        {
+            <div class="bar-item">
+                <span class="flyout-empty">@T("Plugins.CW.Core.SubsidyBar.NothingAvailable")</span>
+            </div>
+        }
+    </div>
+
+    @if (Model.ProductGroups.Any(pg => pg.TotalQuantity > 0))
+    {
+        <div class="flyout-legend">
+            <div class="legend-item"><div class="circle available"></div><span>@T("Plugins.CW.Core.SubsidyBar.Legend.Available")</span></div>
+            <div class="legend-item"><div class="circle in-cart"></div><span>@T("Plugins.CW.Core.SubsidyBar.Legend.InCart")</span></div>
+            <div class="legend-item"><div class="circle used"></div><span>@T("Plugins.CW.Core.SubsidyBar.Legend.Used")</span></div>
+        </div>
+    }
+
+    <div class="flyout-footer">
+        <a href="@Url.RouteUrl("Plugin.CW.Core.SubsidyCatalog")" class="flyout-catalog-link">
+            @T("Plugins.CW.Core.PackNameInfo.ViewFullSubsidy") →
+        </a>
+    </div>
+</div>

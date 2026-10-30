@@ -1,0 +1,154 @@
+﻿@model PackNameInfoModel
+
+@{
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/PackName/packname-info.css");
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/SubsidyCatalog/subsidy-bar.css");
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/SubsidyCatalog/subsidy-flyout.css");
+
+    var iconClass = Model.IsGroup    ? "packname-group"
+                  : Model.IsCustomer ? "packname-customer"
+                  : "packname-no-customer";
+}
+
+<div class="packname-info-strip">
+
+    <div class="packname-info-identity" style="color: @Model.Colour">
+        <div class="packname-info-type-icon">
+            @Html.PackNameTypeIcon(iconClass, "packname-info-icon")
+        </div>
+        <span class="packname-info-name">@Model.Name</span>
+
+        @if (!string.IsNullOrEmpty(Model.Branch))
+        {
+            <span class="packname-info-chip">
+                @Html.CWIcon("cw-icon-truck", "packname-info-chip-icon")
+                @Model.Branch
+            </span>
+        }
+        @if (!string.IsNullOrEmpty(Model.Department))
+        {
+            <span class="packname-info-chip">
+                @Html.CWIcon("cw-icon-department", "packname-info-chip-icon")
+                @Model.Department
+            </span>
+        }
+        @if (!string.IsNullOrEmpty(Model.CostCenter))
+        {
+            <span class="packname-info-chip">
+                @Html.CWIcon("cw-icon-costcenter", "packname-info-chip-icon")
+                @Model.CostCenter
+            </span>
+        }
+        @if (!string.IsNullOrEmpty(Model.POEntry))
+        {
+            <span class="packname-info-chip">
+                @Html.CWIcon("cw-icon-po", "packname-info-chip-icon")
+                @Model.POEntry
+            </span>
+        }
+    </div>
+
+    @if (!Model.CanOrder)
+    {
+        <div class="packname-info-notice message-error" role="alert">
+            @string.Format(T("Plugins.CW.Core.PackName.CannotOrder").Text, Model.Name)
+        </div>
+    }
+    else if (!Model.HasShippingAddress)
+    {
+        <div class="packname-info-notice message-error" role="alert">
+            @string.Format(T("Plugins.CW.Core.PackNameInfo.NoShippingAddress").Text, Model.Name)
+        </div>
+    }
+
+    @if (Model.HasSubsidies)
+    {
+        <div class="packname-subsidy-flyout">
+            <button type="button"
+                    class="packname-subsidy-trigger"
+                    id="packname-subsidy-trigger"
+                    title="@T("Plugins.CW.Core.PackNameInfo.ViewSubsidy")"
+                    aria-expanded="false"
+                    aria-controls="packname-subsidy-panel">
+                @Html.CWIcon("cw-icon-subsidy", "packname-subsidy-trigger-icon")
+            </button>
+            <div class="packname-subsidy-panel" id="packname-subsidy-panel" hidden>
+                <div class="packname-subsidy-panel-loading">
+                    <div class="cw-loading-spinner"></div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (Model.HasSubsidies)
+{
+    <script asp-location="Footer">
+    (function () {
+        var flyoutUrl = '@Url.Action("BarFlyout", "SubsidyCatalog")';
+        var $trigger = $('#packname-subsidy-trigger');
+        var $panel = $('#packname-subsidy-panel');
+        var loaded = false;
+        var stale = false;
+
+        $trigger.on('click', function (e) {
+            e.stopPropagation();
+            if ($panel.prop('hidden') === false) {
+                closePanel();
+            } else {
+                openPanel();
+            }
+        });
+
+        $(document).on('click.subsidyFlyout', function (e) {
+            if (!$(e.target).closest('.packname-subsidy-flyout').length) {
+                closePanel();
+            }
+        });
+
+        $(document).on('keydown.subsidyFlyout', function (e) {
+            if (e.key === 'Escape') closePanel();
+        });
+
+        function openPanel() {
+            $panel.removeAttr('hidden');
+            $trigger.attr('aria-expanded', 'true');
+            if (!loaded || stale) loadContent();
+        }
+
+        function closePanel() {
+            $panel.attr('hidden', '');
+            $trigger.attr('aria-expanded', 'false');
+        }
+
+        function loadContent() {
+            $panel.html('<div class="packname-subsidy-panel-loading"><div class="cw-loading-spinner"></div></div>');
+            $.ajax({
+                url:   flyoutUrl,
+                type:  'GET',
+                cache: false,
+                success: function (html) {
+                    $panel.html(html);
+                    loaded = true;
+                    stale  = false;
+                },
+                error: function () {
+                    $panel.html('<p class="packname-subsidy-panel-error">@T("Plugins.CW.Core.PackNameInfo.SubsidyFlyoutError")</p>');
+                }
+            });
+        }
+
+        // Any change to the cart makes the panel's figures old
+        $(document).on('cwCartChangedEvent', function () {
+            if (!$panel.prop('hidden')) {
+                // Flyout is open — refresh content immediately
+                loadContent();
+            } else {
+                // Flyout is closed — next open will reload
+                stale  = true;
+                loaded = false;
+            }
+        });
+    }());
+    </script>
+}

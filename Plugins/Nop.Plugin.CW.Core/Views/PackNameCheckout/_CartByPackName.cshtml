@@ -1,0 +1,233 @@
+@model PackNameCheckoutModel
+
+@using Nop.Core.Domain.Catalog
+
+<div class="packname-cart-group cart">
+    @if (Model.ShoppingCart.GroupedItems.Count > 0)
+    {
+        <div class="cart-group-header">
+            @if (Model.ShoppingCart.ShowProductImages)
+            {
+                <div class="cart-group-image" style="flex: 0 0 @(Model.ShoppingCart.GroupedItems.First().CartThumbPictureSize)px">
+                    @T("ShoppingCart.Image")
+                </div>
+            }
+            <div class="cart-group-product">@T("ShoppingCart.Product(s)")</div>
+        </div>
+        @foreach (var group in Model.ShoppingCart.GroupedItems)
+        {
+            <div class="cart-group-item">
+                <div class="cart-group-item-container">
+                    @foreach (var row in group.Items)
+                    {
+                        var item = row.Item;
+                        <div>
+                            @if (Model.ShoppingCart.ShowProductImages)
+                            {
+                                <div class="cart-group-image" style="flex: 0 0 @(group.CartThumbPictureSize)px">
+                                    <a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.ProductSeName }))">
+                                        <img alt="@item.Picture.AlternateText" src="@item.Picture.ImageUrl" title="@item.Picture.Title" />
+                                    </a>
+                                </div>
+                            }
+                            <div class="cart-group-product">
+                                <div class="cart-product-name">
+                                    <a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.ProductSeName }))" class="product-name">@item.ProductName</a>
+                                </div>
+                                <div class="cart-product-info">
+                                    <div class="cart-product-details">
+                                        @if (!string.IsNullOrEmpty(item.AttributeInfo))
+                                        {
+                                            <div class="attributes">
+                                                @Html.Raw(item.AttributeInfo)
+                                            </div>
+                                        }
+                                        @if (Model.ShoppingCart.ShowSku)
+                                        {
+                                            <div class="sku">
+                                                <label>@T("ShoppingCart.SKU"):</label>
+                                                <span class="sku-number">@item.Sku</span>
+                                            </div>
+                                        }
+                                        <div class="unit-price">
+                                            <label>@T("ShoppingCart.UnitPrice"):</label>
+                                            <span class="product-unit-price">@item.UnitPrice</span>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(item.RecurringInfo))
+                                        {
+                                            <div class="recurring-info">
+                                                @Html.Raw(item.RecurringInfo)
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.RentalInfo))
+                                        {
+                                            <div class="rental-info">
+                                                @Html.Raw(item.RentalInfo)
+                                            </div>
+                                        }
+                                        @if (Model.ShoppingCart.ShowVendorName)
+                                        {
+                                            <div class="vendor">
+                                                <span class="vendor-name">@item.VendorName</span>
+                                            </div>
+                                        }
+                                        @if (item.Warnings.Count > 0)
+                                        {
+                                            <div class="message-error">
+                                                <ul>
+                                                    @foreach (var warning in item.Warnings)
+                                                    {
+                                                        <li>@Html.Raw(warning)</li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="cart-product-quantity quantity">
+                                        @if (Model.ShoppingCart.IsEditable)
+                                        {
+                                            if (item.AllowedQuantities.Count > 0)
+                                            {
+                                                <select name="itemquantity@(item.Id)" id="itemquantity@(item.Id)" class="qty-dropdown" onchange="updateShoppingCart(@(item.Id))">
+                                                    @foreach (var qty in item.AllowedQuantities)
+                                                    {
+                                                        <option selected="@qty.Selected" value="@qty.Value">@qty.Value</option>
+                                                    }
+                                                </select>
+                                            }
+                                            else
+                                            {
+                                                <div class="product-quantity">
+                                                    <div class="quantity up" id="quantity-up-@(item.Id)"></div>
+                                                    <input name="itemquantity@(item.Id)" id="itemquantity@(item.Id)" type="text" value="@(item.Quantity)" class="qty-input" aria-label="@T("ShoppingCart.Quantity")" onchange="updateShoppingCart(@(item.Id))" />
+                                                    <div class="quantity down" id="quantity-down-@(item.Id)"></div>
+                                                </div>
+                                                <script asp-location="Footer">
+                                                    $(function() {
+                                                        $('#quantity-up-@(item.Id)').on('click', () => changeQuantity_@(item.Id)(1, true));
+                                                        $('#quantity-down-@(item.Id)').on('click', () => changeQuantity_@(item.Id)(-1, true));
+                                                        $('#itemquantity@(item.Id)').on('keydown', (e) => {
+                                                            switch (e.key) {
+                                                                case 'ArrowUp':
+                                                                    changeQuantity_@(item.Id)(1)
+                                                                    break;
+                                                                case 'ArrowDown':
+                                                                    changeQuantity_@(item.Id)(-1)
+                                                                    break;
+                                                                default:
+                                                                    break;
+                                                            }
+                                                        })
+
+                                                    });
+
+                                                    function changeQuantity_@(item.Id)(amount, triggerChange) {
+                                                        var input = $(document).find('#itemquantity@(item.Id)');
+                                                        var oldValue = parseInt(input.val());
+                                                        var amountValue = parseInt(amount);
+                                                        var newVal = oldValue + amountValue;
+                                                        input.val(newVal > 0 ? newVal.toString() : '0');
+
+                                                        if(triggerChange)
+                                                            input.trigger("change");
+                                                    }
+                                                </script>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <label>@T("ShoppingCart.Quantity"):</label>
+                                            <span class="product-quantity">@item.Quantity</span>
+                                        }
+                                    </div>
+                                    <div class="cart-product-subtotal">
+                                        <strong class="product-subtotal">@item.SubTotal</strong>
+                                        @if (!string.IsNullOrEmpty(item.Discount))
+                                        {
+                                            <div class="discount">
+                                                @T("ShoppingCart.ItemYouSave", item.Discount)
+                                            </div>
+                                            if (item.MaximumDiscountedQty.HasValue)
+                                            {
+                                                <div class="discount-additional-info">
+                                                    @T("ShoppingCart.MaximumDiscountedQty", item.MaximumDiscountedQty.Value)
+                                                </div>
+                                            }
+                                        }
+                                        @if (item.SubsidyBreakdown.Count > 0)
+                                        {
+                                            <div class="cart-item-subsidy-breakdown">
+                                                @foreach (var b in item.SubsidyBreakdown)
+                                                {
+                                                    <div class="subsidy-breakdown-row"
+                                                         title="@(b.ProductGroupId.HasValue ? b.ProductGroupName : T("Plugins.CW.Core.Subsidy.GlobalCredit").Text)">
+                                                        @Html.CWIcon("cw-icon-subsidy", "subsidy-indicator")
+                                                        @if (b.ProductGroupId.HasValue)
+                                                        {
+                                                            @Html.PgIcon(b.ProductGroupIcon, null, b.ProductGroupColour)
+                                                        }
+                                                        else
+                                                        {
+                                                            @Html.CWIcon("cw-icon-Globe")
+                                                        }
+                                                        @if (b.QuantityUsed > 0)
+                                                        {
+                                                            <span class="breakdown-qty">@b.QuantityUsed items</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(b.CreditDisplay))
+                                                        {
+                                                            if (b.QuantityUsed > 0) { <span class="breakdown-sep">·</span> }
+                                                            <span class="breakdown-credit">@b.CreditDisplay</span>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                    @if (Model.ShoppingCart.IsEditable)
+                                    {
+                                        <div class="remove-from-cart">
+                                            @if (item.DisableRemoval)
+                                            {
+                                                <text>&nbsp;</text>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="remove-btn" onclick="removeFromCart(@(item.Id));"
+                                                        title="@T("ShoppingCart.Remove")" aria-label="@T("ShoppingCart.Remove")">
+                                                    @Html.CWIcon("cw-icon-bin-1", "cw-icon--sm")
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                @await Html.PartialAsync("_PackNameBox", group.Items.First().Box)
+            </div>
+        }
+    }
+    <div id="packname-address-dialog" style="display: none;"></div>
+</div>
+<script>
+    $(document).ready(function () {
+        $('.pack-name-panel-header').click(function () {
+            let $container = $(this).parent();
+
+            if (!$container.hasClass("with-errors")) {
+                $container.find('.pack-name-panel-body').slideToggle();
+
+                if ($(this).hasClass('collapsed')) {
+                    $(this).addClass('expanded');
+                    $(this).removeClass('collapsed');
+                }
+                else {
+                    $(this).addClass('collapsed');
+                    $(this).removeClass('expanded');
+                }
+            }
+        });
+    });
+</script>

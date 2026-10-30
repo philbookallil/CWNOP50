@@ -1,0 +1,157 @@
+﻿@model PackNameModel
+
+<div class="card-body">
+    @if (Model.Id > 0)
+    {
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="Department" />
+            </div>
+            <div class="col-md-9">
+                <nop-editor asp-for="Department" html-attributes="@(new { disabled = "true" })" />
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="CostCenter" />
+            </div>
+            <div class="col-md-9">
+                <nop-editor asp-for="CostCenter" html-attributes="@(new { disabled = "true" })" />
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="Group" />
+            </div>
+            <div class="col-md-9">
+                <nop-editor asp-for="Group" html-attributes="@(new { disabled = "true" })" />
+            </div>
+        </div>
+        if (Model.MultiStoreSettingsModel.EmployeeNumberEnabled)
+        {
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="EmployeeNumber" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="EmployeeNumber" html-attributes="@(new { disabled = "true" })" />
+                </div>
+            </div>
+        }
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="Name" />
+            </div>
+            <div class="col-md-9">
+                <nop-editor asp-for="Name" html-attributes="@(new { disabled = "true" })" />
+            </div>
+        </div>
+        if (Model.MultiStoreSettingsModel.GenderEnabled)
+        {
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="Gender" />
+                </div>
+                <div class="col-md-9">
+                    <div class="raw">
+                        @foreach (var gender in Model.AvailableGenders)
+                        {
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" id="gender-@gender.Text" name="Gender" value="@gender.Value" disabled @(gender.Selected ? Html.Raw("checked") : null)>
+                                <label class="form-check-label" for="gender-@gender.Text">
+                                    @gender.Text
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        if (Model.MultiStoreSettingsModel.PrintNameEnabled)
+        {
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="PrintName" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="PrintName" html-attributes="@(new { disabled = "true" })" />
+                </div>
+            </div>
+        }
+        if (Model.MultiStoreSettingsModel.POEntryEnabled)
+        {
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="POEntry" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="POEntry" html-attributes="@(new { disabled = "true" })" />
+                </div>
+            </div>
+        }
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="Colour" />
+            </div>
+            <div class="col-md-9">
+                <div style="background-color: @Model.Colour; width: 30px; height: 30px;"></div>
+            </div>
+        </div>
+        if (Model.MultiStoreSettingsModel.CommentsEnabled)
+        {
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="Comments" />
+                </div>
+                <div class="col-md-9">
+                    <nop-textarea asp-for="Comments" html-attributes="@(new { disabled = "true" })" />
+                </div>
+            </div>
+        }
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="Manager" />
+            </div>
+            <div class="col-md-9">
+                <nop-editor asp-for="Manager" html-attributes="@(new { disabled = "true" })" />
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="Active" />
+            </div>
+            <div class="col-md-9">
+                <nop-editor asp-for="Active" html-attributes="@(new { disabled = "true" })" />
+            </div>
+        </div>
+        @*A WAY THROUGH TO THE PACKNAME. Every field on this card is disabled, so an admin who spots
+          something wrong here had to find the store, the branch, the list and the packname by hand.
+          The MultiStore page reads packNameId straight out of the hash on load
+          (_PackNames.cshtml:295-309), so #packnames/pn:<id> opens the editor directly - no edit:
+          segment, which is only for the branches tab's focus mode.*@
+        <div class="form-group row">
+            <div class="col-md-9 offset-md-3">
+                <a class="btn btn-secondary"
+                   href="@Url.Action("Edit", "MultiStore", new { area = "Admin", id = Model.StoreId })#packnames/pn:@Model.Id">
+                    <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                    @T("Plugins.CW.Core.Admin.Customers.Customers.PackName.OpenInMultiStore")
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <a title="@T("Plugins.CW.Core.Admin.Customers.Customers.PackName.AddPackName.Hint")" onclick="javascript:OpenWindow('@(Url.Action("CustomerPackNameCreatePopup", "MultiStore", new {customerId = Model.CustomerId, btnId = "btnRefreshPackName"}))', 800, 600, true); return false;" class="btn btn-primary">
+            <i class="fas fa-plus-square"></i>
+            @T("Plugins.CW.Core.Admin.Customers.Customers.PackName.AddPackName")
+        </a>
+        <button type="button" id="btnRefreshPackName" style="display: none"></button>
+        <script>
+            $(document).ready(function () {
+                $('#btnRefreshPackName').click(function () {
+                    location.reload();
+                });
+            });
+        </script>
+    }
+</div>

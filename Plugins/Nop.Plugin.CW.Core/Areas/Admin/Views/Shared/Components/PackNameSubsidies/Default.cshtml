@@ -1,0 +1,93 @@
+@model PackNameSubsidiesPanelModel
+
+<div class="card-body">
+    <div id="@Model.Prefix-pn-subsidies-@Model.PackNameId" data-packname-id="@Model.PackNameId" class="packname-subsidies-container">
+        <div class="subsidy-loading-message">@T("Plugins.CW.Core.Admin.StoreNav.Common.Loading")</div>
+    </div>
+</div>
+
+@* EVERY RAZOR VALUE THE SCRIPT NEEDS ARRIVES THROUGH HERE, so the script is plain JavaScript. *@
+<div class="pns-panel-config"
+     data-container-id="@Model.Prefix-pn-subsidies-@Model.PackNameId"
+     data-packname-id="@Model.PackNameId"
+     data-prefix="@Model.Prefix"
+     data-load-url="@Url.Action("PackNameSubsidies", "Subsidy")"
+     data-edit-label="@T("Admin.Common.Edit")"
+     style="display: none;"></div>
+
+<script>
+    //THE PANEL IS SELF-CONTAINED. It is hosted by the customer page as well as the store page, and
+    //the customer page has no Admin.StoreNav, so the two DataTables render callbacks live in a
+    //namespace of their own. The namespace is declared once however many panels a page renders.
+    window.CW = window.CW || {};
+    CW.PackNameSubsidies = CW.PackNameSubsidies || (function () {
+        var editLabel = $('.pns-panel-config').last().data('editLabel');
+
+        var render = {
+            productGroupIcon: function (data, type, row) {
+                return data
+                    ? '<svg class="pg-icon" style="color:' + (row.Colour ? row.Colour : '#000000') + '" aria-hidden="true">'
+                        + '<use href="/Plugins/CW.Core/Content/icons/pg-icons.svg#' + data + '"/></svg>'
+                    : '';
+            },
+
+            //DATA ATTRIBUTES ONLY: the delegated handler below builds the popup URL. The refresh
+            //button's id is the panel prefix plus the subsidy id, which is how the popup finds it.
+            productGroupTopupEdit: function (data, type, row) {
+                return '<button type="button" class="btn btn-default btn-pns-pg-topup"'
+                    + ' data-subsidy-pack-name-id="' + row.SubsidyPackNameId + '"'
+                    + ' data-product-group-id="' + row.ProductGroupId + '"'
+                    + ' data-subsidy-id="' + row.SubsidyId + '">'
+                    + '<i class="fas fa-pencil-alt"></i>' + editLabel + '</button>';
+            }
+        };
+
+        return { render: render };
+    })();
+
+    (function () {
+        var $cfg = $('.pns-panel-config').last();
+        var $container = $('#' + $cfg.data('containerId'));
+        var packNameId = $cfg.data('packnameId');
+        var prefix = $cfg.data('prefix');
+        var loadUrl = $cfg.data('loadUrl');
+
+        function loadPanel() {
+            $.get(loadUrl, { packNameId: packNameId, prefix: prefix })
+                .done(function (html) { $container.html(html); });
+        }
+
+        //THE CONTAINER OUTLIVES THE PARTIAL: every reload swaps its innerHTML, so the handlers are
+        //attached once, here, and removed first in case this view is rendered again for the same
+        //packname.
+        $container.off('.pns');
+
+        // ── Topup info changed (popup closed): the whole panel is rebuilt ──
+        $container.on('click.pns', '.pns-reload', function () {
+            loadPanel();
+            return false;
+        });
+
+        // ── Product-group topup changed (popup closed): the two grids of that subsidy ──
+        $container.on('click.pns', '.pns-refresh', function () {
+            $.each(String($(this).data('grids')).split(','), function (_, grid) {
+                updateTable(grid);
+            });
+            return false;
+        });
+
+        // ── Grid: change a product group's topup (popup) ──
+        $container.on('click.pns', '.btn-pns-pg-topup', function () {
+            var $btn = $(this);
+            var popupUrl = $container.find('.pns-config').data('topupPopupUrl');
+
+            OpenWindow(popupUrl
+                + '?subsidyPackNameId=' + $btn.data('subsidyPackNameId')
+                + '&productGroupId=' + $btn.data('productGroupId')
+                + '&btnRefreshId=' + prefix + '-btnRefreshPackNameProductGroups-' + $btn.data('subsidyId'), 600, 400, true);
+            return false;
+        });
+
+        loadPanel();
+    })();
+</script>

@@ -1,0 +1,86 @@
+﻿@model PackNameImportModel
+
+@* The body of the Excel import page, shared by the manager's page on the storefront and the administrator's page
+   in the admin area; each page sets where the link and the posts go. packname-import.js reads only this markup. *@
+
+<div class="packname-import-config"
+     data-import-url="@Model.ImportUrl"
+     data-label-rows="@T("Plugins.CW.Core.PackNames.Import.Result.Rows")"
+     data-label-created="@T("Plugins.CW.Core.PackNames.Import.Result.Created")"
+     data-label-customers="@T("Plugins.CW.Core.PackNames.Import.Result.Customers")"
+     data-label-welcome-emails="@T("Plugins.CW.Core.PackNames.Import.Result.WelcomeEmails")"
+     data-label-lists="@T("Plugins.CW.Core.PackNames.Import.Result.Lists")"
+     data-label-failed="@T("Plugins.CW.Core.PackNames.Import.Result.Failed")"
+     data-label-partly-title="@T("Plugins.CW.Core.PackNames.Import.Result.PartlyTitle")"
+     data-label-partly="@T("Plugins.CW.Core.PackNames.Import.Result.Partly")"
+     data-label-problem-rows="@T("Plugins.CW.Core.PackNames.Import.Result.ProblemRows")"
+     data-label-fix-hint="@T("Plugins.CW.Core.PackNames.Import.Result.FixHint")"
+     data-label-row="@T("Plugins.CW.Core.PackNames.Import.Result.Row")"
+     data-label-rows-to-fix="@T("Plugins.CW.Core.PackNames.Import.Result.Error")"
+     data-label-working="@T("Plugins.CW.Core.PackNames.Import.Working")"
+     data-label-no-file="@T("Plugins.CW.Core.PackNames.Import.NoFile")"
+     data-label-not-excel="@T("Plugins.CW.Core.PackNames.Import.Errors.InvalidFile")"
+     data-label-lists-used="@T("Plugins.CW.Core.PackNames.Import.Result.ListsUsed")"
+     data-label-download-report="@T("Plugins.CW.Core.PackNames.Import.DownloadReport")"
+     data-label-request-failed="@T("Plugins.CW.Core.PackNames.Import.RequestFailed")"
+     hidden></div>
+
+<p class="packname-import-intro">@T("Plugins.CW.Core.PackNames.Import.Intro")</p>
+
+<ol class="packname-import-steps">
+    <li class="packname-import-step">
+        <h2 class="packname-import-step-title">@T("Plugins.CW.Core.PackNames.Import.Step.Template.Title")</h2>
+        <p>@T("Plugins.CW.Core.PackNames.Import.Step.Template")</p>
+        <a href="@Model.TemplateUrl" class="packname-import-template">
+            <svg class="cw-icon" aria-hidden="true"><use href="@Url.Content("~/Plugins/CW.Core/Content/icons/cw-icons.svg#cw-icon-excel")" /></svg>
+            <span>@T("Plugins.CW.Core.PackNames.PackName.ImportXls.DownloadTemplate")</span>
+        </a>
+        <details class="packname-import-columns">
+            <summary>@string.Format(T("Plugins.CW.Core.PackNames.Import.Columns").Text, Model.Columns.Count)</summary>
+            <ul>
+                @foreach (var column in Model.Columns)
+                {
+                    <li>@column</li>
+                }
+            </ul>
+        </details>
+    </li>
+    <li class="packname-import-step">
+        <h2 class="packname-import-step-title">@T("Plugins.CW.Core.PackNames.Import.Step.Fill.Title")</h2>
+        <p>@string.Format(T("Plugins.CW.Core.PackNames.Import.Step.Fill").Text, Model.MaxRows, Model.DateFormat)</p>
+    </li>
+    <li class="packname-import-step">
+        <h2 class="packname-import-step-title">@T("Plugins.CW.Core.PackNames.Import.Step.Upload.Title")</h2>
+        <form action="@Model.ErrorReportUrl" method="post" enctype="multipart/form-data" id="packname-import-form" autocomplete="off" asp-antiforgery="true">
+            @if (Model.StoreId > 0)
+            {
+                <input type="hidden" name="storeId" value="@Model.StoreId" />
+            }
+            <div class="packname-import-drop">
+                <input type="file" id="packname-import-file" name="importFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                       aria-label="@T("Plugins.CW.Core.PackNames.PackName.ImportXls.ImportFromExcel")" />
+                <div class="packname-import-drop-empty">
+                    <svg class="cw-icon" aria-hidden="true"><use href="@Url.Content("~/Plugins/CW.Core/Content/icons/cw-icons.svg#cw-icon-excel")" /></svg>
+                    <span>@T("Plugins.CW.Core.PackNames.Import.Step.Upload") <span class="packname-import-choose">@T("Plugins.CW.Core.PackNames.Import.ChooseFile")</span></span>
+                </div>
+                <div class="packname-import-drop-file" hidden>
+                    <svg class="cw-icon" aria-hidden="true"><use href="@Url.Content("~/Plugins/CW.Core/Content/icons/cw-icons.svg#cw-icon-excel")" /></svg>
+                    <span class="packname-import-file-name"></span>
+                    <span class="packname-import-file-size"></span>
+                    <span class="packname-import-choose">@T("Plugins.CW.Core.PackNames.Import.ChangeFile")</span>
+                </div>
+                <div class="packname-import-drop-working" hidden>
+                    <span class="packname-import-progress" aria-hidden="true"></span>
+                    <span>@T("Plugins.CW.Core.PackNames.Import.WorkingHint")</span>
+                </div>
+            </div>
+            <div class="packname-import-actions">
+                <p class="packname-import-rule">@T("Plugins.CW.Core.PackNames.Import.AllOrNothing")</p>
+                <button type="button" class="packname-import-button">@T("Plugins.CW.Core.PackNames.Import.Button")</button>
+            </div>
+            <p class="packname-import-message" role="alert" hidden></p>
+        </form>
+    </li>
+</ol>
+
+<section class="packname-import-result" aria-live="polite" tabindex="-1" hidden></section>

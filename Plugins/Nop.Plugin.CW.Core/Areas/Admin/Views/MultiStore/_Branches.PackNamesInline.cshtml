@@ -1,0 +1,306 @@
+﻿@model PackNameSearchModel
+
+@*A LIST IS THE CONTAINER; ITS PACKNAMES ARE ITS CONTENTS. This partial is injected into
+  #pnlist-inline-{id}, which is already inside the .ms-row - so the packnames were always
+  nested correctly. What made them read as a sibling was this: the injected markup was itself a
+  full card, with a header repeating the list's name and default badge that the row directly
+  above it already shows. Both are gone, and so is the caret: the row click is the toggle, and a
+  second collapse inside it collapsed the same thing twice.*@
+<div class="pni-contents">
+
+    @*SCOPED ID, NOT "SearchPackName". FilterParameter(name) reads $('#<name>').val(), and the
+      store-level packnames tab renders its own #SearchPackName from the same model. Both panels
+      stay in the DOM once visited, so an unprefixed id would have matched two inputs and taken
+      whichever came first. The two-argument FilterParameter reads $('#<modelName>_<name>'), which
+      gives each list its own box.*@
+    <div class="pni-filter">
+        <input type="text"
+               class="form-control form-control-sm"
+               id="pni-@(Model.PackNameListId)_SearchPackName"
+               autocomplete="off"
+               placeholder="@T("Plugins.CW.Core.Admin.PackNames.SearchPackName")" />
+    </div>
+
+    @await Html.PartialAsync("_PackNames.BulkToolbar", "pni-" + Model.PackNameListId + "-bulk-toolbar")
+
+    <div class="packnamelist-table admin-table-xs">
+        @{
+            var gridModel = new DataTablesModel
+            {
+                Name = "multistorepacknames-" + Model.PackNameListId + "-grid",
+                UrlRead = new DataUrl("PackNamesList", "MultiStore", new RouteValueDictionary { [nameof(Model.PackNameListId)] = Model.PackNameListId, [nameof(Model.StoreId)] = Model.StoreId }),
+                UrlDelete = new DataUrl("DeletePackName", "MultiStore", null),
+                //FROM THE MODEL, NOT HARD-CODED. PreparePackNameSearchModelAsync calls
+                //SetGridPageSize(), so this grid was the only one in the section ignoring the
+                //store's configured page size and its page-size menu.
+                Length = Model.PageSize,
+                LengthMenu = Model.AvailablePageSizes,
+                //SearchPackName is already honoured server-side - PreparePackNamesListModelAsync
+                //passes it to GetPackNamesAsync. Only the box was
+                //missing. The second argument scopes the element id to this list; see the note above.
+                Filters = new List<FilterParameter>
+                {
+                    new FilterParameter(nameof(Model.SearchPackName), "pni-" + Model.PackNameListId)
+                },
+                ColumnCollection = new List<ColumnProperty>()
+            };
+
+            //THE BULK SELECTION'S OWN CHECKBOXES, not nop's IsMasterCheckBox: nop keeps one selectedIds for the whole
+            //page, and this page holds the store's packname grid besides this one
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Id))
+            {
+                Title = "<input type=\"checkbox\" class=\"pn-bulk-page\" aria-label=\"" + System.Net.WebUtility.HtmlEncode(T("Plugins.CW.Core.Admin.PackNames.Bulk.SelectPage").Text) + "\" />",
+                Width = "40",
+                ClassName = NopColumnClassDefaults.CenterAll,
+                Render = new RenderCustom("Admin.PackNameBulk.render.check")
+            });
+
+            if (Model.MultiStoreSettingsModel.EmployeeNumberEnabled)
+            {
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.EmployeeNumber))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.EmployeeNumber").Text
+                });
+            }
+
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Name))
+            {
+                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Name").Text
+            });
+
+            if (Model.MultiStoreSettingsModel.PrintNameEnabled)
+            {
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.PrintName))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.PrintName").Text
+                });
+            }
+
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Department))
+            {
+                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Department").Text
+            });
+
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.CostCenter))
+            {
+                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.CostCenter").Text
+            });
+
+            if (Model.MultiStoreSettingsModel.GenderEnabled)
+            {
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Gender))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender").Text,
+                    Width = "100",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Render = new RenderCustom("Admin.StoreNav.render.gender")
+                });
+            }
+
+            if (Model.MultiStoreSettingsModel.POEntryEnabled)
+            {
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.POEntry))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.POEntry").Text
+                });
+            }
+
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Group))
+            {
+                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Group").Text,
+                Width = "100",
+                ClassName = NopColumnClassDefaults.CenterAll,
+                Render = new RenderBoolean()
+            });
+
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.IsCustomer))
+            {
+                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.IsCustomer").Text,
+                Width = "100",
+                ClassName = NopColumnClassDefaults.CenterAll,
+                Render = new RenderBoolean()
+            });
+
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Manager))
+            {
+                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Manager").Text,
+                Width = "100",
+                ClassName = NopColumnClassDefaults.CenterAll,
+                Render = new RenderBoolean()
+            });
+
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Active))
+            {
+                Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Active").Text,
+                Width = "100",
+                ClassName = NopColumnClassDefaults.CenterAll,
+                Render = new RenderBoolean()
+            });
+
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Id))
+            {
+                Title = T("Admin.Common.Edit").Text,
+                Width = "100",
+                ClassName = NopColumnClassDefaults.Button,
+                Render = new RenderCustom("Admin.StoreNav.render.packNameEdit")
+            });
+
+            gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Id))
+            {
+                Title = T("Admin.Common.Delete").Text,
+                Width = "100",
+                ClassName = NopColumnClassDefaults.Button,
+                Render = new RenderCustom("Admin.StoreNav.render.packNameDelete")
+            });
+        }
+
+        @await Html.PartialAsync("Table", gridModel)
+    </div>
+    @*AN ADD ROW, NOT AN INLINE INPUT. A packname is an employee number, a print name, a
+        department, a cost centre, a gender and a manager - there is no single field to type, so
+        this opens the full editor, the same way the addresses row opens its popup.*@
+    <button type="button" class="ms-add-row ms-add-row-button btn-add-pn">
+        <span class="ms-add-plus" aria-hidden="true">+</span>
+        <span>@T("Plugins.CW.Core.Admin.PackNames.AddInline")</span>
+    </button>
+
+    <div class="packnamelist-footer">
+        <button type="button" id="btnRefreshPackNames-@Model.PackNameListId" style="display: none"></button>
+    </div>
+</div>
+
+@*ALL RAZOR LEAVES THE SCRIPT AND ARRIVES AS DATA. The script below contains no @@Model, no
+  @@T() and no hard-coded URL, so it is plain JavaScript that a reader can reason about and a future
+  round can move wholesale if it ever needs to. listName is HTML-attribute encoded by Razor, which is
+  exactly right for a data attribute.*@
+<div class="pni-config"
+     data-list-id="@Model.PackNameListId"
+     data-list-name="@Model.ListName"
+     data-delete-url="@Url.Action("DeletePackName", "MultiStore")"
+     data-store-id="@Model.StoreId"
+     data-bulk-url="@Url.Action("BulkPackNames", "MultiStore")"
+     data-export-url="@Url.Action("ExportPackNames", "MultiStore")"
+     data-move-targets-url="@Url.Action("PackNameBulkMoveTargets", "MultiStore")"
+     data-bulk-max="@Nop.Plugin.CW.Core.Services.PackNames.Bulk.PackNameBulkDefaults.MaxPackNames"
+     style="display:none"></div>
+
+<script>
+(function () {
+
+    var $cfg      = $('.pni-config').last();
+    var listId    = String($cfg.data('list-id'));
+    var listName  = String($cfg.data('list-name') == null ? '' : $cfg.data('list-name'));
+    var deleteUrl = $cfg.data('delete-url');
+
+    var gridSel   = '#multistorepacknames-' + listId + '-grid';
+    var $panel    = $('#pnlist-inline-' + listId);
+
+    @*OFF BEFORE ON. The earlier comment here claimed this partial needs no .off() because its markup
+      is replaced wholesale — that is true of the markup and false of the CONTAINER.
+      The parent lists partial does $inlinePanel.html(html) into #pnlist-inline-<id>, so the
+      container outlives every render of this partial and delegated handlers on it stack. Same trap as
+      #pnlists-panel / #cc-panel / #branch-addresses-panel.*@
+    $panel.off('.pni');
+
+    // ── Add packName → focus mode ──────────────────────────────────────
+    $panel.on('click.pni', '.btn-add-pn', function () {
+        Admin.StoreNav.navigate({ listId: listId, packNameId: null });
+        Admin.StoreNav.enterFocusMode('packname', null);
+    });
+
+    // ── Edit packName → focus mode ─────────────────────────────────────
+    //THE NAME COMES FROM THE GRID, NOT FROM THE MARKUP. The row's data is already in the DataTable,
+    //so nothing has to be escaped into an attribute or an onclick.
+    $panel.on('click.pni', '.btn-edit-pn', function () {
+        var id  = String($(this).data('id'));
+        var row = $(gridSel).DataTable().row($(this).closest('tr')).data() || {};
+
+        Admin.StoreNav.cacheName('list', listId, listName);
+        Admin.StoreNav.cacheName('pn', id, row.Name || '');
+        Admin.StoreNav.navigate({ listId: listId, packNameId: id });
+        Admin.StoreNav.enterFocusMode('packname', id);
+    });
+
+    // ── Delete packName ────────────────────────────────────────────────
+    $panel.on('click.pni', '.btn-delete-pn', function () {
+        if (!confirm(Admin.StoreNav.res('packNames.confirmDelete', 'Are you sure?'))) return;
+
+        //var, not a leaked global: this was `postData = { id };` with no declaration.
+        var postData = { id: $(this).data('id') };
+        addAntiForgeryToken(postData);
+
+        $.post(deleteUrl, postData, function (result) {
+            if (!result.success) {
+                alert(result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.'));
+                return;
+            }
+            Admin.PackNameBulk.unselect(gridSel, postData.id);
+            //THE REFRESH IS ENOUGH. bindGridEmptyState sets the list row's chip from the grid's own
+            //recordsTotal on every draw, so hand-patching the count would be a second source of truth.
+            $('#btnRefreshPackNames-' + listId).trigger('click');
+        });
+    });
+
+    // ── The hidden refresh button the detail form triggers ─────────────
+    $('#btnRefreshPackNames-' + listId).off('.pni').on('click.pni', function () {
+        updateTable(gridSel);
+        return false;
+    });
+
+    // ── The list's own search box ──────────────────────────────────────
+    //FilterParameter only tells the grid where to READ the value on its next draw — it does not
+    //watch the input, so without a trigger the box renders and does nothing. Enter searches,
+    //Escape clears, typing debounces at 400ms so a five-letter name does not cost five round trips.
+    //This input is inside the replaced markup, so it is a new element each render and needs no .off().
+    var $pnFilter   = $('#pni-' + listId + '_SearchPackName');
+    var filterTimer = null;
+
+    function runPackNameFilter() {
+        clearTimeout(filterTimer);
+        $(gridSel).DataTable().draw();
+    }
+
+    $pnFilter.on('keydown', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            //This input sits inside the branch page's forms; without this Enter submits one.
+            e.preventDefault();
+            runPackNameFilter();
+            return;
+        }
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            e.preventDefault();
+            $pnFilter.val('');
+            runPackNameFilter();
+        }
+    });
+
+    $pnFilter.on('input', function () {
+        clearTimeout(filterTimer);
+        filterTimer = setTimeout(runPackNameFilter, 400);
+    });
+
+    // ── The count chip on the list row above is this collection's heading ──
+    Admin.StoreNav.bindGridEmptyState({
+        grid:  gridSel,
+        hide:  '#pnlist-inline-' + listId + ' .packnamelist-table, #pni-' + listId + '-bulk-toolbar',
+        count: '.ms-row[data-id="' + listId + '"] .pn-count'
+    });
+
+    // ── Bulk actions and export ────────────────────────────────────────
+    Admin.PackNameBulk.bind({
+        panel: $panel,
+        grid: gridSel,
+        toolbar: '#pni-' + listId + '-bulk-toolbar',
+        storeId: $cfg.data('store-id'),
+        packNameListId: Number(listId),
+        bulkUrl: $cfg.data('bulk-url'),
+        exportUrl: $cfg.data('export-url'),
+        moveTargetsUrl: $cfg.data('move-targets-url'),
+        max: $cfg.data('bulk-max'),
+        filters: {
+            SearchPackName: '#pni-' + listId + '_SearchPackName'
+        }
+    });
+
+})();
+</script>

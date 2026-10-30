@@ -1,0 +1,263 @@
+﻿@model AddPackNameToSubsidySearchModel
+
+@{
+    Layout = "_AdminPopupLayout";
+
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.Subsidies.PackNames.AddNew").Text;
+}
+
+@if (ViewBag.RefreshPage == true)
+{
+    <script>
+        try {window.opener.document.forms['@(Context.Request.Query["formId"])'].@(Context.Request.Query["btnId"]).click();}
+        catch (e){}
+        window.close();
+    </script>
+}
+else
+{
+    <form asp-controller="Subsidy" asp-action="SubsidyPackNamePopup"
+          asp-route-subsidyId="@Context.Request.Query["subsidyId"]"
+          asp-route-btnId="@Context.Request.Query["btnId"]"
+          asp-route-formId="@Context.Request.Query["formId"]">
+        <div class="content-header clearfix">
+            <h1 class="float-left">
+                @T("Plugins.CW.Core.Admin.Subsidies.PackNames.AddNew") - @Model.Subsidy
+            </h1>
+            <div class="float-right">
+                &nbsp;
+            </div>
+        </div>
+         <section class="content">
+            <div class="container-fluid">
+                <div class="form-horizontal">
+                    <div class="cards-group">
+                        <div class="card card-default card-search card-popup">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <div class="col-md-5">
+                                                <nop-label asp-for="SearchPackName" />
+                                            </div>
+                                            <div class="col-md-7">
+                                                <nop-editor asp-for="SearchPackName" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-5">
+                                                <nop-label asp-for="SearchEmail" />
+                                            </div>
+                                            <div class="col-md-7">
+                                                <nop-editor asp-for="SearchEmail" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-5">
+                                                <nop-label asp-for="SearchGender" />
+                                            </div>
+                                            <div class="col-md-7">
+                                                <nop-select asp-for="SearchGender" asp-items="Model.AvailableGenders" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-5">
+                                                <nop-label asp-for="SearchPackNameType" />
+                                            </div>
+                                            <div class="col-md-7">
+                                                <nop-select asp-for="SearchPackNameType" asp-items="Model.AvailablePackNameTypes" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <div class="col-md-5">
+                                                <nop-label asp-for="SearchBranchName" />
+                                            </div>
+                                            <div class="col-md-7">
+                                                <nop-editor asp-for="SearchBranchName" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-5">
+                                                <nop-label asp-for="SearchDepartmentId" />
+                                            </div>
+                                            <div class="col-md-7">
+                                                <nop-select asp-for="SearchDepartmentId" asp-items="Model.AvailableDepartments" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-5">
+                                                <nop-label asp-for="SearchCostCenterId" />
+                                            </div>
+                                            <div class="col-md-7">
+                                                <nop-select asp-for="SearchCostCenterId" asp-items="Model.AvailableCostCenters" />
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-md-5">
+                                                <nop-label asp-for="WithoutSubsidy" />
+                                            </div>
+                                            <div class="col-md-7">
+                                                <nop-editor asp-for="WithoutSubsidy" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <button type="button" id="search-subsidiespacknames" class="btn btn-primary btn-search">
+                                            <i class="fas fa-search"></i>
+                                            @T("Admin.Common.Search")
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-default">
+                            <div class="card-body">
+                                @{
+                                    var gridModel = new DataTablesModel
+                                    {
+                                        Name = "subsidy-packnames-grid",
+                                        UrlRead = new DataUrl("SubsidyPackNamePopupList", "Subsidy", new RouteValueDictionary { [nameof(Model.SubsidyId)] = Model.SubsidyId }),
+                                        SearchButtonId = "search-subsidiespacknames",
+                                        Length = Model.PageSize,
+                                        LengthMenu = Model.AvailablePageSizes,
+                                        Filters = new List<FilterParameter>
+                                        {
+                                            new FilterParameter(nameof(Model.SearchPackName)),
+                                            new FilterParameter(nameof(Model.SearchEmail)),
+                                            new FilterParameter(nameof(Model.SearchBranchName)),
+                                            new FilterParameter(nameof(Model.SearchDepartmentId)),
+                                            new FilterParameter(nameof(Model.SearchCostCenterId)),
+                                            new FilterParameter(nameof(Model.SearchPackNameType)),
+                                            new FilterParameter(nameof(Model.SearchGender)),
+                                            new FilterParameter(nameof(Model.WithoutSubsidy), typeof(bool))
+                                        },
+                                        ColumnCollection = new List<ColumnProperty>()
+                                    };
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Id))
+                                    {
+                                        IsMasterCheckBox = true,
+                                        Render = new RenderCheckBox(nameof(AddPackNameToSubsidyModel.SelectedPackNameIds)),
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Width = "50"
+                                    });
+
+                                    if (Model.MultiStoreSettingsModel.EmployeeNumberEnabled)
+                                    {
+                                        gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.EmployeeNumber))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.EmployeeNumber").Text
+                                        });
+                                    }
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Name))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Name").Text
+                                    });
+
+                                    if (Model.MultiStoreSettingsModel.PrintNameEnabled)
+                                    {
+                                        gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.PrintName))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.PrintName").Text
+                                        });
+                                    }
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Branch))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Branch").Text
+                                    });
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Department))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Department").Text
+                                    });
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.CostCenter))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.CostCenter").Text
+                                    });
+
+                                    if (Model.MultiStoreSettingsModel.GenderEnabled)
+                                    {
+                                        gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Gender))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender").Text,
+                                            Width = "100",
+                                            ClassName = NopColumnClassDefaults.CenterAll,
+                                            Render = new RenderCustom("renderGender")
+                                        });
+                                    }
+
+                                    if (Model.MultiStoreSettingsModel.POEntryEnabled)
+                                    {
+                                        gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.POEntry))
+                                        {
+                                            Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.POEntry").Text
+                                        });
+                                    }
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.IsCustomer))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.IsCustomer").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Render = new RenderBoolean()
+                                    });
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Manager))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Manager").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Render = new RenderBoolean()
+                                    });
+
+                                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(PackNameModel.Active))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Active").Text,
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Render = new RenderBoolean()
+                                    });
+                                }
+
+                                @await Html.PartialAsync("Table", gridModel)
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" name="save" class="btn btn-primary">
+                                    <i class="far fa-save"></i>
+                                    @T("Admin.Common.Save")
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="subsidy-packname-popup-config"
+             data-gender-mixed="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Mixed")"
+             data-gender-male="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Male")"
+             data-gender-female="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Female")"
+             data-gender-neutral="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Neutral")"
+             style="display: none;"></div>
+        <script>
+            //A popup document: Admin.StoreNav is not loaded here, so the gender labels are read from
+            //the config div above rather than from the module's resource bundle.
+            function renderGender(data) {
+                var labels = $('.subsidy-packname-popup-config').data();
+                if (data === 'I') return labels.genderMixed;
+                if (data === 'M') return labels.genderMale;
+                if (data === 'F') return labels.genderFemale;
+                if (data === 'N') return labels.genderNeutral;
+                return '';
+            }
+        </script>
+    </form>
+}

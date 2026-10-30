@@ -1,0 +1,228 @@
+﻿@using System.Text.Json
+
+@model MultiStoreModel
+
+@{
+    var hasViewSettingsPermission = await permissionService.AuthorizeAsync(CWPermissionConfigManager.ADMIN_ACCESS_MULTISTORE_SETTINGS);
+    var features = await cwFeatures.GetFeaturesAsync(Model.Id);
+}
+
+<section class="content">
+    <div class="form-horizontal">
+
+        <!-- URL bar visual + breadcrumb -->
+        <div class="card card-default card-ms">
+            <div class="card-body card-ms-body">
+                <ol id="section-breadcrumb" class="breadcrumb">
+                </ol>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="card card-default">
+            <div class="card-header p-0">
+                <ul class="nav nav-tabs" id="store-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#info"  data-tab="info" id="tab-info">@T("Plugins.CW.Core.Admin.MultiStores.Info")</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#branches" data-tab="branches" id="tab-branches">@T("Plugins.CW.Core.Admin.MultiStores.Branches")</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#departments" data-tab="departments" id="tab-departments">@T("Plugins.CW.Core.Admin.MultiStores.Departments")</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#costcenters" data-tab="costcenters" id="tab-costcenters">@T("Plugins.CW.Core.Admin.MultiStores.CostCenters")</a>
+                    </li>
+                    @if (features.PackName)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" href="#packnames" data-tab="packnames" id="tab-packnames">@T("Plugins.CW.Core.Admin.MultiStores.PackNames")</a>
+                        </li>
+                    }
+                    @if (features.Subsidy) 
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" href="#productgroups" data-tab="productgroups" id="tab-productgroups">@T("Plugins.CW.Core.Admin.ProductGroups")</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#subsidies" data-tab="subsidies" id="tab-subsidies">@T("Plugins.CW.Core.Admin.Subsidies")</a>
+                        </li>
+                    }
+                    @if (hasViewSettingsPermission)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" href="#settings" data-tab="settings" id="tab-settings">@T("Plugins.CW.Core.Admin.MultiStores.Settings")</a>
+                        </li>
+                    }
+                    @if (features.Exchanges) 
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" href="#exchangesettings" data-tab="exchangesettings" id="tab-exchangesettings">@T("Plugins.CW.Core.Admin.MultiStores.ExchangesReturns")</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#feesettings" data-tab="feesettings" id="tab-feesettings">@T("Plugins.CW.Core.Admin.MultiStores.FeeSettings")</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="card-body">
+
+                <!-- INFO TAB — server rendered, always in DOM -->
+                <div id="tab-content-info" class="multistore-tab-content">
+                    @await Html.PartialAsync("_StoreInfo", Model)
+                </div>
+
+                <!-- BRANCHES TAB — empty shell, filled by AJAX -->
+                <div id="tab-content-branches" class="multistore-tab-content" style="display:none">
+                    <div id="branch-panel-area">
+                        <!-- Left: tree (always visible) -->
+                        <div id="branch-panel"></div>
+                        <!-- Right: stacked panels or focused form -->
+                        <div id="branch-right-col"></div>
+                    </div>
+                </div>
+
+                <!-- DEPARTMENTS TAB — empty shell, filled by AJAX -->
+                <div id="tab-content-departments" class="multistore-tab-content" style="display:none">
+                    <div id="tab-panel-departments"></div>
+                </div>
+
+                <!-- COST CENTERS TAB — empty shell, filled by AJAX -->
+                <div id="tab-content-costcenters" class="multistore-tab-content" style="display:none">
+                    <div id="tab-panel-costcenters"></div>
+                </div>
+
+                @if (features.PackName)
+                {
+                    <!-- PACKNAMES TAB — empty shell, filled by AJAX -->
+                    <div id="tab-content-packnames" class="multistore-tab-content" style="display:none">
+                        <div id="tab-panel-packnames"></div>
+                    </div>
+                }
+
+                @if (features.Subsidy) 
+                {
+                    <!-- PRODUCT GROUPS TAB — empty shell, filled by AJAX -->
+                    <div id="tab-content-productgroups" class="multistore-tab-content" style="display:none">
+                        <div id="tab-panel-productgroups"></div>
+                    </div>
+
+                    <!-- SUBSIDIES TAB — empty shell, filled by AJAX -->
+                    <div id="tab-content-subsidies" class="multistore-tab-content" style="display:none">
+                        <div id="tab-panel-subsidies"></div>
+                    </div>
+                }
+
+                <!-- SETTINGS TAB — empty shell, filled by AJAX -->
+                <div id="tab-content-settings" class="multistore-tab-content" style="display:none">
+                    <div id="tab-panel-settings"></div>
+                </div>
+
+                @if (features.Exchanges) 
+                {
+                    <!-- EXCHANGE SETTINGS TAB -->
+                    <div id="tab-content-exchangesettings" class="multistore-tab-content" style="display:none">
+                        <div id="tab-panel-exchangesettings">@await Component.InvokeAsync("ExchangeSettings", new { storeId = Model.Id })</div>
+                    </div>
+
+                    <!-- FEE SETTINGS TAB -->
+                    <div id="tab-content-feesettings" class="multistore-tab-content" style="display:none">
+                        <div id="tab-panel-feesettings">@await Component.InvokeAsync("FeeSettings", new { storeId = Model.Id })</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@{
+    //THE ONE PLACE THE MULTISTORE ADMIN JS GETS ITS TEXT. Every partial under this view, and
+    //admin.store.navigation.js itself, reads these through Admin.StoreNav.res(key).
+    //SERIALISED AS JSON THROUGH Html.Raw - NOT as @T(...).Text. Razor HTML-encodes .Text, which is how
+    //round J shipped a button reading "Saving&#x2026;". JsonSerializer escapes for JavaScript and
+    //Html.Raw stops Razor encoding on top of it, so non-ASCII survives.
+    var storeNavResources = new Dictionary<string, string>
+    {
+        ["common.save"] = T("Plugins.CW.Core.Admin.StoreNav.Common.Save").Text,
+        ["common.saving"] = T("Plugins.CW.Core.Admin.StoreNav.Common.Saving").Text,
+        ["common.loading"] = T("Plugins.CW.Core.Admin.StoreNav.Common.Loading").Text,
+        ["common.retry"] = T("Plugins.CW.Core.Admin.StoreNav.Common.Retry").Text,
+        ["common.failedToLoad"] = T("Plugins.CW.Core.Admin.StoreNav.Common.FailedToLoad").Text,
+        ["common.serverError"] = T("Plugins.CW.Core.Admin.StoreNav.Common.ServerError").Text,
+        ["common.couldNotDelete"] = T("Plugins.CW.Core.Admin.StoreNav.Common.CouldNotDelete").Text,
+        ["common.confirmDelete"] = T("Plugins.CW.Core.Admin.StoreNav.Common.ConfirmDelete").Text,
+        ["common.couldNotSetDefault"] = T("Plugins.CW.Core.Admin.StoreNav.Common.CouldNotSetDefault").Text,
+        ["common.saved"] = T("Plugins.CW.Core.Admin.StoreNav.Common.Saved").Text,
+        ["common.unsavedChanges"] = T("Plugins.CW.Core.Admin.StoreNav.Common.UnsavedChanges").Text,
+        ["common.selectAFile"] = T("Plugins.CW.Core.Admin.StoreNav.Common.SelectAFile").Text,
+        //ALL SEVEN ALREADY EXIST AS RESOURCES, so this needs no DATA bump — they were simply being
+        //read through @T() inside a <script>, where Razor HTML-encodes the text into the literal.
+        ["common.edit"] = T("Admin.Common.Edit").Text,
+        ["common.delete"] = T("Admin.Common.Delete").Text,
+        ["packNames.confirmDelete"] = T("Plugins.CW.Core.Admin.PackNames.DeleteConfirmMessage").Text,
+        ["costCenters.confirmDelete"] = T("Plugins.CW.Core.Admin.CostCenters.DeleteConfirmMessage").Text,
+        ["departments.confirmDelete"] = T("Plugins.CW.Core.Admin.Departments.DeleteConfirmMessage").Text,
+        ["subsidies.confirmDelete"] = T("Plugins.CW.Core.Admin.Subsidies.DeleteConfirmMessage").Text,
+        ["productGroups.confirmDelete"] = T("Plugins.CW.Core.Admin.ProductGroups.DeleteConfirmMessage").Text,
+        ["common.areYouSure"] = T("Common.AreYouSure").Text,
+        ["packNameLists.confirmDelete"] = T("Plugins.CW.Core.Admin.PackNameLists.DeleteConfirmMessage").Text,
+        ["packNameLists.isDefault"] = T("Plugins.CW.Core.Admin.PackNameLists.PackNameList.Field.IsDefault").Text,
+        ["gender.mixed"] = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Mixed").Text,
+        ["gender.male"] = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Male").Text,
+        ["gender.female"] = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Female").Text,
+        ["gender.neutral"] = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Neutral").Text,
+        ["branch.couldNotSave"] = T("Plugins.CW.Core.Admin.StoreNav.Branch.CouldNotSave").Text,
+        ["packNames.failedToLoad"] = T("Plugins.CW.Core.Admin.StoreNav.PackNames.FailedToLoad").Text,
+        ["entity.store"] = T("Plugins.CW.Core.Admin.StoreNav.Entity.Store").Text,
+        ["entity.branch"] = T("Plugins.CW.Core.Admin.StoreNav.Entity.Branch").Text,
+        ["entity.packNameList"] = T("Plugins.CW.Core.Admin.StoreNav.Entity.PackNameList").Text,
+        ["entity.packName"] = T("Plugins.CW.Core.Admin.StoreNav.Entity.PackName").Text,
+        ["entity.costCentre"] = T("Plugins.CW.Core.Admin.StoreNav.Entity.CostCentre").Text,
+        ["entity.department"] = T("Plugins.CW.Core.Admin.StoreNav.Entity.Department").Text,
+        ["entity.productGroup"] = T("Plugins.CW.Core.Admin.StoreNav.Entity.ProductGroup").Text,
+        ["entity.subsidy"] = T("Plugins.CW.Core.Admin.StoreNav.Entity.Subsidy").Text,
+        ["new.costCentre"] = T("Plugins.CW.Core.Admin.StoreNav.New.CostCentre").Text,
+        ["new.department"] = T("Plugins.CW.Core.Admin.StoreNav.New.Department").Text,
+        ["new.packName"] = T("Plugins.CW.Core.Admin.StoreNav.New.PackName").Text,
+        ["new.productGroup"] = T("Plugins.CW.Core.Admin.StoreNav.New.ProductGroup").Text,
+        ["new.subsidy"] = T("Plugins.CW.Core.Admin.StoreNav.New.Subsidy").Text,
+        ["generate.packNames.failed"] = T("Plugins.CW.Core.Admin.StoreNav.Generate.PackNames.Failed").Text,
+        ["generate.packNames.queued"] = T("Plugins.CW.Core.Admin.StoreNav.Generate.PackNames.Queued").Text,
+        ["generate.packNames.error"] = T("Plugins.CW.Core.Admin.StoreNav.Generate.PackNames.Error").Text,
+        ["generate.lists.failed"] = T("Plugins.CW.Core.Admin.StoreNav.Generate.Lists.Failed").Text,
+        ["generate.lists.queued"] = T("Plugins.CW.Core.Admin.StoreNav.Generate.Lists.Queued").Text,
+        ["generate.lists.error"] = T("Plugins.CW.Core.Admin.StoreNav.Generate.Lists.Error").Text,
+        ["bulk.selected"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Selected").Text,
+        ["bulk.noneSelected"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.NoneSelected").Text,
+        ["bulk.export"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Export").Text,
+        ["bulk.exportSelected"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.ExportSelected").Text,
+        ["bulk.tooMany"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.TooMany").Text,
+        ["bulk.confirmDelete"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.ConfirmDelete").Text,
+        ["bulk.confirmDelete.managers"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.ConfirmDelete.Managers").Text,
+        ["bulk.confirmDelete.customers"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.ConfirmDelete.Customers").Text,
+        ["bulk.resultTitle"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.ResultTitle").Text,
+        ["bulk.result.changed"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Result.Changed").Text,
+        ["bulk.result.unchanged"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Result.Unchanged").Text,
+        ["bulk.result.skipped"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Result.Skipped").Text,
+        ["bulk.close"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Close").Text,
+        ["bulk.cancel"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Cancel").Text,
+        ["bulk.move.title"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Move.Title").Text,
+        ["bulk.move.intro"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Move.Intro").Text,
+        ["bulk.move.confirm"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Move.Confirm").Text,
+        ["bulk.move.noTargets"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.Move.NoTargets").Text,
+        ["bulk.selectRow"] = T("Plugins.CW.Core.Admin.PackNames.Bulk.SelectRow").Text,
+    };
+}
+
+<script>
+    $(document).ready(function () {
+        Admin.StoreNav.init(@Model.Id, {
+            packName: @features.PackName.ToString().ToLowerInvariant(),
+            subsidy: @features.Subsidy.ToString().ToLowerInvariant(),
+            exchanges: @features.Exchanges.ToString().ToLowerInvariant(),
+            creditNotes: @features.CreditNotes.ToString().ToLowerInvariant()
+        }, @Html.Raw(System.Text.Json.JsonSerializer.Serialize(storeNavResources)));
+    });
+</script>

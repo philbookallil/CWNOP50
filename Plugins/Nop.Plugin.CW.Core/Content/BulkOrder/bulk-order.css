@@ -1,0 +1,1087 @@
+/* ============================================================================
+   Bulk ordering
+   ----------------------------------------------------------------------------
+   Structure and class names follow nop's own catalogue (Views/Catalog/
+   _CatalogSelectors.cshtml, _ProductsInGridOrLines.cshtml) so a theme change
+   improves this screen rather than breaking it. Colours stay neutral and
+   inherit; nothing here sets a brand colour or a font.
+   ============================================================================ */
+
+.bulk-ordering-page #bulk-order-content {
+    min-height: 4rem;
+}
+
+/* visually hidden, still read by assistive tech */
+.bulk-order-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---------------------------------------------------------------- selectors */
+/* One bordered bar, filters left and view mode right - nop's .product-selectors
+   shape. Labels sit INLINE with their control; stacking them was what made this
+   row twice as tall as the catalogue's. */
+.bulk-order-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem 1.5rem;
+    margin: 0 0 1.25rem;
+    padding: .75rem 0;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+}
+
+.bulk-order-controls-start {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1.25rem;
+}
+
+.bulk-order-controls-end {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-left: auto;
+}
+
+.bulk-order-controls-start > div {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.bulk-order-controls label {
+    margin: 0;
+    font-size: .9rem;
+    white-space: nowrap;
+}
+
+.bulk-order-controls select {
+    margin: 0;
+}
+
+.bulk-order-viewmode {
+    display: flex;
+    gap: .25rem;
+}
+
+    .bulk-order-viewmode .viewmode-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        padding: 0;
+        border: 1px solid #ddd;
+        background: transparent;
+        color: #999;
+        cursor: pointer;
+    }
+
+        .bulk-order-viewmode .viewmode-icon svg {
+            width: 1rem;
+            height: 1rem;
+            fill: currentColor;
+        }
+
+        .bulk-order-viewmode .viewmode-icon:hover {
+            color: #555;
+        }
+
+        .bulk-order-viewmode .viewmode-icon.selected {
+            color: #333;
+            border-color: #999;
+            background: #f2f2f2;
+        }
+
+/* ------------------------------------------------------------------- layout */
+.bulk-order-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+/* Both notes load() can insert ahead of the aside and the list - the load failure, and the
+   typed-quantities-lost note - take a row of their own. #bulk-order-content IS the flex
+   container (.bulk-order-layout), so a note inserted as a direct child is a FLEX ITEM: without
+   this it sits beside the two columns and squeezes .bulk-order-main from 956px to 290px.
+   Keyed on the shared .no-result class rather than on each note, so the next one inserted there
+   is right by construction. The child combinator matters: _Items.cshtml's own .no-result ("no
+   products") lives inside .bulk-order-main and must stay in the flow of that column. */
+#bulk-order-content > .no-result {
+    flex: 1 1 100%;
+    margin: 0;
+}
+
+.bulk-order-side {
+    flex: 0 0 220px;
+}
+
+    /* nothing to navigate: do not reserve the column */
+    .bulk-order-side:not(:has(.block-category-navigation)) {
+        display: none;
+    }
+
+/* flex-basis 0, NOT auto: with auto, a wide grid makes this item's hypothetical
+   size enormous and the whole column wraps below the category tree. min-width
+   alone does not prevent that - line breaking reads the basis, not the floor. */
+.bulk-order-main {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+#bulk-order-content.loading {
+    opacity: .5;
+    pointer-events: none;
+}
+
+/* ------------------------------------------------------------ product cards */
+/* Two columns: image left, everything else right. The header and the grid stack
+   inside the right column, so the grid gets a full column rather than a third
+   of the row, and the image stays one clean column down the page. */
+.bulk-order-product {
+    display: flex;
+    align-items: center; /* the image sits at the middle of the whole card */
+    gap: 1.5rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.bulk-order-products.list-view .bulk-order-product:first-child {
+    padding-top: 0;
+}
+
+.bulk-order-product .product-image {
+    flex: 0 0 var(--imageSize, 100px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .bulk-order-product .product-image img {
+        max-width: 100%;
+        max-height: var(--imageSize, 100px);
+        width: auto;
+        height: auto;
+        object-fit: contain;
+    }
+
+/* basis 0, not auto - same reason as .bulk-order-main: a wide grid must not
+       set this column's hypothetical size, or the row breaks apart */
+.bulk-order-product .product-body {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.bulk-order-product .product-name {
+    font-size: 1.05rem;
+    line-height: 1.35;
+    margin-bottom: .25rem;
+}
+
+.bulk-order-product .product-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1rem;
+    font-size: .9rem;
+    color: #777;
+}
+
+.bulk-order-product .product-price {
+    color: #444;
+    font-weight: 600;
+}
+
+.bulk-order-product .product-in-cart {
+    margin-top: .25rem;
+    color: #b35c00;
+    font-size: .85rem;
+}
+
+    /* The label is always in the DOM and toggled with [hidden]. The UA stylesheet would handle this
+   on its own; themes that reset display on block elements would not, and the failure mode is a stale "3 in
+   cart" sitting under a card whose cart entry is gone. */
+    .bulk-order-product .product-in-cart[hidden] {
+        display: none;
+    }
+
+/* `product-grid` is the THEME's class, borrowed for the card's right column, and the theme gives it
+   `margin: 0 0 50px` for a catalogue listing (styles.css). Two symptoms, one cause: 50px of dead space
+   under every card, and a picture that reads as sitting too low - the card is `align-items: center`, so
+   centring happens against a box 50px taller than anything you can see. The theme's own rule is left
+   alone; this restates the bottom margin for our page only. Borrowing a theme class name means inheriting
+   the theme's assumptions about it. */
+.bulk-order-product .product-grid {
+    margin-top: .9rem;
+    margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------------- tiled */
+.bulk-order-products.tiled-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+}
+
+    .bulk-order-products.tiled-view .bulk-order-product {
+        flex-direction: column;
+        align-items: stretch;
+        border: 1px solid #ddd;
+        padding: 1rem;
+    }
+
+    .bulk-order-products.tiled-view .product-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+/* --------------------------------------------------------------------- pins */
+/* stretch, not flex-start: every box takes the tray's height, so the strip has a straight bottom edge
+   instead of one ragged with whichever attribute happens to carry a hint. Centring was the other
+   candidate and is worse - it leaves BOTH the labels and the controls floating, so nothing lines up
+   with anything. Stretching plus a bottom-aligned control (below) gives two clean lines: labels along
+   the top, controls along the bottom. */
+.bulk-order-pins {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: .6rem;
+    margin-bottom: .75rem;
+    padding: .6rem;
+    background: #fafafa;
+    border: 1px solid #eee;
+    /* The strip has never said how it aligns, and the theme sets `text-align: center` on `.page` - it
+       inherits the whole way down to `.pin`. The grid below is immune only because `.grid-table` declares
+       alignment on every cell, so what the customer has been looking at all along is a CENTRED pin label
+       over a `.pin-checks` flex row whose checkboxes start at the left edge. That mismatch is what makes the
+       strip read as messy, at every width, and it is a declaration we never made rather than a spacing
+       problem. Left, so the strip reads down the same edge as the row labels directly beneath it.
+       `left` rather than `start` to match `.grid-table th.row-axis, th.row-label`; if this store ever runs
+       RTL, both change together. */
+    text-align: left;
+}
+
+    .bulk-order-pins .pin {
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: 24rem;
+        padding: .45rem .6rem;
+        background: #fff;
+        border: 1px solid #e5e5e5;
+        display: flex;
+        flex-direction: column;
+    }
+
+        /* The control, whichever kind it is, sits on the tray's bottom line. Enumerated rather than
+           `:last-child` on purpose: `.pin-blocked` can follow the control, and bottom-aligning a message
+           would put the thing the customer clicks back out of line. `pin-conditional` and the label keep
+           their natural place at the top; the slack all lands between them and the control. */
+        .bulk-order-pins .pin > select,
+        .bulk-order-pins .pin > .pin-checks,
+        .bulk-order-pins .pin > .pin-unsupported {
+            margin-top: auto;
+        }
+
+        /* DIRECT CHILD, not descendant. As a descendant this also matched the <label class="pin-check"> wrapping
+       every checkbox, so a three-value group was rendered with the attribute-label rule - three block-level
+       grey labels, indistinguishable from the attribute beside them - three controls reading as one row.
+       It was a selector problem, not a spacing one.
+       Weight 600 to match the grid's own column headers, so the strip reads the way the table under it does. */
+        .bulk-order-pins .pin > label,
+        .bulk-order-pins .pin-group-label {
+            display: block;
+            margin-bottom: .3rem;
+            font-size: .75rem;
+            font-weight: 600;
+            color: #555;
+            line-height: 1.3;
+        }
+
+        .bulk-order-pins .pin .required {
+            color: #b94a48;
+        }
+
+    /* Sits between the label and the control, so its margin is below it, not above. */
+    .bulk-order-pins .pin-conditional {
+        display: block;
+        margin-bottom: .3rem;
+        font-size: .78rem;
+        color: #8a6d3b;
+        font-style: italic;
+    }
+
+    /* A pin whose condition is unmet: present, inert, and saying so. Muted rather than struck through or
+       greyed to invisibility - it is not broken, it is not yet applicable, and the customer needs to read
+       both the attribute's name and what unlocks it. */
+    .bulk-order-pins .pin.is-blocked {
+        background: #fafafa;
+        border-style: dashed;
+    }
+
+    .bulk-order-pins .pin-blocked {
+        display: block;
+        margin-top: .3rem;
+        font-size: .78rem;
+        color: #777;
+        font-style: italic;
+    }
+
+    .bulk-order-pins .pin-unsupported {
+        display: block;
+        color: #999;
+        font-size: .85rem;
+        font-style: italic;
+    }
+
+    /* The box above is what contains the set and makes it read as ONE control; these still wrap inside it,
+       because IsPinOnly rule 2 exists precisely so a twenty-value checkbox attribute can be a pin, and
+       twenty stacked rows would be a column taller than the grid. */
+    .bulk-order-pins .pin-checks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .3rem .9rem;
+    }
+
+    .bulk-order-pins .pin-check {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        margin: 0;
+        font-size: .85rem;
+        font-weight: normal;
+        color: #333;
+        white-space: nowrap;
+    }
+
+        .bulk-order-pins .pin-check input {
+            margin: 0;
+        }
+
+    .bulk-order-pins .pin select {
+        margin: 0;
+        max-width: 100%;
+    }
+
+/* ------------------------------------------------------------------ notices */
+.grid-notice {
+    font-size: .85rem;
+    color: #b35c00;
+    margin: .35rem 0;
+}
+
+.grid-empty {
+    color: #777;
+}
+
+/* -------------------------------------------------------------------- grid */
+/* The last-resort scroll for genuinely enormous grids, on a wrapper around the
+   TABLE rather than around the whole card. It used to sit on .bulk-order-grid,
+   which put the pin strip, the notices and the action row inside the scroll
+   area: the button rode above the horizontal scrollbar and slid sideways with
+   the table. Only the table is ever wider than the card. */
+.grid-scroll {
+    overflow-x: auto;
+}
+
+.bulk-order-grid.loading {
+    opacity: .5;
+    pointer-events: none;
+}
+
+.bulk-order-grid.grid-failed {
+    outline: 1px solid #b94a48;
+}
+
+.bulk-order-grid.quantities-lost {
+    outline: 1px solid #b35c00;
+}
+
+.bulk-order-grid .cell-price,
+.bulk-order-grid .cell-stock {
+    display: block;
+    margin-top: .2rem;
+    font-size: .75rem;
+    line-height: 1.2;
+}
+
+.bulk-order-grid .cell-price {
+    color: #444;
+}
+
+.bulk-order-grid .cell-stock {
+    color: #777;
+}
+
+.bulk-order-grid .cell.unavailable {
+    background: #fafafa;
+}
+
+/* A cell that takes no quantity says WHY in words. Styled wherever it appears, not only inside a table
+       cell: a product with no attributes renders it inside .grid-single, which is not a .cell. */
+.bulk-order-grid .cell-note {
+    display: block;
+    padding: .15rem 0;
+    font-size: .75rem;
+    line-height: 1.25;
+}
+
+    .bulk-order-grid .cell-note.blocked {
+        color: #777;
+    }
+
+    .bulk-order-grid .cell-note.callforprice {
+        color: #8a6d3b;
+    }
+
+    /* Same amber as call-for-price, and for the same reason: both mean "this sale is fine, just not from
+       here", which is a different answer from .blocked's "you cannot have this". Colour is never the only
+       carrier - the wording differs too. */
+    .bulk-order-grid .cell-note.needs-details {
+        color: #8a6d3b;
+    }
+
+    /* the customer can fix this one without leaving the card, so it reads as an instruction, not a refusal */
+    .bulk-order-grid .cell-note.needs-choice {
+        color: #31708f;
+    }
+
+/* the one remaining symbol in the grid, and now unambiguous */
+.bulk-order-grid .dash {
+    color: #c4c4c4;
+    font-size: 1rem;
+}
+
+.bulk-order-grid .grid-unsupported {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
+    color: #8a6d3b;
+}
+
+    .bulk-order-grid .grid-unsupported a {
+        text-decoration: underline;
+    }
+
+/* --------------------------------------------------------------- add to cart */
+.bulk-order-grid .grid-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .75rem;
+    margin-top: .75rem;
+}
+
+/* The page-wide bar, between the list and the pager. No rule of its own: in list view the last
+   product's border-bottom (:152) already closes the list, and a second hairline a finger below it
+   reads as a mistake; in tiled view every card is boxed, so there is nothing to separate from.
+   Position carries the meaning instead - 1rem below the list it acts on, 1.5rem above the pager
+   (.bulk-order-pager's own margin), so it belongs to the products rather than to the paging. */
+.bulk-order-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .75rem;
+    margin-top: 1rem;
+}
+
+/* Matches the product page's own add-to-cart control instead of inventing a button. The colours
+   come from the theme's variables with a fallback chain, so a themed store restyles this by
+   restyling itself: --cws-primary when CW.Standard's brand sheet is loaded, nop's own
+   --accent-blue-color otherwise, and the literal only if a theme defines neither. */
+.bulk-add,
+.bulk-add-all {
+    height: 43px;
+    padding: 0 24px;
+    border: none;
+    border-radius: var(--cws-radius-sm, 0);
+    background-color: var(--cws-primary, var(--accent-blue-color, #4ab2f1));
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color .15s ease;
+}
+
+    .bulk-add:hover, .bulk-add:focus,
+    .bulk-add-all:hover, .bulk-add-all:focus {
+        background-color: var(--cws-primary-dark, var(--accent-blue-active-color, #248ece));
+    }
+
+    /* The in-flight state - without it a disabled button looks identical to a live
+       one, and the spinner is the only sign anything is happening. */
+    .bulk-add:disabled,
+    .bulk-add-all:disabled {
+        opacity: .55;
+        cursor: default;
+    }
+
+/* The FULL border, not just its colour. border-color alone bets on some other stylesheet having set a
+   border style, and that bet is exactly what produced the inset artifact above.
+   .over-max is the same state one moment earlier - typed above what the cell can supply, before the server
+   has been asked - so it says the same thing in the same way. */
+.bulk-order-grid .bulk-qty.line-failed,
+.bulk-order-grid .bulk-qty.over-max {
+    border: 1px solid #a94442;
+}
+
+/* The per-card failure list, above the grid. It replaces .cell-warning, which appended nop's sentence into
+   the cell and stretched that cell's whole column - on a two-column test product merely ugly, on a real
+   twelve-column one it reflowed the entire grid off a single refusal.
+   Same three colours as .bulk-add-status.is-error, because it is the same message at a different scale. */
+.bulk-order-grid .grid-warnings {
+    margin: 0 0 .6rem;
+    padding: .5rem .75rem;
+    list-style: none;
+    border: 1px solid #e2b6b0;
+    background: #fbeeec;
+    color: #a94442;
+    font-size: .82rem;
+    line-height: 1.4;
+}
+
+    /* the theme's reset may drop the UA rule, and an empty red box is worse than none */
+    .bulk-order-grid .grid-warnings[hidden] {
+        display: none;
+    }
+
+    .bulk-order-grid .grid-warnings li + li {
+        margin-top: .3rem;
+    }
+
+    .bulk-order-grid .grid-warnings .cell-name {
+        font-weight: 600;
+    }
+
+/* Not a sentence glued to a button: a state. Which of the three it is has to be readable before
+   the words are - a partial add ("2 added, 1 could not be") is the one outcome the customer must
+   not skim past, and grey text next to a grey button is exactly how that gets skimmed.
+   Colour is never the only carrier: each state has its own mark, and the wording differs too. */
+.bulk-add-status {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: .4rem;
+    max-width: 34rem;
+    padding: .4rem .7rem;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font-size: .85rem;
+    line-height: 1.35;
+    text-align: left;
+}
+
+    /* the theme's reset may drop the UA rule, and a stale empty pill is worse than none */
+    .bulk-add-status[hidden] {
+        display: none;
+    }
+
+    .bulk-add-status::before {
+        flex: 0 0 auto;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .bulk-add-status.is-ok {
+        border-color: #b7dbc2;
+        background: #eef7f1;
+        color: #1d6b4b;
+    }
+
+        .bulk-add-status.is-ok::before {
+            content: "\2713";
+        }
+
+    .bulk-add-status.is-warn {
+        border-color: #e6cf9a;
+        background: #fdf6e6;
+        color: #86600f;
+    }
+
+    .bulk-add-status.is-error {
+        border-color: #e2b6b0;
+        background: #fbeeec;
+        color: #a94442;
+    }
+
+        .bulk-add-status.is-warn::before,
+        .bulk-add-status.is-error::before {
+            content: "\0021";
+        }
+
+.grid-table {
+    /* explicit, NOT inherited from the theme's global `table { width: 100% }`
+       (CW.Standard/Content/css/styles.css:101). The grid's shape is ours to
+       decide; a theme dropping that rule must not silently redesign this screen. */
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .9rem;
+}
+
+    .grid-table th, .grid-table td {
+        border: 1px solid #e5e5e5;
+        padding: .25rem .4rem;
+        text-align: center;
+    }
+
+    .grid-table thead th {
+        background: #f5f5f5;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .grid-table th.row-axis, .grid-table th.row-label, .grid-table td.row-axis {
+        text-align: left;
+        white-space: nowrap;
+        background: #f5f5f5;
+    }
+
+    /* When a grid IS wide enough to scroll, the row label has to stay put - a quantity box with its label
+       scrolled off means nothing. One sticky column PER row axis, each at its own offset, and the offsets
+       are set by bulk-order.js (pinRowLabels): `left` has to be the summed width of the columns to the left
+       and those widths come from the attribute values, so only measurement knows them. This rule used to
+       say `left: 0` for all of them, which pinned every label column to the same edge - a product with
+       three row axes stacked all three at the same x, the last one in source order winning and the other
+       two showing as slivers under it, with the first quantity column sliding under the pile.
+       The class is what carries the stickiness, so a column the script chose NOT to pin - it and the ones
+       before it would take more than half the visible width - simply scrolls with the rest, and a browser
+       that never ran the script gets a plain scrolling table rather than an overlapping one.
+       td.row-axis is in the background rule above because it is the spacer above the labels in the second
+       header row: transparent, the size headers showed through it as they scrolled under. */
+    .grid-table .pinned-col {
+        position: sticky;
+        z-index: 1;
+    }
+
+        /* Both rules of the pinned block are drawn on the cells themselves, as pseudo-elements, for two
+       reasons. box-shadow is not one of the options: Chrome does not paint it on a table cell at all while
+       border-collapse is `collapse`, which is what the first attempt here used and why nothing appeared.
+       And a collapsed border belongs to one cell, so between two sticky cells sitting at fractional offsets
+       - Sleeve at left: 99.86px against a 100px Color column - there is a hairline that neither of them
+       paints, and the scrolling quantity columns showed through it as a sliver down every row.
+       A sticky element is a positioned element, so it is the containing block for these without needing
+       `position: relative` of its own. */
+
+        /* the seam between two pinned columns: the border that the collapse rules leave unpainted there */
+        .grid-table .pinned-col + .pinned-col::before {
+            content: "";
+            position: absolute;
+            left: -1px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #e5e5e5;
+            pointer-events: none;
+        }
+
+        /* the right edge of the whole block: the same rule, plus the shade that says the cells are going
+       somewhere rather than being cut off */
+        .grid-table .pinned-col.pinned-last::after {
+            content: "";
+            position: absolute;
+            right: -5px;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            background: linear-gradient(to right, #e5e5e5 0, #e5e5e5 1px, rgba(0, 0, 0, .16) 1px, rgba(0, 0, 0, 0) 100%);
+            pointer-events: none;
+        }
+
+    .grid-table td.empty {
+        background: #fafafa;
+        color: #bbb;
+    }
+
+    .grid-table tbody tr:hover td:not(.empty) {
+        background: #fbfcfd;
+    }
+
+    /* vertical-align matters on an INLINE-flex box: its baseline is taken from its first flex item, so a
+       100x66 swatch and a 71x100 one gave the line box two different baselines and the row grew by the
+       difference - 109px against 113px on nop's own Nike product, even with both images inside an identical
+       100x100 square. `middle` takes the box out of baseline alignment and the rows level out.
+       Not `display: flex`: that also fixes it, by removing the line box, but makes this block-level and the
+       thead cells centre their value through `text-align: center` on the th. */
+    .grid-table .attr-value {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .grid-table .attr-colour-square {
+        display: inline-block;
+        width: .85rem;
+        height: .85rem;
+        border: 1px solid #ccc;
+        vertical-align: middle;
+    }
+
+    /* Both are a FIXED SQUARE that the picture fits inside, rather than a box the picture sizes.
+       .attr-image previously set a width only, so its height followed each picture's aspect ratio: a
+       landscape swatch made a short cell, a portrait one a tall cell, and the value's name beside it moved
+       with them - the column read as ragged even though every image was the same width. A store uploads
+       whatever it has, so the ratio is not ours to assume; the square is.
+       inline-flex rather than inline-block also drops the ~3px of line-box descender that made a 100px
+       picture occupy 103px.
+       Row height stays the SETTING's business: a store wanting denser rows lowers BulkOrderAttributeImageSize
+       (or the squares size), and neither this rule nor the matrix's no-wrap rule changes when it does. */
+    .grid-table .attr-image-square,
+    .grid-table .attr-image {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        vertical-align: middle;
+    }
+
+    .grid-table .attr-image-square {
+        width: var(--squareSize, 100px);
+        height: var(--squareSize, 100px);
+    }
+
+    .grid-table .attr-image {
+        width: var(--imageSize, 100px);
+        height: var(--imageSize, 100px);
+    }
+
+        /* contain, not cover: a swatch cropped to fill its square can hide the very detail that
+           distinguishes it from the value below it. */
+        .grid-table .attr-image-square img, .grid-table .attr-image img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+
+    .grid-table .attr-name {
+        vertical-align: middle;
+    }
+
+    /* the "(none)" value of an optional axis: an absence, styled as one */
+    .grid-table .attr-none .attr-name {
+        font-style: italic;
+        color: #777;
+    }
+
+/* 2.75rem. The 3.5rem it replaced was never chosen - it was inherited - and four digits is more
+   than any cell here takes: the largest max on the catalogue is five figures only on OrderMaximumQuantity,
+   which the customer types into, not reads. `pointer: coarse` puts it back to 3.25rem at the end of this
+   file, so the desktop gets density and the phone gets a target. */
+.bulk-qty {
+    width: 2.75rem;
+    text-align: center;
+}
+
+/* input ONLY. The theme styles input[type="text"|"email"|"tel"|"password"], textarea and select
+   (CW.Standard/Content/css/styles.css:106-115) and NOT input[type="number"], so the number box was carrying
+   the user agent's 2px INSET border - which is why recolouring it for a failure rendered a 3D split, dark on
+   two sides and light on the other two, instead of a red box. This restates the theme's own input shape for
+   the one control the theme misses; putting it on .bulk-qty instead would ALSO override the theme on
+   select.bulk-qty, which already had it right. */
+input.bulk-qty {
+    height: 30px;
+    padding: 0 .3rem;
+    border: 1px solid #ddd;
+    vertical-align: middle;
+}
+
+/* The whitelist control. 3.5rem fits a number, not "None" - and a select that clips its own longest option
+   is worse than one that is a little wider than its neighbours. */
+select.bulk-qty {
+    width: auto;
+    min-width: 4.5rem;
+    text-align: center;
+}
+
+.bulk-qty.no-arrows {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+    .bulk-qty.no-arrows::-webkit-outer-spin-button,
+    .bulk-qty.no-arrows::-webkit-inner-spin-button {
+        appearance: none;
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+/* A product with no attributes has one quantity box and one
+   add button, and they are one control: the customer types a number and presses the thing beside it. So the
+   box sits at the RIGHT, directly above the button, and the two read as a cluster.
+   No border round it either: a border round a single cell argues that it IS a grid, which is true of the
+   builder and of no interest to the customer.
+   Still a column rather than a row, because the stock note belongs UNDER the box here exactly as it sits
+   under one inside a table cell. The sr-label is absolutely positioned and takes no part in either. */
+.grid-single {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .3rem;
+    margin-top: 0;
+}
+
+    /* the cluster: closer to its button than the .grid-actions default, and a general sibling because the
+   minimum-quantity notice can sit between them. Must come after the .grid-actions rule above - equal
+   specificity, so source order is what decides it. */
+    .grid-single ~ .grid-actions {
+        margin-top: .4rem;
+    }
+
+    .grid-single .sr-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0,0,0,0);
+    }
+
+/* ------------------------------------------------------------------- pager */
+.bulk-order-pager {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+    .bulk-order-pager .bulk-pager-page,
+    .bulk-order-pager .bulk-pager-step {
+        min-width: 2.25rem;
+        height: 2.25rem;
+        padding: 0 .5rem;
+        border: 1px solid #ddd;
+        background: #fff;
+        color: #444;
+        font-size: .95rem;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+        .bulk-order-pager .bulk-pager-page:hover:not(:disabled),
+        .bulk-order-pager .bulk-pager-step:hover:not(:disabled) {
+            border-color: #999;
+        }
+
+    .bulk-order-pager button:disabled {
+        color: #bbb;
+        cursor: default;
+    }
+
+    .bulk-order-pager .bulk-pager-page.current {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.25rem;
+        height: 2.25rem;
+        border: 1px solid #444;
+        background: #444;
+        color: #fff;
+        font-size: .95rem;
+    }
+
+    /* The gap marker. Deliberately unlike a page button - no border, no background, no hover, no cursor -
+       because it is not a destination: « and » already reach the ends in one click. It exists so the RANGE
+       reads at a glance. */
+    .bulk-order-pager .bulk-pager-gap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+        height: 2.25rem;
+        color: #999;
+        font-size: .95rem;
+        line-height: 1;
+        user-select: none;
+    }
+
+    .bulk-order-pager .bulk-pager-state {
+        margin-left: .75rem;
+        font-size: .85rem;
+        color: #777;
+    }
+
+/* ------------------------------------------------------------------ narrow */
+/* .bulk-order-side is flex: 0 0 220px, so it never shrinks, and .bulk-order-main is
+   flex-basis 0 - which is what stops the main column WRAPPING below the tree on the desktop, and therefore
+   also what stops it wrapping when there is no room for it at all. Without these rules a 375px viewport
+   renders a 220px category tree beside roughly 130px of product grid.
+
+   1000px, not 900: the layout must stack exactly where the THEME's category treatment changes. Between the
+   two the tree was already hidden while our layout was still two columns, leaving a 220px empty gutter. */
+@media (max-width: 1000px) {
+    /* nowrap and stretch are what make the grid scroll instead of the page.
+       The layout is `flex-wrap: wrap` for the two-column case. Turned to a COLUMN here, a wrapping flex
+       container stops stretching its items to the container's width and sizes them to their content
+       instead - so .bulk-order-main grew to the widest card (1439px at a 375px viewport), .product-body
+       never had to shrink, and .grid-scroll's `overflow-x: auto` had nothing to clip. Measured before this
+       rule: the document was 1458px wide on a 375px screen and the Add to cart button sat a thousand pixels
+       off the right edge. One declaration fixed it. */
+    .bulk-order-layout {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+    }
+
+    /* min-width: auto is a flex item's default and refuses to shrink below its content - the table's
+       intrinsic width. .product-body already carries this; the two boxes between it and the layout did not. */
+    .bulk-order-main,
+    .bulk-order-grid {
+        min-width: 0;
+    }
+
+    .bulk-order-side {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+
+        /* The theme hides this block entirely below 1000px (CW.Standard/Content/css/styles.css:7087) because on
+       its own storefront the header's CATEGORIES menu replaces it - and that menu navigates to the CATALOGUE,
+       not to this screen's filter. There is no replacement here, so the customer loses category navigation
+       altogether, and on this screen the category is a control rather than a page.
+       Restored for OUR column only. That is not restyling the theme; it is our column stating what it holds. */
+        .bulk-order-side .block-category-navigation {
+            display: block;
+        }
+
+            /* The list has to be restored WITH the block. The theme's mobile pattern is an accordion - .listbox is
+       display:none at base (:1490) and opens only at min-width 1001px (:8664) - but the opener lives in
+       voyage.js, which belongs to CW.StandardTest; CW.Standard ships no scripts at all. An un-hidden block
+       would be a heading nothing can open. Forcing it open is also swap-proof: this column is replaced
+       wholesale on every filter change, so a toggle bound at page load would die after the first one. */
+            .bulk-order-side .block-category-navigation .listbox {
+                display: block;
+                max-height: 14rem;
+                overflow-y: auto;
+            }
+
+            /* and without the toggle, the heading must stop advertising one: the theme gives it a chevron background
+       and cursor:pointer at these widths, which is the min-width:1001px treatment brought down to ours */
+            .bulk-order-side .block-category-navigation .title {
+                background-image: none;
+                cursor: auto;
+                padding-right: 10px;
+            }
+
+    /* the auto margin only means "push right" while there is something to its left on the same line */
+    .bulk-order-controls-end {
+        margin-left: 0;
+    }
+}
+
+/* Below 600px the image cannot keep a COLUMN: `flex: 0 0 var(--imageSize)` is 300px on this store, and
+   once the card is 338px wide that leaves 14px for everything else. What matters is which 14px - .product-grid
+   lives INSIDE .product-body, so an image beside the body narrows the matrix itself, not just the name. Measured
+   at an 88px image: the grid fell from 338px to 235px, and a three-axis product's row labels alone are 232px.
+   So the picture moves instead of shrinking. It shares the top row with the name and price - which were going
+   to occupy a row anyway, so it only costs the difference in height - and the grid takes the full width on its
+   own row beneath. Measured over 15 products with real 300x300 images: 9,299px of page with no image at all,
+   10,463px this way at 110px, against 11,000px for a 96px image stacked ABOVE the details and 14,060px for the
+   image at its natural size. Stacking it above everything is both taller and smaller; this row is the cheaper
+   place to put a bigger picture.
+   `display: contents` is what makes it possible without touching the markup: .product-body's box disappears, so
+   .product-info and .product-grid become children of the card and the card can place all three. Its `min-width: 0`
+   disappears with it, which is why both children carry their own. */
+@media (max-width: 600px) {
+    .bulk-order-product {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+            "image info"
+            "grid  grid";
+        align-items: center;
+        gap: .6rem .9rem;
+    }
+
+        .bulk-order-product .product-image {
+            grid-area: image;
+            width: 110px;
+        }
+
+            /* the inline `--imageSize` is 300px, so the base rule's max-height has to be overridden, not inherited */
+            .bulk-order-product .product-image img {
+                max-height: 110px;
+            }
+
+        .bulk-order-product .product-body {
+            display: contents;
+        }
+
+        .bulk-order-product .product-info {
+            grid-area: info;
+            min-width: 0;
+            text-align: left;
+        }
+
+        .bulk-order-product .product-grid {
+            grid-area: grid;
+            min-width: 0;
+        }
+
+    /* The strip has already collapsed to one pin per row by this width - three pins measured 103, 251 and
+       188px in a 318px content box - so this is not about wrapping. `flex: 0 1 auto` sizes each pin to its
+       content, and `align-items: stretch` equalises heights only WITHIN a row, which is nothing once
+       every row holds one item. Full-row makes the edges line up, gives the label room to stop wrapping and
+       hands the control the width a thumb wants. `max-width` has to go with it: 24rem is narrower than the
+       card here and would cap the pin before the row did. */
+    .bulk-order-pins .pin {
+        flex: 1 1 100%;
+        max-width: none;
+    }
+
+        .bulk-order-pins .pin > select {
+            width: 100%;
+        }
+
+    /* 151px of a 338px card is a target that has to be aimed at, and the page-wide button sits at the foot of
+       an 18,500px document where aiming is worst. Full width is the reach fix; the height is NOT changed,
+       because 43px is the theme's own add-to-cart height on purpose (see .bulk-add) and one pixel under the
+       44px guideline is not what makes this hard to hit.
+       .bulk-order-actions is already `flex-wrap: wrap`, so a 100% basis puts the button on its own line and
+       leaves .bulk-add-status where it is on the line above. */
+    .bulk-add,
+    .bulk-add-all {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+/* The density set above has a floor on touch devices. `pointer: coarse` is the device asking for room,
+   not the viewport: a tablet at 1100px still gets thumbs. 40px is the smallest target that is comfortably
+   tappable, and the box grows rather than the row, so the grid stays a table and only the cell breathes. */
+@media (pointer: coarse) {
+    input.bulk-qty {
+        height: 40px;
+    }
+
+    .bulk-qty {
+        width: 3.25rem;
+    }
+
+    .grid-table th, .grid-table td {
+        padding: .4rem .5rem;
+    }
+
+    /* the same floor as the quantity box above, for the same reason: the pin select is the other control on
+       this card a finger has to hit, and on this store it renders at 29px. 40, not 44 - it matches the box
+       it sits above, and a strip of controls at two different heights reads as one muddled control. */
+    .bulk-order-pins .pin select {
+        min-height: 40px;
+    }
+}

@@ -1,0 +1,35 @@
+@model AclDepartmentModel
+
+@{
+    var additionalCssClass = Model.IsAdvancedSetting ? "advanced-setting" : "";
+}
+
+<div class="form-group row @additionalCssClass">
+    <div class="col-md-3">
+        <nop-label asp-for="SelectedDepartmentIds" />
+    </div>
+    <div class="col-md-9">
+        <div class="row">
+            <div class="col-md-4">
+                <nop-select asp-for="SelectedDepartmentIds" asp-items="Model.AvailableDepartments" asp-multiple="true" />
+                <script>
+					$(function() {
+						var departmentIdsInput = $('#@Html.IdFor(model => model.SelectedDepartmentIds)').select2({
+                            closeOnSelect: false,
+                            @if (!Model.AvailableDepartments.Any())
+                            {
+                                <text>
+                                    disabled: true,
+                                    placeholder: '@T("Plugins.CW.Core.Admin.AclDepartment.NoDepartmentsAvailable")',
+                                </text>
+                            }
+                        });
+					});
+                </script>
+            </div>
+            <div class="col-md-8">
+                @await Component.InvokeAsync(typeof(AclDisabledWarningViewComponent))
+            </div>
+        </div>
+    </div>
+</div>

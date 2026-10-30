@@ -1,0 +1,78 @@
+﻿@model BulkOrderCategoryNavigationModel
+
+@functions {
+    @*nop's own rule, ported from Views/Shared/Components/CategoryNavigation/Default.cshtml:6-23. A branch is
+      open when the selected category is inside it at ANY depth, which is what makes the tree show one path
+      instead of the whole catalogue. `Any` rather than nop's `Count(...) > 0`: same answer, and it stops at
+      the first match instead of walking every sibling subtree.*@
+    bool ContainsSelected(CategorySimpleModel category)
+    {
+        if (Model.CategoryId == 0)
+            return false;
+
+        if (category.Id == Model.CategoryId)
+            return true;
+
+        foreach (var sub in category.SubCategories)
+        {
+            if (ContainsSelected(sub))
+                return true;
+        }
+
+        return false;
+    }
+
+    async Task RenderCategoryAsync(CategorySimpleModel category)
+    {
+        //nop's three states with nop's class names, so the theme styles this tree exactly as it styles its
+        //own: `active` anywhere on the open path, `last` on the selected category itself.
+        var selected = category.Id == Model.CategoryId;
+        var onPath = selected || category.SubCategories.Any(ContainsSelected);
+
+        <li class="@(onPath ? "active" : "inactive")@(selected ? " last" : null)">
+            <a data-category-id="@category.Id" href="@Url.RouteUrl(CWCoreDefaults.BULKORDER_INDEX, new { CategoryId = category.Id, FilterMode = Model.FilterMode, OrderId = Model.OrderId, OrderBy = Model.OrderBy, PageSize = Model.PageSize, ViewMode = Model.ViewMode })">
+                @category.Name
+            </a>
+
+            @*Children render only on the open path - nop's rule at CategoryNavigation:44-45. This
+              view rendered every subcategory of every category at every depth, so the tree was the entire
+              catalogue on every page load: the tallest thing on the screen, pushing the first product below
+              the fold on a page whose navigation it is supposed to BE. That is a divergence from nop we
+              introduced, which is why the fix is a port and not a scrollbar.
+              The href keeps every request-state parameter, so the tree still works with JavaScript off -
+              the AJAX path reads data-category-id and never follows the link.*@
+            @if (onPath && category.SubCategories.Any())
+            {
+                <ul class="sublist">
+                    @foreach (var sub in category.SubCategories)
+                    {
+                        await RenderCategoryAsync(sub);
+                    }
+                </ul>
+            }
+        </li>
+    }
+}
+
+@if (Model.Categories.Any())
+{
+    <div class="block block-category-navigation">
+        <div class="title"><strong>@T("Categories")</strong></div>
+        <div class="listbox">
+            <ul class="list">
+                @if (Model.CategoryId > 0)
+                {
+                    <li class="inactive">
+                        <a data-category-id="0" href="@Url.RouteUrl(CWCoreDefaults.BULKORDER_INDEX, new { CategoryId = 0, FilterMode = Model.FilterMode, OrderId = Model.OrderId, OrderBy = Model.OrderBy, PageSize = Model.PageSize, ViewMode = Model.ViewMode })">
+                            @T("Plugins.CW.Core.BulkOrder.AllCategories")
+                        </a>
+                    </li>
+                }
+                @foreach (var category in Model.Categories)
+                {
+                    await RenderCategoryAsync(category);
+                }
+            </ul>
+        </div>
+    </div>
+}

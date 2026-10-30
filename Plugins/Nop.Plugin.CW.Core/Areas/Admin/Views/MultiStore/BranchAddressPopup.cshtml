@@ -1,0 +1,56 @@
+﻿@model CWAddressModel
+
+@{
+    Layout = "_AdminPopupLayout";
+
+    var pageTitle = Model.Address.Id == 0 ? T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.AddNew").Text : T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.Edit").Text;
+
+    //page title
+    ViewBag.PageTitle = pageTitle;
+}
+
+@if (ViewBag.RefreshPage == true)
+{
+    <script>
+        try {window.opener.document.forms['@(Context.Request.Query["formId"])'].@(Context.Request.Query["btnId"]).click();}
+        catch (e){}
+        window.close();
+    </script>
+}
+
+<form asp-controller="MultiStore" asp-action="BranchAddressPopup"
+        asp-route-branchId="@Context.Request.Query["branchId"]"
+        asp-route-btnId="@Context.Request.Query["btnId"]"
+        asp-route-formId="@Context.Request.Query["formId"]">
+
+    <div asp-validation-summary="ModelOnly"></div>
+    <input type="hidden" asp-for="EntityId"/>
+
+    <div class="content-header clearfix">
+        <h1 class="float-left">
+            @pageTitle - @Model.EntityName
+        </h1>
+        <div class="pull-right">
+            &nbsp;
+        </div>
+    </div>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="form-horizontal">
+                <div class="cards-group">
+                    <div class="card card-default card-popup">
+                        <div class="card-body">
+                            <nop-editor asp-for="Address" asp-template="Address"/>
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" name="save" class="btn btn-primary">
+                                <i class="far fa-save"></i>
+                                @T("Admin.Common.Save")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</form>

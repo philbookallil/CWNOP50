@@ -1,0 +1,34 @@
+﻿@model SubsidyCatalogModel
+
+@foreach (var productGroup in Model.ProductGroups)
+{
+    //the same test as the header's Exhausted badge
+    var isExhausted = (productGroup.AvailableQuantity == 0 || productGroup.ShoppingCartQuantity >= productGroup.AvailableQuantity)
+                   && productGroup.RemainCredit <= 0
+                   && productGroup.RemainGlobalCredit <= 0;
+
+    <div class="product-group" id="product-group-@productGroup.Id" data-exhausted="@(isExhausted ? "true" : "false")">
+        <div class="product-group-header" id="product-group-header-@productGroup.Id">
+            <div class="product-group-header-info pg-header-@productGroup.Id">
+                @await Html.PartialAsync("_ProductGroupHeader", productGroup)
+            </div>
+            <div class="toggle-icon @(isExhausted ? "collapsed" : "expanded")">
+                <div class="arrow"></div>
+            </div>
+        </div>
+        <div class="products-container">
+            <div class="products-wrapper">
+                @await Html.PartialAsync("_ProductsGrid", productGroup)
+            </div>
+        </div>
+    </div>
+}
+
+<script asp-location="Footer">
+    $(document).ready(function () {
+        // Collapse exhausted groups on load
+        $('.toggle-icon.collapsed').each(function () {
+            $(this).closest('.product-group').find('.products-container').hide();
+        });
+    });
+</script>

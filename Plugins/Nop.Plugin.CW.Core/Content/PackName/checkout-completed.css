@@ -1,0 +1,53 @@
+﻿/* The packname order-completed page: nop's thank-you block, the packname groups (their own stylesheet),
+   then the settlement totals on the right and the continue button. */
+
+.packname-order-completed-page .order-completed {
+    margin-bottom: 24px;
+}
+
+.packname-order-completed-page .packname-order-details {
+    margin-bottom: 24px;
+}
+
+.packname-order-completed-page .packname-completed-totals {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+}
+
+    .packname-order-completed-page .packname-completed-totals .cart-total {
+        width: auto;
+        min-width: 320px;
+        max-width: 100%;
+        border-collapse: collapse;
+    }
+
+        .packname-order-completed-page .packname-completed-totals .cart-total td {
+            padding: 5px 10px;
+            white-space: nowrap;
+        }
+
+        .packname-order-completed-page .packname-completed-totals .cart-total .cart-total-right {
+            text-align: right;
+        }
+
+        .packname-order-completed-page .packname-completed-totals .cart-total tr.order-total td {
+            border-top: 1px solid #e6e6e6;
+            padding-top: 9px;
+            font-size: 15px;
+        }
+
+.packname-order-completed-page .order-completed-buttons {
+    text-align: center;
+}
+
+@media (max-width: 560px) {
+    .packname-order-completed-page .packname-completed-totals {
+        justify-content: stretch;
+    }
+
+        .packname-order-completed-page .packname-completed-totals .cart-total {
+            width: 100%;
+            min-width: 0;
+        }
+}

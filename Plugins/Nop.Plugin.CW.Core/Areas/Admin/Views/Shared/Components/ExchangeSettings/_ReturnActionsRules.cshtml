@@ -1,0 +1,138 @@
+﻿@model ExchangeSettingsSearchModel
+
+<div class="content-header clearfix">
+    <div class="float-left">
+    </div>
+    <div class="float-right">
+        <button type="submit" onclick="javascript:OpenWindow('@(Url.Action("ReturnRequestActionCreatePopup", "Returns", new { area = "Admin", btnId = "btnRefreshRequestActions", formId = "returnaction-form" }))', 600, 300, true); return false;" class="btn btn-primary">
+            <i class="fa fa-plus-square"></i>
+            @T("Admin.Common.AddNew")
+        </button>
+    </div>
+</div>
+
+<form asp-controller="Returns" asp-action="ReturnRequestActionCreatePopup" method="post" id="returnaction-form">
+    <div class="content">
+        <!-- Empty state message -->
+        <div id="no-action-rules-message" class="alert alert-info" role="alert" style="display:none;">
+            <p>@T("Plugins.CW.Core.Admin.Exchanges.Rules.ActionRules.NoRules")</p>
+        </div>
+
+        <!-- DataTables Implementation -->
+        @await Html.PartialAsync("Table", new DataTablesModel
+        {
+            Name = "return-actions-grid",
+            UrlRead = new DataUrl("GetReturnActionsRules", "ExchangesConfig", new RouteValueDictionary { [nameof(ReturnActionRuleSearchModel.StoreId)] = Model.StoreId }),
+            UrlUpdate = new DataUrl("UpdateReturnActionRule", "ExchangesConfig", new RouteValueDictionary { [nameof(ReturnActionRuleModel.StoreId)] = Model.StoreId }),
+            PrimaryKeyColumn = nameof(ReturnActionRuleModel.ReturnActionId),
+            Length = Model.PageSize,
+            LengthMenu = Model.AvailablePageSizes,
+            ColumnCollection = new List<ColumnProperty>
+            {
+                new ColumnProperty(nameof(ReturnActionRuleModel.ReturnActionId))
+                {
+                    Title = "ReturnActionId",
+                    Editable = false,
+                    Searchable = false,
+                    Visible = false
+                },
+                // Return Action (Read-Only)
+                new ColumnProperty(nameof(ReturnActionRuleModel.ReturnAction))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.ActionRules").Text,
+                    Editable = false,
+                    Searchable = false
+                },
+                // Allow Store Credit (Checkbox - Editable)
+                new ColumnProperty(nameof(ReturnActionRuleModel.AllowStoreCredit))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.AllowStoreCredit").Text,
+                    Width = "150",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Allow Exchange (Checkbox - Editable)
+                new ColumnProperty(nameof(ReturnActionRuleModel.AllowExchange))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.AllowExchange").Text,
+                    Width = "150",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Allow Repackaging Fee (Checkbox - Editable)
+                new ColumnProperty(nameof(ReturnActionRuleModel.AllowRepackagingFee))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.AllowRepackagingFee").Text,
+                    Width = "150",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Allow Shipping Fee (Checkbox - Editable)
+                new ColumnProperty(nameof(ReturnActionRuleModel.AllowShippingFee))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.AllowShippingFee").Text,
+                    Width = "150",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Back In Stock (Checkbox - Editable)
+                new ColumnProperty(nameof(ReturnActionRuleModel.BackInStock))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.BackInStock").Text,
+                    Width = "150",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Is Active (Checkbox - Editable)
+                new ColumnProperty(nameof(ReturnActionRuleModel.IsActive))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.IsActive").Text,
+                    Width = "150",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = true,
+                    EditType = EditType.Checkbox,
+                    Render = new RenderBoolean()
+                },
+                // Display Order
+                new ColumnProperty(nameof(ReturnActionRuleModel.DisplayOrder))
+                {
+                    Title = T("Plugins.CW.Core.Admin.Exchanges.Rules.Fields.DisplayOrder").Text,
+                    Width = "100",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Editable = false
+                },
+                // Actions Column (Edit/Update/Cancel buttons)
+                new ColumnProperty(nameof(ReturnActionRuleModel.ReturnActionId))
+                {
+                    Title = T("Admin.Common.Actions").Text,
+                    Width = "250",
+                    ClassName = NopColumnClassDefaults.Button,
+                    Render = new RenderButtonsInlineEdit(),
+                }
+            }
+        })
+    </div>
+
+    <button type="submit" id="btnRefreshRequestActions" style="display: none"></button>
+    <script>
+        $(function() {
+            $('#btnRefreshRequestActions').click(function () {
+                //refresh grid
+                updateTable('#return-actions-grid');
+
+                //return false to don't reload a page
+                return false;
+            });
+        });
+    </script>
+</form>

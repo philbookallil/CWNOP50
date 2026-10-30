@@ -1,0 +1,9 @@
+﻿@model BulkOrderingModel
+
+<aside class="bulk-order-side">
+    @await Component.InvokeAsync(typeof(BulkOrderCategoryNavigationViewComponent), new { bulkOrderingModel = Model })
+</aside>
+
+<section class="bulk-order-main">
+    @await Html.PartialAsync("~/Plugins/CW.Core/Views/BulkOrder/_Items.cshtml", Model)
+</section>

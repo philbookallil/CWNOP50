@@ -1,0 +1,198 @@
+﻿@model CostCentersModel
+
+@*A COLLECTION IS A LABEL, NOT A CARD. Card classes would give it the same weight as the branch
+  above it and as the detail forms below, so it gets classes of its own.*@
+<div class="ms-collection">
+
+    <div class="ms-collection-head">
+        <i class="fas fa-caret-right bp-expand-icon open" id="cc-ei"></i>
+        <h3 class="ms-collection-label">
+            @T("Plugins.CW.Core.Admin.MultiStores.CostCenters")
+        </h3>
+        @*SERVER-RENDERED, like the packname lists count. It used to be filled by bindGridEmptyState
+          on every DataTables draw, which meant the number was briefly wrong on first paint and wrong
+          again for the whole of any failed refresh.*@
+        <span class="ms-collection-count">@Model.CostCenters.Count</span>
+
+        <div class="ml-auto">
+            <button type="button" class="ms-collection-action btn-add-b-cc">
+                <i class="fas fa-plus" aria-hidden="true"></i>
+                @T("Plugins.CW.Core.Admin.CostCenters.AddNew")
+            </button>
+        </div>
+    </div>
+
+    <div id="cc-body" class="bp-card-body-collapsible">
+
+        @*NO SEPARATE EMPTY STATE and no table headers over no rows - the add row below is the empty
+          state, exactly as in the packname lists collection.*@
+        <div class="ms-rows" id="cc-list">
+            @foreach (var cc in Model.CostCenters)
+            {
+                <div class="ms-row" data-id="@cc.Id" data-name="@Html.Encode(cc.Name)">
+
+                    <div class="ms-row-main">
+
+                        <div class="ms-row-lead">
+                            @*ACTIVE WAS A TICK IN ITS OWN COLUMN, which cost a full column to say
+                              yes almost every time. As a dot in the lead slot it keeps every row's
+                              name aligned with the other collections and only draws attention when
+                              a cost centre is off.*@
+                            <span class="ms-row-dot @(cc.Active ? "ms-row-dot-on" : "ms-row-dot-off")"
+                                  title="@(cc.Active
+                                            ? T("Plugins.CW.Core.Admin.CostCenters.CostCenter.Field.Active").Text
+                                            : T("Plugins.CW.Core.Admin.CostCenters.CostCenter.Inactive").Text)">
+                                <i class="fas fa-circle" aria-hidden="true"></i>
+                            </span>
+                        </div>
+
+                        <div class="ms-row-info">
+                            <div class="ms-row-name">@cc.Name</div>
+                            @if (!cc.Active)
+                            {
+                                <div class="ms-row-meta">
+                                    <span class="ms-row-chip ms-row-chip-gray">
+                                        @T("Plugins.CW.Core.Admin.CostCenters.CostCenter.Inactive")
+                                    </span>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="ms-row-actions">
+                            <button type="button"
+                                    class="btn btn-xs btn-outline-primary btn-edit-cc"
+                                    data-id="@cc.Id"
+                                    data-name="@Html.Encode(cc.Name)"
+                                    title="@T("Admin.Common.Edit")">
+                                <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                                @T("Admin.Common.Edit")
+                            </button>
+                            <button type="button"
+                                    class="btn btn-xs btn-outline-danger btn-delete-cc"
+                                    data-id="@cc.Id"
+                                    title="@T("Admin.Common.Delete")">
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="ms-add-row" id="cc-add-row-@Model.BranchId">
+            @*A REAL BUTTON, NOT A DECORATION. Enter alone would commit and nothing would say so.*@
+            <button type="button" class="ms-add-plus" title="@T("Plugins.CW.Core.Admin.Common.AddHint")">+</button>
+            <input type="text"
+                   class="ms-add-input"
+                   id="cc-add-input-@Model.BranchId"
+                   autocomplete="off"
+                   placeholder="@T("Plugins.CW.Core.Admin.CostCenters.AddInline")" />
+            <span class="ms-add-error" style="display:none"></span>
+        </div>
+
+    </div>
+</div>
+
+@* EVERY RAZOR VALUE THE SCRIPT NEEDS ARRIVES THROUGH HERE, so the script below is
+   plain JavaScript with nothing HTML-encoded on its way into a string literal. *@
+<div class="b-cc-config"
+     data-branch-id="@Model.BranchId"
+     data-store-id="@Model.StoreId"
+     data-save-url="@Url.Action("SaveCostCenter", "MultiStore")"
+     data-delete-url="@Url.Action("DeleteCostCenter", "MultiStore")"
+     style="display: none;"></div>
+
+<script>
+(function () {
+
+    //OFF BEFORE ON, NAMESPACED. This script runs again on every render, so without the .off() the
+    //delegated handlers stack; the namespace keeps it off other scripts' handlers. #cc-panel is
+    //created once by ensureSubPanel and only has its innerHTML swapped, so it outlives every render
+    //of this partial and delegated handlers stack on it otherwise.
+    var $ccPanel = $('#cc-panel').off('.cc');
+
+    var $cfg = $ccPanel.find('.b-cc-config');
+    var branchId  = $cfg.data('branchId');
+    var storeId   = $cfg.data('storeId');
+    var saveUrl   = $cfg.data('saveUrl');
+    var deleteUrl = $cfg.data('deleteUrl');
+
+    // ── Collapse / expand the collection ───────────────────────────────
+    //WAS AN onclick= ON THE HEADER running a self-invoking function in an attribute, with a second
+    //onclick="event.stopPropagation()" on the actions wrapper to stop the Add button collapsing the
+    //list. One delegated handler that ignores clicks on the actions does both jobs.
+    $ccPanel.on('click.cc', '.ms-collection-head', function (e) {
+        if ($(e.target).closest('.ms-collection-action').length) return;
+
+        var $body = $('#cc-body');
+        $body.toggleClass('collapsed');
+        $('#cc-ei').toggleClass('open', !$body.hasClass('collapsed'));
+    });
+
+    // ── Add cost centre → focus mode ───────────────────────────────────
+    $ccPanel.on('click.cc', '.btn-add-b-cc', function (e) {
+        e.stopPropagation();
+        Admin.StoreNav.navigate({ costCenterId: null });
+        Admin.StoreNav.enterFocusMode('costcenter', null);
+    });
+
+    //A NAME IS ALL A COST CENTRE NEEDS. Everything else this posts is what the New form would have
+    //sent untouched: PrepareCostCenterModelAsync sets Active = true and nothing else.
+    Admin.StoreNav.bindInlineAdd({
+        input: '#cc-add-input-' + branchId,
+        url:   saveUrl,
+        fields: function (name) {
+            return {
+                //STOREID IS REQUIRED BY THE VALIDATOR, not by the controller. CostCenterValidator
+                //has RuleFor(x => x.StoreId).NotEqual(0) and FluentValidation runs at model binding,
+                //before SaveCostCenter derives the store from the branch. The controller still
+                //overrides it, so this only gets the post past validation.
+                Name: name,
+                BranchId: branchId,
+                StoreId: storeId,
+                Active: true,
+                IsNew: true,
+                ReturnView: 'branch'
+            };
+        },
+        onCreated: function () {
+            //THE WHOLE PANEL, not a grid redraw: the rows are server-rendered now, so this also
+            //refreshes the header count and puts the new row in the server's own name order.
+            Admin.StoreNav.reloadCostCenters();
+        }
+    });
+
+    // ── Edit → focus mode ──────────────────────────────────────────────
+    $ccPanel.on('click.cc', '.btn-edit-cc', function (e) {
+        e.stopPropagation();
+        var id   = $(this).data('id');
+        var name = $(this).data('name');
+        Admin.StoreNav.cacheName('cc', String(id), name);
+        Admin.StoreNav.navigate({ costCenterId: String(id) });
+        Admin.StoreNav.enterFocusMode('costcenter', String(id));
+    });
+
+    // ── Delete ─────────────────────────────────────────────────────────
+    $ccPanel.on('click.cc', '.btn-delete-cc', function (e) {
+        e.stopPropagation();
+        var id = $(this).data('id');
+        if (!confirm(Admin.StoreNav.res('costCenters.confirmDelete', 'Are you sure?'))) return;
+
+        var postData = { id: id };
+        addAntiForgeryToken(postData);
+
+        $.post(deleteUrl,
+            postData,
+            function (result) {
+                if (!result.success) {
+                    display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') });
+                    return;
+                }
+                Admin.StoreNav.reloadCostCenters();
+            }
+        );
+    });
+
+})();
+</script>

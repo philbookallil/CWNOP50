@@ -1,0 +1,173 @@
+﻿@model SubsidyModel
+
+<div class="card card-default bp-card card-ms-inner-section">
+    <div class="card-header d-flex align-items-center">
+        <span class="ms-card-title">
+            @T("Plugins.CW.Core.Admin.Subsidies.PackNames")
+        </span>
+        @if (!Model.IsNew)
+        {
+            <div class="ml-auto d-flex align-items-center" style="gap:6px">
+                <button type="submit" class="btn btn-primary btn-sm" onclick="javascript:OpenWindow('@(Url.Action("SubsidyPackNamePopup", "Subsidy", new {subsidyId = Model.Id, btnId = "btnRefreshSubsidyPackNames", formId = "subsidy-detail-form"}))', 800, 800, true); return false;">
+                    @T("Plugins.CW.Core.Admin.Subsidies.PackNames.AddNew")
+                </button>
+            </div>
+        }
+    </div>
+    @if (!Model.IsNew)
+    {
+        <div class="card-body">
+            @{
+                var gridModel = new DataTablesModel
+                {
+                    Name = "subsidy-packnames-grid",
+                    UrlRead = new DataUrl("SubsidyPackNames", "Subsidy", new RouteValueDictionary { [nameof(Model.SubsidyPackNameSearchModel.SubsidyId)] = Model.SubsidyPackNameSearchModel.SubsidyId }),
+                    UrlDelete = new DataUrl("SubsidyPackNameDelete", "Subsidy", new RouteValueDictionary { [nameof(Model.SubsidyPackNameSearchModel.SubsidyId)] = Model.SubsidyPackNameSearchModel.SubsidyId }),
+                    Length = Model.SubsidyPackNameSearchModel.PageSize,
+                    LengthMenu = Model.SubsidyPackNameSearchModel.AvailablePageSizes,
+                    ColumnCollection = new List<ColumnProperty>()
+                };
+
+                if (Model.MultiStoreSettingsModel.EmployeeNumberEnabled)
+                {
+                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.EmployeeNumber))
+                    {
+                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.EmployeeNumber").Text
+                    });
+                }
+
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.Name))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Name").Text
+                });
+
+                if (Model.MultiStoreSettingsModel.PrintNameEnabled)
+                {
+                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.PrintName))
+                    {
+                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.PrintName").Text
+                    });
+                }
+
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.Branch))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Branch").Text
+                });
+
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.Department))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Department").Text
+                });
+
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.CostCenter))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.CostCenter").Text
+                });
+
+                if (Model.MultiStoreSettingsModel.GenderEnabled)
+                {
+                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.Gender))
+                    {
+                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender").Text,
+                        Width = "100",
+                        ClassName = NopColumnClassDefaults.CenterAll,
+                        Render = new RenderCustom("Admin.StoreNav.render.gender")
+                    });
+                }
+
+                if (Model.MultiStoreSettingsModel.POEntryEnabled)
+                {
+                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.POEntry))
+                    {
+                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.POEntry").Text
+                    });
+                }
+
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.IsCustomer))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.IsCustomer").Text,
+                    Width = "100",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Render = new RenderBoolean()
+                });
+
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.UsedPercent))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.UsedPercent").Text,
+                    Width = "100",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                });
+
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.Active))
+                {
+                    Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Active").Text,
+                    Width = "100",
+                    ClassName = NopColumnClassDefaults.CenterAll,
+                    Render = new RenderBoolean()
+                });
+
+                if (Model.MultiStoreSettingsModel.PackNamesOwnGlobalValue || Model.MultiStoreSettingsModel.PackNamesOwnStartAndFinishDates)
+                {
+                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.SubsidyVariation))
+                    {
+                        Title = T("Plugins.CW.Core.Admin.PackNames.PackName.Field.SubsidyVariation").Text,
+                        Encode = false
+                    });
+
+                    gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.Id))
+                    {
+                        Title = T("Admin.Common.Edit").Text,
+                        Width = "100",
+                        ClassName = NopColumnClassDefaults.Button,
+                        Render = new RenderCustom("Admin.StoreNav.render.subsidyVariationEdit")
+                    });
+                }
+
+                gridModel.ColumnCollection.Add(new ColumnProperty(nameof(SubsidyPackNameModel.Id))
+                {
+                    Title = T("Admin.Common.Delete").Text,
+                    Width = "100",
+                    Render = new RenderButtonRemove(T("Admin.Common.Delete").Text),
+                    ClassName = NopColumnClassDefaults.Button
+                });
+            }
+
+            @await Html.PartialAsync("Table", gridModel)
+        </div>
+        @* The id stays: SubsidyPackNamePopup is handed it as btnId and clicks it on close, and the
+           variation popup is handed it as btnRefreshId. The behaviour moved to Admin.StoreNav's
+           delegated .ms-grid-refresh handler. *@
+        <button type="submit" id="btnRefreshSubsidyPackNames" class="ms-grid-refresh"
+                data-grid="#subsidy-packnames-grid" style="display: none"></button>
+
+        @* The variation popup's URL reaches the script through here, so the script is plain JavaScript. *@
+        <div class="subsidy-packnames-config"
+             data-variation-popup-url="@Url.Action("SubsidyVariationEditPopup", "Subsidy")"
+             style="display: none;"></div>
+
+        <script>
+            (function () {
+                var $host = $('#subsidy-container');
+                var $cfg = $host.find('.subsidy-packnames-config');
+                var variationPopupUrl = $cfg.data('variationPopupUrl');
+
+                //THE HOST NODE OUTLIVES THE PANEL: loadSubsidy swaps its innerHTML, so the handler
+                //from the previous load must go before this one is attached.
+                $host.off('.subpn');
+
+                // ── Grid: edit a packname's variation (popup) ──────────────────
+                $host.on('click.subpn', '.btn-subsidy-variation-edit', function () {
+                    var id = $(this).data('id');
+                    OpenWindow(variationPopupUrl + '?subsidyPackNameId=' + id + '&btnRefreshId=btnRefreshSubsidyPackNames', 600, 400, true);
+                    return false;
+                });
+            })();
+        </script>
+    }
+    else
+    {
+        <div class="card-body">
+            @T("Plugins.CW.Core.Admin.Subsidies.PackNames.SaveBeforeEdit")
+        </div>
+    }
+</div>

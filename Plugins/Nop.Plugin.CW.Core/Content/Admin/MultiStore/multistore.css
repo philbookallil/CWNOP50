@@ -1,0 +1,928 @@
+﻿.multistore-store-info .ico-help {
+    display: none;
+}
+
+
+.card-ms {
+    margin-bottom: 8px;
+}
+
+    .card-ms .card-ms-body {
+        padding: 10px 16px;
+    }
+
+        .card-ms .card-ms-body .breadcrumb {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-size: 13px
+        }
+
+.card-ms-section {
+    margin-bottom: 0;
+}
+
+    .card-ms-section .card-header {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+.card-header .ms-card-title {
+    font-size: 24px
+}
+
+.card-header-collapsible {
+    cursor: pointer;
+    user-select: none;
+}
+
+.card-ms-inner-section {
+    margin-top: 10px;
+}
+
+    .card-ms-inner-section .card-header {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+.ms-error-message {
+    padding: 16px;
+    color: red;
+    font-size: 13px;
+}
+
+.ms-loading-message {
+    padding: 20px;
+    color: #6c757d;
+    font-size: 13px;
+}
+
+#branch-panel-area {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+/* Small admin table */
+.admin-table-xs {
+    font-size: 14px;
+}
+
+    .admin-table-xs button {
+        font-size: 14px;
+    }
+
+    .admin-table-xs i {
+        font-size: 14px;
+    }
+
+    .admin-table-xs table td {
+        padding: 10px;
+    }
+
+    .admin-table-xs .table td.button-column .btn {
+        margin: 5px;
+    }
+
+/* Branch Tree */
+#empty-tree-msg {
+    padding: 16px 12px;
+    color: #6c757d;
+    font-size: 13px;
+}
+
+.branch-tree {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+    .branch-tree ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+.branch-node {
+    position: relative;
+}
+
+.branch-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    border-bottom: 1px solid #f0f0f0;
+    user-select: none;
+    transition: background 0.1s;
+}
+
+    .branch-row:hover {
+        background: #f4f6f9;
+    }
+
+    .branch-row.selected {
+        background: #007bff14;
+        color: #0056b3;
+        font-weight: 500;
+    }
+
+    .branch-row[data-depth="1"] {
+        padding-left: 28px;
+    }
+
+    .branch-row[data-depth="2"] {
+        padding-left: 44px;
+    }
+
+    .branch-row[data-depth="3"] {
+        padding-left: 60px;
+    }
+
+    .branch-row[data-depth="4"] {
+        padding-left: 76px;
+    }
+
+.branch-toggle {
+    transition: transform 0.15s;
+}
+
+    .branch-toggle:hover {
+        background: #dee2e6;
+    }
+
+    .branch-toggle.open {
+        transform: rotate(90deg);
+    }
+
+    .branch-toggle.leaf {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+.branch-icon {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: #6c757d;
+}
+
+.branch-row.selected .branch-icon {
+    color: #0056b3;
+}
+
+.branch-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.branch-children {
+    display: none;
+}
+
+    .branch-children.expanded {
+        display: block;
+    }
+
+.branch-add-root-row {
+    border-top: 1px solid #dee2e6;
+    padding: 8px 12px;
+    background: #f8f9fa;
+}
+
+.branch-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+    .branch-status-dot.active {
+        background: #28a745;
+    }
+
+    .branch-status-dot.inactive {
+        background: #ced4da;
+    }
+
+.branch-code-badge {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: #e9ecef;
+    color: #6c757d;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.branch-row.branch-inactive .branch-name {
+    color: #adb5bd;
+}
+
+.branch-row.branch-inactive .branch-code-badge {
+    opacity: 0.5;
+}
+
+/* Stacked cards in browse mode */
+#branch-right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Collapsible panel cards */
+.bp-card {
+    margin-bottom: 0;
+}
+
+    .bp-card .card-header {
+        cursor: pointer;
+        user-select: none;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .bp-card .card-header:hover {
+            background: #f4f6f9;
+        }
+
+.bp-expand-icon {
+    transition: transform 0.2s;
+    color: #6c757d;
+    font-size: 11px;
+    width: 14px;
+    flex-shrink: 0;
+}
+
+    .bp-expand-icon.open {
+        transform: rotate(90deg);
+    }
+
+.bp-card-body-collapsible {
+}
+
+    .bp-card-body-collapsible.collapsed {
+        display: none;
+    }
+
+/* ── Collection rows ────────────────────────────────────────────────
+   GENERIC, NOT PACKNAME-LIST. These were named .pnlist-* because packname lists were the first
+   collection built this way, but a row, its name, its chips and its actions are the same thing in
+   every collection on this page. Cost centres and addresses now use them too, and neither can
+   sensibly wear a class called "pnlist". Only two names stay packname-specific: .pnlist-inline-panel
+   (the packnames that open inside a list row) and .pn-count (which the inline panel writes to
+   directly). This rename is presentation only - if anything on the page moves, it is wrong. */
+.ms-rows {
+    border-top: 1px solid #f0f0f0;
+}
+
+.ms-row {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+}
+
+    .ms-row:last-child {
+        border-bottom: none;
+    }
+
+    .ms-row.selected > .ms-row-main {
+        background: #e8f0fe;
+    }
+
+    /* Default indicator adds a left accent */
+    .ms-row.is-default {
+        border-left: 3px solid #28a745;
+    }
+
+    .ms-row:not(.is-default) {
+        border-left: 3px solid transparent;
+    }
+
+.ms-row-main {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    padding: 9px 12px;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+    .ms-row-main:hover {
+        background: #f4f6f9;
+    }
+
+.ms-row.selected > .ms-row-main:hover {
+    background: #dce8fc;
+}
+
+/* Lead column: the default indicator, and the slot that keeps every row's name on the same
+   x-position whether or not its collection has a default. */
+.ms-row-lead {
+    width: 20px;
+    flex-shrink: 0;
+    text-align: center;
+    font-size: 14px;
+}
+
+.ms-row-default-badge {
+    color: #28a745;
+}
+
+    .ms-row-default-badge i {
+        font-size: 10px;
+    }
+
+.ms-row-default-placeholder {
+    color: #dee2e6;
+    opacity: 0;
+}
+
+/* A STATUS DOT, NOT THE DEFAULT BADGE. Cost centres have no default but they do have Active, and
+   reusing .ms-row-default-badge for it would say "this is the default one" in green. Same slot,
+   same size, different meaning - so a different class. The branch tree's .branch-status-dot is the
+   same idea but is a bare styled span belonging to the tree's own markup; this one rides on the
+   Font Awesome glyph the other lead-column states already use. */
+.ms-row-dot {
+    font-size: 10px;
+}
+
+.ms-row-dot-on {
+    color: #28a745;
+}
+
+.ms-row-dot-off {
+    color: #ced4da;
+}
+
+/* Info column */
+.ms-row-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.ms-row-name {
+    font-size: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #343a40;
+}
+
+.ms-row.selected > .ms-row-main .ms-row-name {
+    color: #0056b3;
+}
+
+.ms-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    flex-wrap: wrap;
+    /* The row's info column is a flex item with min-width:0, so it shrinks; without this the meta
+       line keeps its content width and pushes out from under it. */
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* A SECONDARY LINE, NOT A CHIP. Addresses are the only collection whose detail is content rather
+   than a label, and .ms-row-chip is white-space:nowrap by design - right for "All Managers", wrong
+   for "Calle 15 Nro 23-46, Edificio Belladonna Torre 1 Apto 503, Bucaramanga, 680001, Santander,
+   Colombia", which measured 449px inside a 164px column and ran underneath the action buttons.
+   Truncated the same way .ms-row-name is, with the full text in a title attribute. */
+.ms-row-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: 2px;
+    font-size: 11px;
+    color: #6c757d;
+}
+
+    .ms-row-line i {
+        flex-shrink: 0;
+        font-size: 9px;
+    }
+
+    .ms-row-line span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+/* Chips */
+.ms-row-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+    .ms-row-chip i {
+        font-size: 9px;
+    }
+
+.ms-row-chip-blue {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.ms-row-chip-gray {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.ms-row-chip-count {
+    background: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #e9ecef;
+}
+
+/* Row actions */
+.ms-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+    .ms-row-actions .btn-xs {
+        font-size: 14px;
+        padding: 2px 8px;
+    }
+
+/* THE PANEL IS NOT A SLAB ANY MORE. The grey band, the top border and the 98%/1% margins were
+   holding a card; .pni-contents now carries the indent and the left rule, so this only needs to
+   separate itself from the list row above it. */
+.pnlist-inline-panel {
+    border-top: 1px solid #f0f0f0;
+    padding-top: 8px;
+}
+
+/* PackNames inline table */
+.packnames-inline {
+    border-top: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+.packnames-inline-header {
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Cost center rows */
+.cc-row {
+    display: flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 8px;
+    font-size: 13px;
+    transition: background 0.1s;
+}
+
+    .cc-row:last-child {
+        border-bottom: none;
+    }
+
+    .cc-row:hover {
+        background: #f4f6f9;
+    }
+
+.cc-actions {
+    display: none;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.cc-row:hover .cc-actions {
+    display: flex;
+}
+
+/* Back button in focus mode */
+.btn-focus-back {
+    font-size: 12px;
+    padding: 2px 10px;
+    border: 1px solid #b8daff;
+    border-radius: 4px;
+    background: #fff;
+    color: #004085;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+    .btn-focus-back:hover {
+        background: #cce5ff;
+    }
+
+/* Chip badges */
+.chip {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.chip-blue {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.chip-gray {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+.chip-green {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* PackNames tab */
+
+.customers-without-packname {
+    text-align: right;
+}
+
+    .customers-without-packname a {
+        cursor: pointer;
+    }
+
+/* -- The saved stamp ----------------------------------------------------
+   SAVE NEVER NAVIGATES, so the panel staying put is all the admin sees. This is the whole
+   confirmation: quiet, beside the Save button, in the same green as an active status dot.
+   Hidden until Admin.StoreNav.markSaved() fills it. */
+.ms-saved-stamp {
+    font-size: 12px;
+    color: #2e7d4f;
+    white-space: nowrap;
+    margin-right: 4px;
+}
+
+/* -- The add row --------------------------------------------------------
+   THE LAST ROW OF EVERY COLLECTION IS THE ROW THAT ADDS TO IT, and when the collection is empty
+   it is the only row there is: the grid above is hidden, headers and all. Dashed rather than
+   solid so it reads as an offer instead of a record. */
+.ms-add-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 14px;
+    border-top: 1px dashed #dfe3e8;
+    background: #fcfdfe;
+    font-size: 13px;
+    color: #8a97a4;
+}
+
+    .ms-add-row.has-error {
+        border-top-color: #c9302c;
+    }
+
+.ms-add-plus {
+    font-weight: 700;
+    color: #3c8dbc;
+    line-height: 1;
+}
+
+.ms-add-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    padding: 2px 0;
+    font-size: 13px;
+    color: #1f2d3d;
+    outline: none;
+}
+
+    .ms-add-input::placeholder {
+        color: #8a97a4;
+    }
+
+    .ms-add-input:focus {
+        border-bottom: 1px solid #3c8dbc;
+    }
+
+.ms-add-error {
+    color: #c9302c;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* The addresses row opens a popup instead of taking a name, so it is a real button - but it has
+   to sit flush in the collection like the rows that do take one. */
+.ms-add-row-button {
+    text-align: left;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    cursor: pointer;
+}
+
+    .ms-add-row-button:hover {
+        background: #f4f8fb;
+        color: #3c8dbc;
+    }
+
+/* -- The branch as the page ---------------------------------------------
+   WEIGHT DECREASES WITH DEPTH. The branch is the subject of the page, so it gets a heading and
+   a rule rather than a card - a card would make it a sibling of the collections it contains. */
+.ms-branch-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #1f2d3d;
+}
+
+/* The title opens and closes the details like the disclosure does, so it behaves like one. */
+.ms-branch-title {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    cursor: pointer;
+}
+
+    .ms-branch-title:hover .ms-branch-name {
+        color: #3c8dbc;
+    }
+
+.ms-branch-name {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 700;
+    color: #1f2d3d;
+    letter-spacing: -0.01em;
+}
+
+.ms-branch-code {
+    font-size: 12px;
+    color: #6c7a89;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.ms-branch-meta {
+    font-size: 12.5px;
+    color: #6c7a89;
+}
+
+.ms-branch-inactive {
+    font-size: 12px;
+    color: #a94442;
+}
+
+.ms-branch-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* The disclosure is a control, not a card header - it reads as a link with a caret. */
+.ms-disclosure {
+    border: 0;
+    background: transparent;
+    color: #3c8dbc;
+    font-size: 12.5px;
+    cursor: pointer;
+    padding: 2px 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+    .ms-disclosure:hover {
+        color: #2a6ebb;
+    }
+
+.ms-branch-form {
+    background: #ffffff;
+    border: 1px solid #dfe3e8;
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+}
+
+/* Save sits with the form now, so the form needs its own bar for it. */
+.ms-branch-formbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+/* -- A collection is a label ---------------------------------------------
+   NEW CLASSES RATHER THAN A RESTYLE. The three collections used to wear card-ms-section,
+   ms-card-title and bp-card, which between them are on 13, 28 and 22 views across MultiStore
+   and Subsidy - redefining any of them to fix this page would have restyled all of those. */
+.ms-collection {
+    margin-bottom: 20px;
+}
+
+/* ALIGNED ON CENTRE, NOT BASELINE. With baseline alignment the caret sat below the label's
+   x-height and needed align-self:center to compensate, which is a patch for the wrong rule.
+   The right padding matches the rows below, so the action does not sit against the edge and
+   read as though the page has more to the right. */
+.ms-collection-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 2px 7px 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.ms-collection-label {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #55606e;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* THE COUNT BELONGS TO THE LABEL. Loose beside it, at the same colour as everything else, it
+   read as a number someone had dropped there. As a small pill it is clearly a property of the
+   heading - and it is what tells an empty collection apart from a broken one. */
+.ms-collection-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6c7a89;
+    background: #eef1f4;
+    border-radius: 9px;
+    padding: 1px 7px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* The branch's own actions are buttons; a collection's is a link. Weight decreases with depth
+   for the controls too, not only for the containers. */
+.ms-collection-action {
+    border: 0;
+    background: transparent;
+    color: #3c8dbc;
+    font-size: 12.5px;
+    cursor: pointer;
+    padding: 0;
+}
+
+    .ms-collection-action:hover {
+        color: #2a6ebb;
+    }
+
+    .ms-collection-action .fa-plus {
+        font-size: 10px;
+        margin-right: 3px;
+    }
+
+/* -- Wide grids scroll inside themselves ---------------------------------
+   THE GRID COLUMN WAS THE PROBLEM, not the table. #branch-panel-area is a CSS grid, and a grid
+   item defaults to min-width:auto - it refuses to shrink below its content's min-content width.
+   So the right column sized itself to its widest table and the template computed to
+   "300px 975.812px" inside a 767px container, pushing the document to 1568px in a 1077px
+   viewport. That is why the Add links looked jammed against the edge: the whole column was off
+   the right side, and no amount of padding could show. min-width:0 lets the column shrink;
+   overflow-x then keeps a wide table scrolling inside it instead of pushing the page.
+   Measured on the running site: document width 1568px -> 1077px, exactly the viewport. */
+#branch-right-col {
+    min-width: 0;
+}
+
+.admin-table-xs {
+    overflow-x: auto;
+}
+
+.ms-add-plus {
+    border: 0;
+    background: transparent;
+    font-weight: 700;
+    color: #3c8dbc;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+    .ms-add-plus:hover {
+        color: #2a6f96;
+    }
+
+/* Holds a hidden refresh button and a script block, nothing visible. It was .card-footer, which
+   went on painting a grey bar once the card around it was removed. */
+.ms-collection-scripts {
+    display: contents;
+}
+
+/* THE ROWS GET THE CONTAINER, NOT THE COLLECTION. A border around the section would make it a
+   card again, which is what this round removed - the label is the section. But the rows inside
+   it are a thing, and the packname lists were the only collection without a box around them:
+   the two grid collections get one from DataTables, so the three read three different ways. */
+.ms-rows {
+    background: #ffffff;
+    border: 1px solid #dfe3e8;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* The add row is the last row of that container, so it joins the box rather than floating below
+   it: no side or bottom border of its own, and it loses the radius the container already has. */
+.ms-add-row {
+    border-left: 1px solid #dfe3e8;
+    border-right: 1px solid #dfe3e8;
+    border-bottom: 1px solid #dfe3e8;
+    border-radius: 0 0 4px 4px;
+    margin-top: -1px;
+}
+
+/* The list's own search box, sitting above its grid rather than in a search card: this collection
+   lives inside a row, so a nop search panel would rebuild the card the redesign removed. */
+.pni-filter {
+    margin-bottom: 6px;
+}
+
+    .pni-filter input {
+        max-width: 260px;
+    }
+
+/* -- The packnames, inside their list ------------------------------------
+   Indented under the list row and marked with a rule, so depth is visible without another box:
+   this content is already inside the list's container, and a border here would put a box inside
+   a box. Its own add row is the innermost thing on the page, so it keeps no side borders. */
+.pni-contents {
+    padding: 0 0 8px 14px;
+    border-left: 2px solid #eef1f4;
+    margin-left: 12px;
+}
+
+    .pni-contents .ms-add-row {
+        border-left: 0;
+        border-right: 0;
+        border-radius: 0;
+    }
+
+/* -- Bulk actions on a packname grid --------------------------------------
+   One row above the grid: how many are ticked, the four actions (off until something is ticked), clearing the ticks,
+   and the export on the right. The row wraps on a narrow screen rather than pushing the grid sideways. */
+.pn-bulk-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+    .pn-bulk-toolbar .pn-bulk-count {
+        min-width: 150px;
+        color: #6c757d;
+        font-size: 13px;
+    }
+
+    .pn-bulk-toolbar .pn-bulk-action .fas,
+    .pn-bulk-toolbar .pn-bulk-action .far,
+    .pn-bulk-toolbar .pn-bulk-export .fas {
+        margin-right: 4px;
+    }
+
+    .pn-bulk-toolbar .pn-bulk-action-danger:not(:disabled) {
+        color: #c0392b;
+    }
+
+    .pn-bulk-toolbar .pn-bulk-export {
+        margin-left: auto;
+    }
+
+/* The checkbox column of a packname grid */
+.pn-bulk-check,
+.pn-bulk-page {
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+/* What a bulk action left alone, in its result dialog */
+.pn-bulk-dialog .pn-bulk-skipped {
+    max-height: 240px;
+    overflow-y: auto;
+    padding-left: 20px;
+}

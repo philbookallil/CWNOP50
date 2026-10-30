@@ -1,0 +1,11 @@
+﻿{
+  "Group": "CW",
+  "FriendlyName": "CW Core Plugin",
+  "SystemName": "CW.Core",
+  "Version": "2026_10_30_DATA_0.1",
+  "SupportedVersions": [ "5.00" ],
+  "Author": "CW Team",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.CW.Core.dll",
+  "Description": "(Prefix CORE) This plugin contains the base Features for the CW NOP Plugins suite and the NOP Overrides"
+}

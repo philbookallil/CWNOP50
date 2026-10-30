@@ -1,0 +1,243 @@
+@using Nop.Plugin.CW.Core.Models.Exchanges;
+@using Nop.Plugin.CW.Core.Domain.Exchanges;
+@using Nop.Plugin.CW.Core.Models.ReturnRequests;
+@using Nop.Services.Catalog;
+@using Nop.Plugin.CW.Core.Helpers;
+@using Nop.Plugin.CW.Core.Models.Exchanges.FeeRule;
+@using Nop.Plugin.CW.Core.Services.Exchanges;
+
+@model ReturnRequestSummaryModel
+
+@inject IExchangesDisplayService exchangesDisplayService
+
+@{
+    Layout = "~/Views/Shared/_ColumnsOne.cshtml";
+
+    //title
+    NopHtml.AddTitleParts(T("Plugins.CW.Core.Exchanges.Summary.Title").Text);
+    //page class
+    NopHtml.AppendPageCssClassParts("html-return-request-page");
+
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Exchanges/exchanges-wizard.css");
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Exchanges/exchanges-gather.js");
+
+    var isExchange = Model.Mode == ExchangeReturnMode.Exchange;
+}
+
+<div class="page return-request-page confirm-request cw-return-summary">
+    <div class="page-body">
+        @await Html.PartialAsync("~/Plugins/CW.Core/Views/Exchanges/_WizardSteps.cshtml", 4)
+        <form asp-controller="Exchanges" asp-action="ReturnRequestSummary" method="post" id="confirm-return-form">
+            @* hidden round-trip fields *@
+            @Html.HiddenFor(m => m.GatheredInfo.UploadedFileGuid)
+            @Html.HiddenFor(m => m.GatheredInfo.ReturnRequestGroupId)
+            @Html.HiddenFor(m => m.GatheredInfo.OrderId)
+            @Html.HiddenFor(m => m.GatheredInfo.ReturnRequestActionId)
+            @Html.HiddenFor(m => m.GatheredInfo.ReturnRequestReasonId)
+            @Html.HiddenFor(m => m.GatheredInfo.Comments)
+            <input type="hidden" name="exchange_mode" value="@Html.Raw((int)Model.Mode)" />
+
+            <div class="rs-hero">
+                <span class="rs-hero-badge">@T("Plugins.CW.Core.Exchanges.Summary.AlmostDone")</span>
+                <h1 class="rs-hero-title">@T("Plugins.CW.Core.Exchanges.Summary.Heading")</h1>
+                <p class="rs-hero-sub">@T("Plugins.CW.Core.Exchanges.Summary.Subheading")</p>
+            </div>
+
+            <section class="rs-card">
+                <header class="rs-card-head">@T("Plugins.CW.Core.Exchanges.Summary.Information")</header>
+                <div class="rs-card-body">
+                    <dl class="rs-info">
+                        <div class="rs-info-row">
+                            <dt>@T("Plugins.CW.Core.Exchanges.Summary.Order")</dt>
+                            <dd>#@Model.GatheredInfo.CustomOrderNumber</dd>
+                        </div>
+                        <div class="rs-info-row">
+                            <dt>@T("Plugins.CW.Core.Exchanges.Summary.Method")</dt>
+                            <dd><span class="rs-pill @(isExchange ? "is-exchange" : "is-credit")">@(await exchangesDisplayService.GetExchangeModeNameAsync(Model.Mode))</span></dd>
+                        </div>
+                        <div class="rs-info-row">
+                            <dt>@T("Plugins.CW.Core.Exchanges.Summary.ReturnAction")</dt>
+                            <dd>@Model.GatheredInfo.ReturnRequestActionName</dd>
+                        </div>
+                        <div class="rs-info-row">
+                            <dt>@T("Plugins.CW.Core.Exchanges.Summary.ReturnReason")</dt>
+                            <dd>@Model.GatheredInfo.ReturnRequestReasonName</dd>
+                        </div>
+                        @if (!String.IsNullOrEmpty(Model.GatheredInfo.Comments))
+                        {
+                            <div class="rs-info-row rs-info-row--full">
+                                <dt>@T("Plugins.CW.Core.Exchanges.Summary.Comments")</dt>
+                                <dd>@Model.GatheredInfo.Comments</dd>
+                            </div>
+                        }
+                    </dl>
+                </div>
+            </section>
+
+            <section class="rs-card">
+                <header class="rs-card-head">@T("Plugins.CW.Core.Exchanges.Summary.Items")</header>
+                <div class="rs-card-body rs-card-body--flush">
+                    @{
+                        var itemsTotalQuantity = 0;
+                        var creditNotesTotal = decimal.Zero;
+                    }
+                    <div class="rs-table-wrap">
+                        <table class="rs-table">
+                            <thead>
+                                <tr>
+                                    <th class="rs-col-num">#</th>
+                                    <th>@T("Plugins.CW.Core.Exchanges.Wizard.Columns.Product")</th>
+                                    <th class="rs-col-price">@T("Plugins.CW.Core.Exchanges.Wizard.Columns.UnitFullPrice")</th>
+                                    <th class="rs-col-qty">@T("Plugins.CW.Core.Exchanges.Wizard.Columns.Quantity")</th>
+                                    @if (isExchange)
+                                    {
+                                        <th>@T("Plugins.CW.Core.Exchanges.Wizard.Columns.ExchangeProduct")</th>
+                                        <th class="rs-col-price">@T("Plugins.CW.Core.Exchanges.Wizard.Columns.PriceDifference")</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var counter = 0;
+                                }
+                                @foreach (var item in Model.GatheredInfo.ReturnedItems)
+                                {
+                                    counter++;
+                                    var returnedOrderItem = item.Item;
+                                    var cwReturnedOrderItem = returnedOrderItem as CWSubmitReturnRequestModel.CWOrderItemModel;
+                                    itemsTotalQuantity += item.ReturnedQuantity;
+                                    creditNotesTotal += (item.UnitPrice * item.ReturnedQuantity);
+                                    <tr class="rs-item">
+                                        <td class="rs-col-num">
+                                            <span class="rs-num">@counter</span>
+                                            @if (isExchange && item.ReplacementProduct != null)
+                                            {
+                                                var replacementProduct = item.ReplacementProduct;
+                                                <input type="hidden" name="replacement_id_@returnedOrderItem.Id" value="@replacementProduct.ProductId" />
+                                                @foreach (var productReplacementAttribute in replacementProduct.Attributes)
+                                                {
+                                                    var attrInputName = String.Format("attr_id_{0}_{1}_{2}", returnedOrderItem.Id, replacementProduct.ProductId, productReplacementAttribute.AttributeId);
+                                                    <input type="hidden" name="@attrInputName" value="@productReplacementAttribute.AttributeValueId" />
+                                                }
+                                            }
+                                        </td>
+                                        <td class="rs-product">
+                                            <input type="hidden" name="returned_item_qty_@returnedOrderItem.Id" value="@item.ReturnedQuantity" />
+                                            <input type="hidden" name="exchange_mode_@returnedOrderItem.Id" value="@item.ExchangeTypeId" />
+
+                                            <div class="rs-product-line">
+                                                @if (!string.IsNullOrEmpty(cwReturnedOrderItem?.PictureUrl))
+                                                {
+                                                    <span class="rs-product-thumb">
+                                                        <img src="@cwReturnedOrderItem.PictureUrl" alt="@returnedOrderItem.ProductName" loading="lazy" />
+                                                    </span>
+                                                }
+                                                <span class="rs-product-detail">
+                                                    <span class="rs-product-name">@returnedOrderItem.ProductName</span>
+                                                    @if (!String.IsNullOrEmpty(returnedOrderItem.AttributeInfo))
+                                                    {
+                                                        <span class="rs-attributes">@Html.Raw(returnedOrderItem.AttributeInfo)</span>
+                                                    }
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="rs-col-price" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.UnitFullPrice")">@item.UnitPriceDisplay</td>
+                                        <td class="rs-col-qty" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.Quantity")">@item.ReturnedQuantity</td>
+
+                                        @if (isExchange)
+                                        {
+                                            if (item.ReplacementProduct != null)
+                                            {
+                                                var replacementProduct = item.ReplacementProduct;
+                                                <td class="rs-product rs-replacement" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.ExchangeProduct")">
+                                                    <div class="rs-product-line">
+                                                        @if (!string.IsNullOrEmpty(replacementProduct.PictureUrl))
+                                                        {
+                                                            <span class="rs-product-thumb">
+                                                                <img src="@replacementProduct.PictureUrl" alt="@replacementProduct.ProductName" loading="lazy" />
+                                                            </span>
+                                                        }
+                                                        <span class="rs-product-detail">
+                                                            <span class="rs-product-name">@replacementProduct.ProductName</span>
+                                                            <span class="rs-replacement-price">@replacementProduct.UnitPriceDisplay</span>
+                                                            @if (!String.IsNullOrEmpty(replacementProduct.AttributesInfo))
+                                                            {
+                                                                <span class="rs-attributes">@Html.Raw(replacementProduct.AttributesInfo)</span>
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td class="rs-col-price rs-price-diff" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.PriceDifference")">
+                                                    @await Html.PartialAsync("Exchanges/_ReplacementProductPriceDiff", item)
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.ExchangeProduct")"><span class="rs-muted">@(await exchangesDisplayService.GetExchangeTypeNameAsync((ExchangeType)item.ExchangeTypeId))</span></td>
+                                                <td class="rs-col-price rs-muted" data-label="@T("Plugins.CW.Core.Exchanges.Wizard.Columns.PriceDifference")">-</td>
+                                            }
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="rs-card rs-summary-card">
+                <header class="rs-card-head">@T("Plugins.CW.Core.Exchanges.Summary.Totals")</header>
+                <div class="rs-card-body">
+                    @if (Model.Mode == ExchangeReturnMode.CreditNote)
+                    {
+                        <div class="rs-summary-line">
+                            <span class="rs-summary-label">@T("Plugins.CW.Core.Exchanges.Summary.CreditNotesTotal")</span>
+                            <span class="rs-summary-value">@(await exchangesDisplayService.FormatPriceAsync(creditNotesTotal))</span>
+                        </div>
+                    }
+
+                    @if (Model.EstimatedFees.Count > 0)
+                    {
+                        var feesListModel = new FeesAndChargesListModel(itemsTotalQuantity, Model.EstimatedFees);
+                        <div class="rs-summary-block">
+                            <div class="rs-summary-block-title">@T("Plugins.CW.Core.Exchanges.Summary.EstimatedFees")</div>
+                            @await Html.PartialAsync("Exchanges/_FeesAndChargesList", feesListModel)
+                        </div>
+                    }
+
+                    <div class="rs-summary-block rs-summary-totals">
+                        @await Html.PartialAsync("Exchanges/_SummaryTotals", Model)
+                    </div>
+                </div>
+            </section>
+            <div class="rs-disclaimer">
+                @if (isExchange)
+                {
+                    <ul>
+                        <li>@Html.Raw(T("Plugins.CW.Core.Exchanges.Summary.Disclaimer.NegativeAmount"))</li>
+                        <li>@Html.Raw(T("Plugins.CW.Core.Exchanges.Summary.Disclaimer.FeesEstimate"))</li>
+                        <li>@T("Plugins.CW.Core.Exchanges.Summary.Disclaimer.FeesNotExcluded")</li>
+                        <li>@T("Plugins.CW.Core.Exchanges.Summary.Disclaimer.SubsidyReturned")</li>
+                    </ul>
+                }
+                else
+                {
+                    <ul>
+                        <li>@T("Plugins.CW.Core.Exchanges.Summary.Disclaimer.CreditNoteApproval")</li>
+                        <li>@T("Plugins.CW.Core.Exchanges.Summary.Disclaimer.CreditNoteFees")</li>
+                        <li>@T("Plugins.CW.Core.Exchanges.Summary.Disclaimer.SubsidyReturned")</li>
+                    </ul>
+                }
+            </div>
+            <div class="rs-actions">
+                <a href="@Url.Action("ReturnRequest", "ReturnRequest", new { orderId = Model.GatheredInfo.OrderId })" class="rs-btn rs-btn--ghost cancel-button">@T("Plugins.CW.Core.Exchanges.Summary.Cancel")</a>
+                <input type="submit" id="confirm-return" name="confirm-return-request" class="rs-btn rs-btn--primary confirm-return-request-button" value="@T("Plugins.CW.Core.Exchanges.Summary.Confirm")" />
+            </div>
+        </form>
+        <script asp-location="Footer">
+            $(function () {
+                cwExchangesGather.submitOnce($('#confirm-return-form'));
+            });
+        </script>
+    </div>
+</div>

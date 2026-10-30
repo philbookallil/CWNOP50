@@ -1,0 +1,268 @@
+@model AdminPackNameOrderDetailsModel
+
+@using Nop.Core.Domain.Tax;
+@using Nop.Core.Domain.Catalog;
+
+@if (!Model.HasPackNameItems)
+{
+    return;
+}
+
+@{
+    var customer = await workContext.GetCurrentCustomerAsync();
+
+    const string hidePackNameBlockAttributeName = "OrderPage.HidePackNameBlock";
+    var hidePackNameBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hidePackNameBlockAttributeName);
+}
+
+@foreach (var group in Model.Groups)
+{
+    <nop-card asp-name="packname-order-@group.PackNameId" asp-icon="fas fa-user-tag" asp-title="@group.PackName" asp-hide-block-attribute-name="@hidePackNameBlockAttributeName" asp-hide="@hidePackNameBlock" asp-advanced="false">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <table class="adminData">
+                        <tr>
+                            <td class="adminTitle">Branch:</td>
+                            <td class="adminData">@group.Branch (@group.BranchCode)</td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(group.Department))
+                        {
+                            <tr>
+                                <td class="adminTitle">Department:</td>
+                                <td class="adminData">@group.Department</td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(group.CostCenter))
+                        {
+                            <tr>
+                                <td class="adminTitle">Cost Centre:</td>
+                                <td class="adminData">@group.CostCenter</td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <table class="adminData">
+                        <tr>
+                            <td class="adminTitle">@T("Admin.Orders.Fields.ShippingMethod"):</td>
+                            <td class="adminData">
+                                @group.ShippingMethod
+                                @if (group.IsSharedShipping)
+                                {
+                                    <span class="badge badge-info ml-1" title="Shared with @string.Join(", ", group.SharedWithPackNames)">
+                                        <i class="fas fa-share-alt"></i> Shared
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="adminTitle">@T("Admin.Orders.Fields.ShippingStatus"):</td>
+                            <td class="adminData">@group.ShippingStatus</td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(group.ShippingExclTaxFormatted))
+                        {
+                            <tr>
+                                <td class="adminTitle">@T("Plugins.CW.Core.Admin.Orders.Products.ShippingCost"):</td>
+                                <td class="adminData">
+                                    @if (Model.AllowCustomersToSelectTaxDisplayType)
+                                    {
+                                        <div>@Html.Raw(group.ShippingInclTaxFormatted)</div>
+                                        <div>@Html.Raw(group.ShippingExclTaxFormatted)</div>
+                                    }
+                                    else
+                                    {
+                                        switch (Model.TaxDisplayType)
+                                        {
+                                            case TaxDisplayType.ExcludingTax:
+                                            {
+                                                @Html.Raw(group.ShippingExclTaxFormatted)
+                                            }
+                                                break;
+                                            case TaxDisplayType.IncludingTax:
+                                            {
+                                                @Html.Raw(group.ShippingInclTaxFormatted)
+                                            }
+                                                break;
+                                            default:
+                                                break;
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    @if (!group.PickupInStore && !string.IsNullOrEmpty(group.AddressName))
+                    {
+                        <address>
+                            <strong>@group.AddressName</strong><br />
+                            @if (!string.IsNullOrEmpty(group.AddressLine1)) { @group.AddressLine1 <br /> }
+                            @if (!string.IsNullOrEmpty(group.AddressLine2)) { @group.AddressLine2 <br /> }
+                            @if (!string.IsNullOrEmpty(group.AddressCityStateZip)) { @group.AddressCityStateZip <br /> }
+                            @if (!string.IsNullOrEmpty(group.AddressCountry)) { @group.AddressCountry }
+                            @if (!string.IsNullOrEmpty(group.AddressPhone))
+                            {
+                                <br />@T("Plugins.CW.Core.Admin.Orders.Field.Phone")<text>:</text> @group.AddressPhone
+                            }
+                        </address>
+                    }
+                    @if (group.IsSharedShipping && group.SharedWithPackNames.Count > 0)
+                    {
+                        <div class="mt-2 text-muted small">
+                            <i class="fas fa-share-alt"></i>
+                            Shipping shared with: @string.Join(", ", group.SharedWithPackNames)
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="table-responsive mt-3">
+                <table class="table table-hover table-bordered">
+                    <thead>
+                        <tr>
+                            <th>@T("Admin.Orders.Products.Picture")</th>
+                            <th>@T("Admin.Orders.Products.ProductName")</th>
+                            <th>@T("Admin.Orders.Products.Price")</th>
+                            <th>@T("Admin.Orders.Products.Quantity")</th>
+                            <th>@T("Admin.Orders.Products.Total")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in group.Items)
+                        {
+                            <tr>
+                                <td class="text-center preview">
+                                    <img src="@item.PictureThumbnailUrl" alt="" title="" />
+                                </td>
+                                <td>
+                                    <em><a asp-controller="Product" asp-action="Edit" asp-route-id="@item.ProductId">@item.ProductName</a></em>
+                                    @if (!string.IsNullOrEmpty(item.AttributeInfo))
+                                    {
+                                        <p>@Html.Raw(item.AttributeInfo)</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(item.Sku))
+                                    {
+                                        <p><strong>@T("Admin.Orders.Products.SKU")</strong><text>:</text> @item.Sku</p>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (Model.AllowCustomersToSelectTaxDisplayType)
+                                    {
+                                        <div>@Html.Raw(item.UnitPriceInclTax)</div>
+                                        <div>@Html.Raw(item.UnitPriceExclTax)</div>
+                                    }
+                                    else
+                                    {
+                                        switch (Model.TaxDisplayType)
+                                        {
+                                            case TaxDisplayType.ExcludingTax:
+                                                @Html.Raw(item.UnitPriceExclTax)
+                                                break;
+                                            case TaxDisplayType.IncludingTax:
+                                                @Html.Raw(item.UnitPriceInclTax)
+                                                break;
+                                        }
+                                    }
+                                </td>
+                                <td class="text-center">@item.Quantity</td>
+                                <td class="text-center">
+                                    @if (Model.AllowCustomersToSelectTaxDisplayType)
+                                    {
+                                        <div>@Html.Raw(item.SubTotalInclTax)</div>
+                                        <div>@Html.Raw(item.SubTotalExclTax)</div>
+                                    }
+                                    else
+                                    {
+                                        switch (Model.TaxDisplayType)
+                                        {
+                                            case TaxDisplayType.ExcludingTax:
+                                                @Html.Raw(item.SubTotalExclTax)
+                                                break;
+                                            case TaxDisplayType.IncludingTax:
+                                                @Html.Raw(item.SubTotalInclTax)
+                                                break;
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (group.HasSubsidy)
+            {
+                <div class="mt-3 px-2 py-2 border-top">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="fas fa-tag text-warning mr-2"></i>
+                        <strong>@T("Plugins.CW.Core.Admin.Order.SubsidyApplied")</strong>
+                    </div>
+                    <table class="table table-sm table-borderless mb-0" style="width:auto; min-width:260px;">
+                        @if (group.HasShippingSubsidy)
+                        {
+                            <tr>
+                                <td class="text-muted py-0">@T("Plugins.CW.Core.Admin.Order.SubsidyForStock")</td>
+                                <td class="text-right py-0">(@Html.Raw(group.SubsidyForStockFormatted))</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted py-0">@T("Plugins.CW.Core.Admin.Order.SubsidyForShipping")</td>
+                                <td class="text-right py-0">(@Html.Raw(group.SubsidyForShippingFormatted))</td>
+                            </tr>
+                        }
+                        <tr>
+                            <td class="font-weight-bold py-0">@T("Plugins.CW.Core.Admin.Order.SubsidyTotal")</td>
+                            <td class="text-right font-weight-bold py-0">(@Html.Raw(group.SubsidyTotalFormatted))</td>
+                        </tr>
+                    </table>
+                </div>
+            }
+        </div>
+    </nop-card>
+}
+
+@if (Model.HasSettlement)
+{
+    var settlement = Model.SettlementTotals;
+
+    <div class="card card-warning">
+        <div class="card-header with-border">
+            <h3 class="card-title">@T("Plugins.CW.Core.Admin.Order.SubsidySummary")</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group row">
+                <div class="col-md-4"><label>@T("Plugins.CW.Core.Admin.Order.SettleableTotal")</label></div>
+                <div class="col-md-8">@Html.Raw(settlement.GrossTotal)</div>
+            </div>
+            @if (settlement.HasSubsidy)
+            {
+                @if (settlement.HasShippingSubsidy)
+                {
+                    <div class="form-group row">
+                        <div class="col-md-4"><label>@T("Plugins.CW.Core.Admin.Order.SubsidyForStock")</label></div>
+                        <div class="col-md-8">(@Html.Raw(settlement.SubsidyForStock))</div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-4"><label>@T("Plugins.CW.Core.Admin.Order.SubsidyForShipping")</label></div>
+                        <div class="col-md-8">(@Html.Raw(settlement.SubsidyForShipping))</div>
+                    </div>
+                }
+                <div class="form-group row">
+                    <div class="col-md-4"><label>@T("Plugins.CW.Core.Admin.Order.SubsidyTotal")</label></div>
+                    <div class="col-md-8"><strong>(@Html.Raw(settlement.SubsidyTotal))</strong></div>
+                </div>
+            }
+            @if (settlement.HasCreditNotes)
+            {
+                <div class="form-group row">
+                    <div class="col-md-4"><label>@T("Plugins.CW.Core.Admin.Order.CreditNotes")</label></div>
+                    <div class="col-md-8"><strong>(@Html.Raw(settlement.CreditNoteTotal))</strong></div>
+                </div>
+            }
+            <div class="form-group row">
+                <div class="col-md-4"><label><strong>@T("Plugins.CW.Core.Admin.Order.PayableBalance")</strong></label></div>
+                <div class="col-md-8"><strong>@Html.Raw(settlement.PayableBalance)</strong></div>
+            </div>
+        </div>
+    </div>
+}

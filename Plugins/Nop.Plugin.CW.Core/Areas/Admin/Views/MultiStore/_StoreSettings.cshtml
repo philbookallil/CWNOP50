@@ -1,0 +1,769 @@
+﻿@model MultiStoreSettingsModel
+
+@using Nop.Plugin.CW.Core.Domain.PackNames
+@using Nop.Services;
+
+@{
+    var customer = await workContext.GetCurrentCustomerAsync();
+
+    const string hidePackNameBlockAttributeName = "MultiStoreSettings.HidePackNameBlock";
+    var hidePackNameBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hidePackNameBlockAttributeName);
+
+    const string hideRegisterBlockAttributeName = "MultiStoreSettings.HideRegisterBlock";
+    var hideRegisterBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideRegisterBlockAttributeName);
+
+    const string hideCreditNotesExchangesBlockAttributeName = "MultiStoreSettings.HideCreditNotesExchangesBlock";
+    var hideCreditNotesExchangesBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideCreditNotesExchangesBlockAttributeName);
+
+    const string hideSubsidyBlockAttributeName = "MultiStoreSettings.HideSubsidyBlock";
+    var hideSubsidyBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideSubsidyBlockAttributeName);
+
+    const string hideBulkOrderBlockAttributeName = "MultiStoreSettings.HideBulkOrderBlock";
+    var hideBulkOrderBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideBulkOrderBlockAttributeName);
+}
+
+<form id="multistore-settings-form" asp-controller="MultiStore" asp-action="StoreSettings" method="post">
+
+    <div class="content-header clearfix">
+        <h1 class="float-left">
+            @T("Plugins.CW.Core.Admin.MultiStores.Settings")
+        </h1>
+        <div class="float-right">
+            <button type="button" class="btn btn-primary btn-save-settings">
+                <i class="far fa-save"></i>
+                @T("Admin.Common.Save")
+            </button>
+        </div>
+    </div>
+
+    <input asp-for="StoreId" type="hidden" />
+    <div asp-validation-summary="All"></div>
+
+    <nop-cards id="multistore-settings-cards">
+        <nop-card asp-name="packnames-defaults" asp-icon="fas fa-user" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.PackNames")" asp-hide-block-attribute-name="@hidePackNameBlockAttributeName" asp-hide="@hidePackNameBlock" asp-advanced="false">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="PackNameEnable_OverrideForStore" asp-input="PackNameEnable" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="PackNameEnable" />
+                    </div>
+                    <div class="col-md-1">
+                        <nop-editor asp-for="PackNameEnable" />
+                        <span asp-validation-for="PackNameEnable"></span>
+                    </div>
+                </div>
+                <div id="pnlPackNameSettings">
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="UseStaffAsPackName_OverrideForStore" asp-input="UseStaffAsPackName" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="UseStaffAsPackName" />
+                        </div>
+                        <div class="col-md-1">
+                            <nop-editor asp-for="UseStaffAsPackName" />
+                            <span asp-validation-for="UseStaffAsPackName"></span>
+                        </div>
+                        <div class="col-md-8">
+                            <a href="javascript:void(0)" class="btn btn-success generate-packnames pnlUseStaffAsPackName">
+                                <i class="fas fa-sync"></i>
+                                @T("Plugins.CW.Core.Admin.MultiStores.Settings.UseStaffAsPackName.Generate")
+                            </a>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="UseBranchesAsPackNameList_OverrideForStore" asp-input="UseBranchesAsPackNameList" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="UseBranchesAsPackNameList" />
+                        </div>
+                        <div class="col-md-1">
+                            <nop-editor asp-for="UseBranchesAsPackNameList" />
+                            <span asp-validation-for="UseBranchesAsPackNameList"></span>
+                        </div>
+                        <div class="col-md-8">
+                            <a href="javascript:void(0)" class="btn btn-success generate-packnamelists pnlUseBranchesAsPackNameList">
+                                <i class="fas fa-sync"></i>
+                                @T("Plugins.CW.Core.Admin.MultiStores.Settings.UseBranchesAsPackNameList.Generate")
+                            </a>
+                        </div>
+                    </div>
+                    <nop-nested-setting>
+                        <div class="form-group row" id="pnlUseBranchesAsPackNameList">
+                            <div class="col-md-3">
+                                <nop-override-store-checkbox asp-for="PackNameListNameFrom_OverrideForStore" asp-input="PackNameListNameFrom" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="PackNameListNameFrom" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-select asp-for="PackNameListNameFrom" asp-items="@await (((PackNameListNameFrom)Model.PackNameListNameFrom).ToSelectListAsync())" />
+                                <span asp-validation-for="PackNameListNameFrom"></span>
+                            </div>
+                        </div>
+                    </nop-nested-setting>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="EmployeeNumberEnabled_OverrideForStore" asp-input="EmployeeNumberEnabled" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="EmployeeNumberEnabled" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="EmployeeNumberEnabled" />
+                            <span asp-validation-for="EmployeeNumberEnabled"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="PrintNameEnabled_OverrideForStore" asp-input="PrintNameEnabled" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="PrintNameEnabled" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="PrintNameEnabled" />
+                            <span asp-validation-for="PrintNameEnabled"></span>
+                        </div>
+                    </div>
+                    <nop-nested-setting asp-for="PrintNameEnabled">
+                        <div class="form-group row" id="pnlPrintNameEnabled" disable-auto-generation="true">
+                            <div class="col-md-3">
+                                <nop-override-store-checkbox asp-for="PrintNameProductAttributeId_OverrideForStore" asp-input="PrintNameProductAttributeId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="PrintNameProductAttributeId" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-select asp-for="PrintNameProductAttributeId" asp-items="Model.AvailableProductAttributes" />
+                                <span asp-validation-for="PrintNameProductAttributeId"></span>
+                            </div>
+                        </div>
+                    </nop-nested-setting>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="POEntryEnabled_OverrideForStore" asp-input="POEntryEnabled" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="POEntryEnabled" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="POEntryEnabled" />
+                            <span asp-validation-for="POEntryEnabled"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="CommentsEnabled_OverrideForStore" asp-input="CommentsEnabled" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="CommentsEnabled" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="CommentsEnabled" />
+                            <span asp-validation-for="CommentsEnabled"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="GenderEnabled_OverrideForStore" asp-input="GenderEnabled" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="GenderEnabled" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="GenderEnabled" />
+                            <span asp-validation-for="GenderEnabled"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ShowDepartmentPackNamesByBranch_OverrideForStore" asp-input="ShowDepartmentPackNamesByBranch" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="ShowDepartmentPackNamesByBranch" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="ShowDepartmentPackNamesByBranch" />
+                            <span asp-validation-for="ShowDepartmentPackNamesByBranch"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="AllowManagersToAddPackNames_OverrideForStore" asp-input="AllowManagersToAddPackNames" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="AllowManagersToAddPackNames" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="AllowManagersToAddPackNames" />
+                            <span asp-validation-for="AllowManagersToAddPackNames"></span>
+                        </div>
+                    </div>
+                    <nop-nested-setting asp-for="AllowManagersToAddPackNames" disable-auto-generation="true">
+                        <div class="form-group row pnlAllowManagersToAddPackNames">
+                            <div class="col-md-3">
+                                <nop-override-store-checkbox asp-for="AllowToAddCustomerToPackName_OverrideForStore" asp-input="AllowToAddCustomerToPackName" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="AllowToAddCustomerToPackName" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="AllowToAddCustomerToPackName" />
+                                <span asp-validation-for="AllowToAddCustomerToPackName"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row pnlSubsidySelection">
+                            <div class="col-md-3">
+                                <nop-override-store-checkbox asp-for="AllowSubsidySelection_OverrideForStore" asp-input="AllowSubsidySelection" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="AllowSubsidySelection" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="AllowSubsidySelection" />
+                                <span asp-validation-for="AllowSubsidySelection"></span>
+                            </div>
+                        </div>
+                        <nop-nested-setting asp-for="AllowSubsidySelection" disable-auto-generation="true">
+                            <div class="form-group row pnlAllowSubsidySelection">
+                                <div class="col-md-3">
+                                    <nop-override-store-checkbox asp-for="AllowEditSubsidyTopup_OverrideForStore" asp-input="AllowEditSubsidyTopup" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                    <nop-label asp-for="AllowEditSubsidyTopup" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="AllowEditSubsidyTopup" />
+                                    <span asp-validation-for="AllowEditSubsidyTopup"></span>
+                                </div>
+                            </div>
+                        </nop-nested-setting>
+                        <div class="form-group row pnlAllowManagersToAddPackNames">
+                            <div class="col-md-3">
+                                <nop-override-store-checkbox asp-for="AllowToAddByExcel_OverrideForStore" asp-input="AllowToAddByExcel" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="AllowToAddByExcel" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="AllowToAddByExcel" />
+                                <span asp-validation-for="AllowToAddByExcel"></span>
+                            </div>
+                        </div>
+                        <nop-nested-setting asp-for="AllowToAddByExcel" disable-auto-generation="true">
+                            <div class="form-group row pnlAllowToAddByExcel">
+                                <div class="col-md-3">
+                                    <nop-override-store-checkbox asp-for="AllowSubsidyCountByExcel_OverrideForStore" asp-input="AllowSubsidyCountByExcel" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                    <nop-label asp-for="AllowSubsidyCountByExcel" />
+                                </div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="AllowSubsidyCountByExcel" />
+                                    <span asp-validation-for="AllowSubsidyCountByExcel"></span>
+                                </div>
+                            </div>
+                        </nop-nested-setting>
+                    </nop-nested-setting>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="LimitAssignedBranches_OverrideForStore" asp-input="LimitAssignedBranches" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="LimitAssignedBranches" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="LimitAssignedBranches" />
+                            <span asp-validation-for="LimitAssignedBranches"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row pnlSubsidyOnly">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="PackNamesOwnGlobalValue_OverrideForStore" asp-input="PackNamesOwnGlobalValue" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="PackNamesOwnGlobalValue" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="PackNamesOwnGlobalValue" />
+                            <span asp-validation-for="PackNamesOwnGlobalValue"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row pnlSubsidyOnly">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="PackNamesOwnStartAndFinishDates_OverrideForStore" asp-input="PackNamesOwnStartAndFinishDates" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="PackNamesOwnStartAndFinishDates" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="PackNamesOwnStartAndFinishDates" />
+                            <span asp-validation-for="PackNamesOwnStartAndFinishDates"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ShippingMethod_OverrideForStore" asp-input="SelectedShippingMethods" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="SelectedShippingMethods" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-select asp-for="SelectedShippingMethods" asp-items="Model.AvailableShippingMethods" asp-multiple="true" />
+                            <span asp-validation-for="SelectedShippingMethods"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="AllowHomeDelivery_OverrideForStore" asp-input="AllowHomeDelivery" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="AllowHomeDelivery" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="AllowHomeDelivery" />
+                            <span asp-validation-for="AllowHomeDelivery"></span>
+                        </div>
+                    </div>
+                    <nop-nested-setting asp-for="AllowHomeDelivery" disable-auto-generation="true">
+                        <div class="form-group row pnlAllowHomeDelivery">
+                            <div class="col-md-3">
+                                <nop-override-store-checkbox asp-for="AllowCustomersToAddAddress_OverrideForStore" asp-input="AllowCustomersToAddAddress" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="AllowCustomersToAddAddress" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="AllowCustomersToAddAddress" />
+                                <span asp-validation-for="AllowCustomersToAddAddress"></span>
+                            </div>
+                        </div>
+                    </nop-nested-setting>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="DoNotPreSelectShippingAddress_OverrideForStore" asp-input="DoNotPreSelectShippingAddress" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="DoNotPreSelectShippingAddress" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="DoNotPreSelectShippingAddress" />
+                            <span asp-validation-for="DoNotPreSelectShippingAddress"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row pnlSubsidyOnly">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="IncludeShippingOnSubsidy_OverrideForStore" asp-input="IncludeShippingOnSubsidy" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="IncludeShippingOnSubsidy" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="IncludeShippingOnSubsidy" />
+                            <span asp-validation-for="IncludeShippingOnSubsidy"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row pnlSubsidyOnly">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="SubsidySendUserAfterLogin_OverrideForStore" asp-input="SubsidySendUserAfterLogin" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="SubsidySendUserAfterLogin" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="SubsidySendUserAfterLogin" />
+                            <span asp-validation-for="SubsidySendUserAfterLogin"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nop-card>
+        <nop-card asp-name="creditnotes-exchanges-defaults" asp-icon="fas fa-file-invoice-dollar" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.CreditNotesAndExchanges")" asp-hide-block-attribute-name="@hideCreditNotesExchangesBlockAttributeName" asp-hide="@hideCreditNotesExchangesBlock" asp-advanced="false">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="CreditNotesEnable_OverrideForStore" asp-input="CreditNotesEnable" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="CreditNotesEnable" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="CreditNotesEnable" />
+                        <span asp-validation-for="CreditNotesEnable"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="ExchangesEnable_OverrideForStore" asp-input="ExchangesEnable" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="ExchangesEnable" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="ExchangesEnable" />
+                        <span asp-validation-for="ExchangesEnable"></span>
+                    </div>
+                </div>
+                <nop-nested-setting asp-for="ExchangesEnable" disable-auto-generation="true">
+                    <div class="form-group row" id="pnlAllowCloseWithoutPrintingReturnNote">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="AllowCloseWithoutPrintingReturnNote_OverrideForStore" asp-input="AllowCloseWithoutPrintingReturnNote" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="AllowCloseWithoutPrintingReturnNote" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="AllowCloseWithoutPrintingReturnNote" />
+                            <span asp-validation-for="AllowCloseWithoutPrintingReturnNote"></span>
+                        </div>
+                    </div>
+                </nop-nested-setting>
+            </div>
+        </nop-card>
+        <nop-card asp-name="subsidy-defaults" asp-icon="fas fa-hand-holding-usd" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.SubsidySection")" asp-hide-block-attribute-name="@hideSubsidyBlockAttributeName" asp-hide="@hideSubsidyBlock" asp-advanced="false">
+            <div class="card-body">
+                <div class="form-group row" id="pnlSubsidyEnableRow">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="SubsidyEnable_OverrideForStore" asp-input="SubsidyEnable" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="SubsidyEnable" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="SubsidyEnable" />
+                        <span asp-validation-for="SubsidyEnable"></span>
+                    </div>
+                </div>
+            </div>
+        </nop-card>
+        <nop-card asp-name="bulkorder-defaults" asp-icon="fas fa-th" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.BulkOrderSection")" asp-hide-block-attribute-name="@hideBulkOrderBlockAttributeName" asp-hide="@hideBulkOrderBlock" asp-advanced="false">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="BulkOrderEnable_OverrideForStore" asp-input="BulkOrderEnable" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="BulkOrderEnable" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="BulkOrderEnable" />
+                        <span asp-validation-for="BulkOrderEnable"></span>
+                    </div>
+                </div>
+                <div id="pnlBulkOrderSettings">
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            @*asp-parent-container, not asp-input: the axis slots are five selects with no single
+                              bindable property, so the override checkbox has to target the container*@
+                            <nop-override-store-checkbox asp-for="BulkOrderAxisAttributeIds_OverrideForStore" asp-parent-container="bulkorder-axis-slots" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderAxisAttributeIds" />
+                        </div>
+                        <div class="col-md-9">
+                            <div id="bulkorder-axis-slots">
+                                @for (var i = 0; i < BulkOrderDefaults.MAX_AXIS_COUNT; i++)
+                                {
+                                    var selected = Model.BulkOrderAxisAttributeIds.Count > i ? Model.BulkOrderAxisAttributeIds[i] : 0;
+                                    <div class="bulkorder-axis-slot">
+                                        <label>@string.Format(T("Plugins.CW.Core.Admin.MultiStores.Settings.BulkOrderAxisSlot").Text, i + 1)</label>
+                                        <select name="BulkOrderAxisAttributeIds[@i]" class="form-control">
+                                            @foreach (var item in Model.AvailableProductAttributes)
+                                            {
+                                                <option value="@item.Value" selected="@(item.Value == selected.ToString())">@item.Text</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderDefaultViewMode_OverrideForStore" asp-input="BulkOrderDefaultViewMode" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderDefaultViewMode" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-select asp-for="BulkOrderDefaultViewMode" asp-items="Model.AvailableBulkOrderViewModes" />
+                            <span asp-validation-for="BulkOrderDefaultViewMode"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderMaxCellsPerProduct_OverrideForStore" asp-input="BulkOrderMaxCellsPerProduct" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderMaxCellsPerProduct" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderMaxCellsPerProduct" />
+                            <span asp-validation-for="BulkOrderMaxCellsPerProduct"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderDefaultPageSize_OverrideForStore" asp-input="BulkOrderDefaultPageSize" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderDefaultPageSize" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderDefaultPageSize" />
+                            <span asp-validation-for="BulkOrderDefaultPageSize"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderPageSizeOptions_OverrideForStore" asp-input="BulkOrderPageSizeOptions" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderPageSizeOptions" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderPageSizeOptions" />
+                            <span asp-validation-for="BulkOrderPageSizeOptions"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderShowProductImages_OverrideForStore" asp-input="BulkOrderShowProductImages" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderShowProductImages" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderShowProductImages" />
+                            <span asp-validation-for="BulkOrderShowProductImages"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row" id="pnlBulkOrderProductImageSize">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderProductImageSize_OverrideForStore" asp-input="BulkOrderProductImageSize" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderProductImageSize" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderProductImageSize" />
+                            <span asp-validation-for="BulkOrderProductImageSize"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderShowAttributeImages_OverrideForStore" asp-input="BulkOrderShowAttributeImages" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderShowAttributeImages" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderShowAttributeImages" />
+                            <span asp-validation-for="BulkOrderShowAttributeImages"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row" id="pnlBulkOrderAttributeImageSize">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderAttributeImageSize_OverrideForStore" asp-input="BulkOrderAttributeImageSize" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderAttributeImageSize" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderAttributeImageSize" />
+                            <span asp-validation-for="BulkOrderAttributeImageSize"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderAttributeImageSquaresSize_OverrideForStore" asp-input="BulkOrderAttributeImageSquaresSize" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderAttributeImageSquaresSize" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderAttributeImageSquaresSize" />
+                            <span asp-validation-for="BulkOrderAttributeImageSquaresSize"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderHideQtyArrows_OverrideForStore" asp-input="BulkOrderHideQtyArrows" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderHideQtyArrows" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderHideQtyArrows" />
+                            <span asp-validation-for="BulkOrderHideQtyArrows"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderShowAttributePrices_OverrideForStore" asp-input="BulkOrderShowAttributePrices" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderShowAttributePrices" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderShowAttributePrices" />
+                            <span asp-validation-for="BulkOrderShowAttributePrices"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderShowProductStock_OverrideForStore" asp-input="BulkOrderShowProductStock" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderShowProductStock" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderShowProductStock" />
+                            <span asp-validation-for="BulkOrderShowProductStock"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderSendUserAfterLogin_OverrideForStore" asp-input="BulkOrderSendUserAfterLogin" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderSendUserAfterLogin" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderSendUserAfterLogin" />
+                            <span asp-validation-for="BulkOrderSendUserAfterLogin"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="BulkOrderEnableOnProductPage_OverrideForStore" asp-input="BulkOrderEnableOnProductPage" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="BulkOrderEnableOnProductPage" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="BulkOrderEnableOnProductPage" />
+                            <span asp-validation-for="BulkOrderEnableOnProductPage"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nop-card>
+        <nop-card asp-name="register-defaults" asp-icon="fas fa-user" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.Registration")" asp-hide-block-attribute-name="@hideRegisterBlockAttributeName" asp-hide="@hideRegisterBlock" asp-advanced="false">
+            <div class="card-body">
+                <div class="form-group row pnlPackNameOnly">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="DefaultPackNameCustomerRoleIds_OverrideForStore" asp-input="DefaultPackNameCustomerRoleIds" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="DefaultPackNameCustomerRoleIds" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-select asp-for="DefaultPackNameCustomerRoleIds" asp-items="Model.AvailableDefaultCustomerRoles" asp-multiple="true" />
+                        <span asp-validation-for="DefaultPackNameCustomerRoleIds"></span>
+                    </div>
+                </div>
+            </div>
+        </nop-card>
+    </nop-cards>
+</form>
+
+@{
+    //Every checkbox id the script tests, in one map, so applySettingVisibility() below
+    //is plain JavaScript. Html.IdFor is the only thing that knows these ids for certain - the
+    //script must not guess them from the property names.
+    var settingIds = new Dictionary<string, string>
+    {
+        ["packNameEnable"]               = Html.IdFor(model => model.PackNameEnable).ToString(),
+        ["subsidyEnable"]                = Html.IdFor(model => model.SubsidyEnable).ToString(),
+        ["allowManagersToAddPackNames"]  = Html.IdFor(model => model.AllowManagersToAddPackNames).ToString(),
+        ["useStaffAsPackName"]           = Html.IdFor(model => model.UseStaffAsPackName).ToString(),
+        ["useBranchesAsPackNameList"]    = Html.IdFor(model => model.UseBranchesAsPackNameList).ToString(),
+        ["printNameEnabled"]             = Html.IdFor(model => model.PrintNameEnabled).ToString(),
+        ["allowHomeDelivery"]            = Html.IdFor(model => model.AllowHomeDelivery).ToString(),
+        ["allowSubsidySelection"]        = Html.IdFor(model => model.AllowSubsidySelection).ToString(),
+        ["allowToAddByExcel"]            = Html.IdFor(model => model.AllowToAddByExcel).ToString(),
+        ["bulkOrderEnable"]              = Html.IdFor(model => model.BulkOrderEnable).ToString(),
+        ["bulkOrderShowProductImages"]   = Html.IdFor(model => model.BulkOrderShowProductImages).ToString(),
+        ["bulkOrderShowAttributeImages"] = Html.IdFor(model => model.BulkOrderShowAttributeImages).ToString()
+    };
+}
+
+<div class="stset-config"
+     data-ids='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(settingIds))'
+     data-save-url="@Url.Action("StoreSettings", "MultiStore")"
+     data-generate-packnames-url="@Url.Action("GeneratePackNames", "MultiStore")"
+     data-generate-lists-url="@Url.Action("GeneratePackNameLists", "MultiStore")"
+     style="display: none;"></div>
+
+<script>
+(function () {
+    //ONE SCRIPT BLOCK, NO GLOBALS. This file carried three: two generate-button scripts buried in
+    //the markup and this one. Six functions were global, and saveSettings() re-injects this whole
+    //partial into #tab-panel-settings on a validation failure, which is why the handlers below are
+    //delegated to that panel and torn down first - the panel node outlives the re-injection.
+    var $panel = $('#tab-panel-settings').off('.stset');
+
+    var $cfg = $panel.find('.stset-config');
+    //jQuery parses the JSON in data-ids into an object, so this needs no JSON.parse.
+    var ids                = $cfg.data('ids') || {};
+    var saveUrl            = $cfg.data('saveUrl');
+    var generatePackNames  = $cfg.data('generatePacknamesUrl');
+    var generateListsUrl   = $cfg.data('generateListsUrl');
+
+    var FORM = '#multistore-settings-form';
+
+    function isChecked(key) {
+        var $input = $('#' + ids[key]);
+
+        //a checkbox absent from this screen counts as on, so a row is never
+        //hidden merely because its governing control was not rendered
+        return $input.length === 0 || $input.is(':checked');
+    }
+
+    function toggleRow(selector, visible) {
+        if (visible)
+            $(selector).showElement();
+        else
+            $(selector).hideElement();
+    }
+
+    function applySettingVisibility() {
+        var packName = isChecked('packNameEnable');
+        var subsidy  = packName && isChecked('subsidyEnable');
+        var managers = packName && isChecked('allowManagersToAddPackNames');
+
+        //whole PackNames card below the master switch
+        toggleRow('#pnlPackNameSettings', packName);
+
+        //single-parent rows inside the PackNames card
+        toggleRow('.pnlUseStaffAsPackName',        packName && isChecked('useStaffAsPackName'));
+        toggleRow('.pnlUseBranchesAsPackNameList', packName && isChecked('useBranchesAsPackNameList'));
+        toggleRow('#pnlUseBranchesAsPackNameList', packName && isChecked('useBranchesAsPackNameList'));
+        toggleRow('#pnlPrintNameEnabled',         packName && isChecked('printNameEnabled'));
+        toggleRow('.pnlAllowManagersToAddPackNames', managers);
+        toggleRow('.pnlAllowHomeDelivery',        packName && isChecked('allowHomeDelivery'));
+
+        //multi-parent rows — the complete predicate lives here and nowhere else
+        toggleRow('.pnlSubsidySelection',      managers && subsidy);
+        toggleRow('.pnlAllowSubsidySelection', managers && subsidy && isChecked('allowSubsidySelection'));
+        toggleRow('.pnlAllowToAddByExcel',     managers && subsidy && isChecked('allowSubsidySelection') && isChecked('allowToAddByExcel'));
+        toggleRow('.pnlSubsidyOnly',           subsidy);
+
+        //Subsidy card: subsidies are allocated per PackName, so the switch is
+        //meaningless without PackNames
+        toggleRow('#pnlSubsidyEnableRow', packName);
+
+        //Registration card
+        toggleRow('.pnlPackNameOnly', packName);
+
+        //Bulk ordering card
+        var bulkOrder = isChecked('bulkOrderEnable');
+        toggleRow('#pnlBulkOrderSettings', bulkOrder);
+        toggleRow('#pnlBulkOrderProductImageSize', bulkOrder && isChecked('bulkOrderShowProductImages'));
+        toggleRow('#pnlBulkOrderAttributeImageSize', bulkOrder && isChecked('bulkOrderShowAttributeImages'));
+    }
+
+    //ONE GENERATOR FOR BOTH BUTTONS. The two markup scripts were the same twenty lines with three
+    //resource keys and a URL swapped.
+    function runGenerator(url, failedKey, queuedKey, errorKey, failedText, queuedText, errorText) {
+        if (!confirm(Admin.StoreNav.res('common.areYouSure', 'Are you sure?'))) return;
+
+        $.ajax({
+            cache: false,
+            type: 'POST',
+            url: url,
+            data: $(FORM).serialize(),
+            success: function (data) {
+                //The action answers NullJsonResult on success, which arrives as null -
+                //so test `data &&` first; a bare !data.success throws here and breaks
+                //the working path. On refusal it answers {success:false,message:...}
+                //with the message already localised server-side.
+                if (data && data.success === false) {
+                    display_nop_error({ error: data.message || data.error || Admin.StoreNav.res(failedKey, failedText) });
+                    return;
+                }
+                display_nop_error({ error: Admin.StoreNav.res(queuedKey, queuedText) });
+            },
+            error: function () {
+                display_nop_error({ error: Admin.StoreNav.res(errorKey, errorText) });
+            }
+        });
+    }
+
+    function saveSettings() {
+        $.ajax({
+            cache: false,
+            url: saveUrl,
+            data: $(FORM).serialize(),
+            type: 'POST',
+            success: function (response) {
+                if (response.success) {
+                    //We reload the page to ensure all settings are correctly applied, especially those that might impact the UI like hiding/showing fields based on settings
+                    location.reload();
+                }
+                else if (response.message) {
+                    $('#tab-panel-settings').prepend('<div class="alert alert-danger">' + response.message + '</div>');
+                }
+                else {
+                    $('#tab-panel-settings').html(response.settingssectionhtml);
+                }
+            }
+        });
+    }
+
+    // ── Buttons, all delegated from the panel ──────────────────────────
+    $panel.on('click.stset', '.btn-save-settings', function () {
+        saveSettings();
+        return false;
+    });
+
+    $panel.on('click.stset', '.generate-packnames', function () {
+        runGenerator(generatePackNames,
+            'generate.packNames.failed', 'generate.packNames.queued', 'generate.packNames.error',
+            'Could not generate packaging names.',
+            'Generating packaging names in the background',
+            'Failed to generate packaging names');
+        return false;
+    });
+
+    $panel.on('click.stset', '.generate-packnamelists', function () {
+        runGenerator(generateListsUrl,
+            'generate.lists.failed', 'generate.lists.queued', 'generate.lists.error',
+            'Could not generate packaging name lists.',
+            'Generating packaging name lists in the background',
+            'Failed to generate packaging name lists');
+        return false;
+    });
+
+    // ── Form wiring ────────────────────────────────────────────────────
+    $('.multi-store-override-option').each(function (k, v) {
+        checkOverriddenStoreValue(v, $(v).attr('data-for-input-selector'));
+    });
+
+    //Single source of truth for row visibility. Every conditional row carries exactly
+    //one visibility class, and every class is set from exactly one line in
+    //applySettingVisibility(). Never give a row two visibility classes:
+    //showElement/hideElement are just removeClass/addClass('d-none'), so two
+    //independent togglers fighting over one element is last-writer-wins.
+    $panel.on('change.stset', FORM + ' input[type=checkbox]', applySettingVisibility);
+
+    //UseStaffAsPackName forces UseBranchesAsPackNameList. That is a value rule,
+    //not a visibility rule, so it stays separate from applySettingVisibility().
+    $panel.on('change.stset', '#' + ids.useStaffAsPackName, function () {
+        $('#' + ids.useBranchesAsPackNameList).prop('checked', $(this).is(':checked'));
+    });
+
+    applySettingVisibility();
+})();
+</script>

@@ -1,0 +1,136 @@
+﻿@model CreditNotesMainReportSearchModel
+
+
+
+@{
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.CreditNotes.Report.Title").Text;
+    //active menu item (system name)
+    NopHtml.SetActiveMenuItemSystemName("CW.CreditNotes.Report");
+
+}
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        @T("Plugins.CW.Core.Admin.CreditNotes.Report.Title")
+    </h1>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="cards-group">
+                <div class="card card-default">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group row">
+                                    <div class="col-md-6"><div class="label-wrapper"><label class="col-form-label">@T("Plugins.CW.Core.Admin.CreditNotes.Report.WithBalance")</label></div></div>
+                                    <div class="col-md-6"><div class="form-text-row"><strong>@Model.CreditNotesWithBalance</strong></div></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group row">
+                                    <div class="col-md-6"><div class="label-wrapper"><label class="col-form-label">@T("Plugins.CW.Core.Admin.CreditNotes.Report.TotalValue")</label></div></div>
+                                    <div class="col-md-6"><div class="form-text-row"><strong>@Model.TotalCreditNotesValue</strong></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-default">
+                    <div class="card-body">
+                        @await Html.PartialAsync("Table", new DataTablesModel
+                        {
+                            Name = "store-liability-grid",
+                            UrlRead = new DataUrl("StoreLiabilityList", "CreditNotes", null),
+                            Length = 10,
+                            LengthMenu = "5,10,25",
+                            PrimaryKeyColumn = nameof(StoreLiabilityModel.Id),
+                            ColumnCollection = new List<ColumnProperty>
+                            {
+                                new ColumnProperty(null)
+                                {
+                                    Render = new RenderChildCaret(),
+                                    Width = "5",
+                                    Searchable = false,
+                                    ClassName = NopColumnClassDefaults.ChildControl
+                                },
+                                new ColumnProperty(nameof(StoreLiabilityModel.StoreName))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.CreditNotes.Report.Fields.Store").Text
+                                },
+                                // Credit Notes Issued
+                                new ColumnProperty(nameof(StoreLiabilityModel.CreditNotesIssued))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.CreditNotes.Report.Fields.Issued").Text,
+                                    Width = "120",
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                // Credit Notes Value
+                                new ColumnProperty(nameof(StoreLiabilityModel.IssuedCreditNotesValueStr))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.CreditNotes.Report.Fields.IssuedValue").Text,
+                                    Width = "150"
+                                },
+                                // Credit Notes Consumed
+                                new ColumnProperty(nameof(StoreLiabilityModel.CreditNotesConsumed))
+                                {
+                                  Title = T("Plugins.CW.Core.Admin.CreditNotes.Report.Fields.Consumed").Text,
+                                    Width = "120",
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                // Liability Value
+                                new ColumnProperty(nameof(StoreLiabilityModel.LiabilityValueStr))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.CreditNotes.Report.Fields.Liability").Text,
+                                    Width = "140",
+                                },
+                                // Percentage Used
+                                new ColumnProperty(nameof(StoreLiabilityModel.PercentageUsedStr))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.CreditNotes.Report.Fields.PercentUsed").Text,
+                                    Width = "110",
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                }
+
+                            },
+                            ChildTable = new DataTablesModel
+                            {
+                                Name = "store-customers-grid",
+                                UrlRead = new DataUrl("StoreCustomerCreditNotesList", "CreditNotes", null),
+                                IsChildTable = true,
+                                Length = 10,
+                                LengthMenu = "5,10,25",
+                                Filters = new List<FilterParameter>
+                                {
+                                    new FilterParameter(nameof(StoreLiabilitySearchModel.StoreId), nameof(StoreLiabilityModel.StoreId), true)
+                                },
+                                ColumnCollection = new List<ColumnProperty>
+                                {
+                                    new ColumnProperty(nameof(StoreCustomerCreditNotesModel.CustomerName))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.CreditNotes.Report.Fields.Customer").Text
+                                    },
+                                    new ColumnProperty(nameof(StoreCustomerCreditNotesModel.NumberOfAvailableCreditNotes))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.CreditNotes.Report.Fields.AvailableCount").Text,
+                                        Width = "160",
+                                        ClassName = NopColumnClassDefaults.CenterAll
+                                    },
+                                    new ColumnProperty(nameof(StoreCustomerCreditNotesModel.CreditNotesValueStr))
+                                    {
+                                        Title = T("Plugins.CW.Core.Admin.CreditNotes.Report.Fields.Value").Text,
+                                        Width = "140",
+                                        ClassName = NopColumnClassDefaults.CenterAll
+                                    }
+                                }
+                            }
+                        })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

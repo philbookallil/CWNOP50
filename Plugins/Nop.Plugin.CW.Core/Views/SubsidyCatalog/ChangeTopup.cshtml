@@ -1,0 +1,235 @@
+﻿@model PackNameTopupModel
+
+@{
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/Common/cw-dialog.css");
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/SubsidyCatalog/change-topup.css");
+}
+
+<div class="cw-topup-container">
+
+    @if (!Model.Subsidies.Any())
+    {
+        <div class="cw-topup-empty">@T("Plugins.CW.Core.ChangeTopup.NoSubsidies")</div>
+    }
+
+    @foreach (var subsidy in Model.Subsidies)
+    {
+        <div class="cw-topup-subsidy">
+            <div class="cw-topup-subsidy-header">
+                <div class="cw-topup-subsidy-title">
+                    <span class="cw-topup-subsidy-name">@subsidy.Name</span>
+                    @if (!string.IsNullOrEmpty(subsidy.Description))
+                    {
+                        <span class="cw-topup-subsidy-desc">@subsidy.Description</span>
+                    }
+                </div>
+
+                <div class="cw-topup-global-section">
+                    <div class="cw-topup-credit-row">
+                        <span class="cw-topup-credit-label">@T("Plugins.CW.Core.ChangeTopup.BaseCredit")</span>
+                        <span class="cw-topup-credit-value">@subsidy.CreditFormatted</span>
+                    </div>
+                    <div class="cw-topup-credit-row">
+                        <span class="cw-topup-credit-label">@T("Plugins.CW.Core.ChangeTopup.TopupCredit")</span>
+                        <strong class="cw-topup-credit-value subsidy-topup-credit-@subsidy.Id">@subsidy.TopupCreditFormatted</strong>
+                    </div>
+                    <button type="button" class="cw-topup-change-link cw-topup-change-link-block"
+                            onclick="openChangeSubsidyTopup(@subsidy.Id)">
+                        @T("Plugins.CW.Core.ChangeTopup.Change")
+                    </button>
+                </div>
+            </div>
+            @if (subsidy.ProductGroups.Any())
+            {
+                <table class="cw-topup-pg-table">
+                    <thead>
+                        <tr>
+                            <th>@T("Plugins.CW.Core.ChangeTopup.ProductGroup")</th>
+                            <th>@T("Plugins.CW.Core.ChangeTopup.BaseQty")</th>
+                            <th>@T("Plugins.CW.Core.ChangeTopup.TopupQty")</th>
+                            <th>@T("Plugins.CW.Core.ChangeTopup.BaseCredit")</th>
+                            <th>@T("Plugins.CW.Core.ChangeTopup.TopupCredit")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pg in subsidy.ProductGroups)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="cw-topup-pg-name">
+                                        @Html.PgIcon(pg.Icon, null, pg.Colour)
+                                        <span>@pg.Name</span>
+                                    </div>
+                                </td>
+                                <td>@pg.Quantity</td>
+                                <td>
+                                    <span class="cw-topup-pg-topup-val group-topup-qty-@pg.SubsidyPackNameId-@pg.Id">
+                                        @pg.TopupQuantity
+                                    </span>
+                                </td>
+                                <td>@pg.CreditFormatted</td>
+                                <td>
+                                    <span class="cw-topup-pg-topup-val group-topup-credit-@pg.SubsidyPackNameId-@pg.Id">
+                                        @pg.TopupCreditFormatted
+                                    </span>
+                                </td>
+                                <td class="cw-topup-pg-action">
+                                    <button type="button" class="cw-topup-change-link"
+                                            onclick="openChangeGroupTopup(@pg.SubsidyPackNameId, @pg.Id)">
+                                        @T("Plugins.CW.Core.ChangeTopup.Change")
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+
+        </div>
+    }
+</div>
+
+<script>
+    // ── AJAX refresh after save ────────────────────────────────
+
+    function loadTopUps() {
+        $.getJSON('@Url.Action("GetTopups", "SubsidyCatalog")', function (result) {
+            if (!result || !result.topups) return;
+            $.each(result.topups, function (i, topup) {
+                $('.subsidy-topup-credit-' + topup.Id).text(topup.Credit);
+                if (topup.ProductGroups) {
+                    $.each(topup.ProductGroups, function (j, pg) {
+                        $('.group-topup-credit-' + topup.Id + '-' + pg.Id).text(pg.Credit);
+                        $('.group-topup-qty-'    + topup.Id + '-' + pg.Id).text(pg.Qty);
+                    });
+                }
+            });
+        });
+    }
+
+    // ── Sub-form save handlers ─────────────────────────────────
+
+    //each save adds credit, so a second click while one is on its way would add it twice
+    var topupSaving = false;
+
+    function saveSubsidyTopup() {
+        if (topupSaving)
+            return;
+
+        topupSaving = true;
+        $('.cw-dialog-save-btn').prop('disabled', true);
+
+        var postData = $('#subsidy-topup-form').serialize();
+        addAntiForgeryToken(postData);
+
+        $.ajax({
+            url:  '@Url.Action("ChangeTopupSubsidy", "SubsidyCatalog")',
+            type: 'POST',
+            data: postData,
+            success: function (result) {
+                if (result.success) {
+                    $('#dialog-change-subsidy-topup').dialog('close');
+                    loadTopUps();
+                    $(document).trigger('subsidyTopupChanged');
+                } else if (result.html) {
+                    $('#dialog-change-subsidy-topup').html(result.html);
+                } else if (result.message) {
+                    displayBarNotification(result.message, 'error', 3500);
+                }
+            },
+            complete: function () {
+                topupSaving = false;
+                $('.cw-dialog-save-btn').prop('disabled', false);
+            }
+        });
+    }
+
+    function saveProductGroupTopup() {
+        if (topupSaving)
+            return;
+
+        topupSaving = true;
+        $('.cw-dialog-save-btn').prop('disabled', true);
+
+        var postData = $('#product-group-topup-form').serialize();
+        addAntiForgeryToken(postData);
+
+        $.ajax({
+            url:  '@Url.Action("ChangeTopupProductGroup", "SubsidyCatalog")',
+            type: 'POST',
+            data: postData,
+            success: function (result) {
+                if (result.success) {
+                    $('#dialog-change-pg-topup').dialog('close');
+                    loadTopUps();
+                    $(document).trigger('subsidyTopupChanged');
+                } else if (result.html) {
+                    $('#dialog-change-pg-topup').html(result.html);
+                } else if (result.message) {
+                    displayBarNotification(result.message, 'error', 3500);
+                }
+            },
+            complete: function () {
+                topupSaving = false;
+                $('.cw-dialog-save-btn').prop('disabled', false);
+            }
+        });
+    }
+
+    // ── Sub-dialog openers ─────────────────────────────────────
+    // Each dialog is created fresh and destroyed on close (same pattern
+    // as openPackNameDialog in PackNameSelector/Default.cshtml).
+
+    function openChangeSubsidyTopup(subsidyPackNameId) {
+        if ($('#dialog-change-subsidy-topup').length) return; // already open
+
+        var $d = $('<div id="dialog-change-subsidy-topup"><div class="cw-dialog-loading"><div class="cw-loading-spinner"></div></div></div>')
+            .dialog({
+                title:     '@T("Plugins.CW.Core.ChangeTopup.SubsidyTopup.DialogTitle")',
+                modal:     false,  // parent is already modal
+                draggable: true,
+                resizable: false,
+                width:     400,
+                close:     function () { $(this).dialog('destroy').remove(); }
+            });
+
+        $.ajax({
+            url:   '@Url.Action("ChangeTopupSubsidy", "SubsidyCatalog")',
+            data:  { subsidyPackNameId: subsidyPackNameId },
+            type:  'GET',
+            cache: false,
+            success: function (html) {
+                $d.html(html);
+                $d.dialog('option', 'position', { my: 'center', at: 'center', of: window });
+            },
+            error: function () { $d.dialog('destroy').remove(); }
+        });
+    }
+
+    function openChangeGroupTopup(subsidyPackNameId, productGroupId) {
+        if ($('#dialog-change-pg-topup').length) return; // already open
+
+        var $d = $('<div id="dialog-change-pg-topup"><div class="cw-dialog-loading"><div class="cw-loading-spinner"></div></div></div>')
+            .dialog({
+                title:     '@T("Plugins.CW.Core.ChangeTopup.ProductGroupTopup.DialogTitle")',
+                modal:     false,
+                draggable: true,
+                resizable: false,
+                width:     400,
+                close:     function () { $(this).dialog('destroy').remove(); }
+            });
+
+        $.ajax({
+            url:   '@Url.Action("ChangeTopupProductGroup", "SubsidyCatalog")',
+            data:  { subsidyPackNameId: subsidyPackNameId, productGroupId: productGroupId },
+            type:  'GET',
+            cache: false,
+            success: function (html) {
+                $d.html(html);
+                $d.dialog('option', 'position', { my: 'center', at: 'center', of: window });
+            },
+            error: function () { $d.dialog('destroy').remove(); }
+        });
+    }
+</script>

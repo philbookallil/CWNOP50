@@ -1,0 +1,213 @@
+@using Nop.Web.Models.Customer
+@using Nop.Web.Models.Order
+@using Nop.Core.Domain.Catalog;
+@using Nop.Plugin.CW.Core.Models.Exchanges;
+@using Nop.Plugin.CW.Core.Domain.Exchanges;
+@using Nop.Plugin.CW.Core.Domain.Products;
+@using Nop.Plugin.CW.Core.Helpers;
+
+@model CustomerReturnRequestsModel
+
+@inject Nop.Services.Html.IHtmlFormatter htmlFormatter
+
+@{
+    Layout = "_ColumnsTwo";
+
+    //title
+    NopHtml.AddTitleParts(T("PageTitle.Account").Text);
+    //page class
+    NopHtml.AppendPageCssClassParts("html-account-page");
+    NopHtml.AppendPageCssClassParts("html-return-request-list-page");
+
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/Exchanges/exchanges-wizard.css");
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Exchanges/exchanges-gather.js");
+}
+
+@section left
+{
+    @await Component.InvokeAsync(typeof(CustomerNavigationViewComponent), new { selectedTabId = CustomerNavigationEnum.ReturnRequests })
+}
+
+<div class="page account-page return-request-list-page">
+    <div class="page-title">
+        <h1>@T("Account.MyAccount") - @Model.ReturnRequestsTitle</h1>
+    </div>
+    <div class="page-body">
+        @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.CustomerReturnRequestsTop, additionalData = Model })
+
+        @{
+            var confirmedIds = Context.Request.Query["returnRequests"].ToString()
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => int.TryParse(id, out var parsed) ? parsed : 0)
+                .Where(id => id > 0)
+                .ToArray();
+        }
+
+        @if (confirmedIds.Length > 0)
+        {
+            @await Component.InvokeAsync("ReturnRequestsConfirmations", new { returnRequestsIds = confirmedIds })
+        }
+
+        @foreach (var item in Model.Items)
+        {
+            var exchangeRequestData = item as CustomerExchangeRequestModel;
+            var allowChangeReturn = exchangeRequestData?.AllowChangeReturnedItem ?? false;
+
+            <div class="section request-item">
+                <h2 class="title">
+                    @string.Format(Model.ReturnRequestTitlePattern, item.CustomNumber, item.ReturnRequestStatus)
+                </h2>
+                <ul class="details">
+                    @if (!string.IsNullOrEmpty(exchangeRequestData?.ReturnedItemSku))
+                    {
+                        <li class="product">
+                            <label>@T("Account.CustomerReturnRequests.Item")</label>
+                            <div class="rr-product-line">
+                                @if (!string.IsNullOrEmpty(exchangeRequestData?.ReturnedItemPictureUrl))
+                                {
+                                    <span class="rr-product-thumb">
+                                        <img src="@exchangeRequestData.ReturnedItemPictureUrl" alt="@item.ProductName" loading="lazy" />
+                                    </span>
+                                }
+                                <span class="rr-product-detail">
+                                    <span class="rr-product-name">
+                                        <span class="rr-sku">@exchangeRequestData.ReturnedItemSku</span> &ndash;
+                                        <a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.ProductSeName }))">@item.ProductName</a>
+                                        <span class="rr-qty">&times; @item.Quantity</span>
+                                    </span>
+                                    @if (!string.IsNullOrWhiteSpace(exchangeRequestData.ReturnedItemAttributes))
+                                    {
+                                        <span class="rr-attrs">@Html.Raw(exchangeRequestData.ReturnedItemAttributes)</span>
+                                    }
+                                </span>
+                            </div>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="product">
+                            <label>@T("Account.CustomerReturnRequests.Item")</label>
+                            <a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.ProductSeName }))">@item.ProductName</a>
+                            <span>x @item.Quantity</span>
+                        </li>
+                    }
+                    @if (!string.IsNullOrEmpty(item.ReturnReason))
+                    {
+                        <li class="reason">
+                            <label>@T("Account.CustomerReturnRequests.Reason")</label>
+                            <span>@item.ReturnReason</span>
+                        </li>
+                    }
+                    @if (!string.IsNullOrEmpty(item.ReturnAction))
+                    {
+                        <li class="action">
+                            <label>@T("Account.CustomerReturnRequests.Action")</label>
+                            <span>@item.ReturnAction</span>
+                        </li>
+                    }
+                    <li class="date">
+                        <label>@T("Account.CustomerReturnRequests.Date")</label>
+                        <span>@item.CreatedOn.ToString()</span>
+                    </li>
+                    @if (item.UploadedFileGuid != Guid.Empty)
+                    {
+                        <li class="uploaded-file">
+                            <label>@T("Account.CustomerReturnRequests.UploadedFile")</label>
+                            <span>
+                                <a href="@Url.RouteUrl(NopRouteNames.Standard.DOWNLOAD_GET_FILE_UPLOAD, new { downloadId = item.UploadedFileGuid.ToString() })">
+                                    @T("Account.CustomerReturnRequests.UploadedFile.Download")
+                                </a>
+                            </span>
+                        </li>
+                    }
+                    @if (exchangeRequestData != null)
+                    {
+                        if (exchangeRequestData.ExchangeReturnMode != ExchangeReturnMode.CreditNote)
+                        {
+                            <li class="exchange-request">
+                                <ul>
+                                    <li class="exchange-type">
+                                        <label>@T("Plugins.CW.Core.Exchanges.ReturnRequests.ExchangeType")</label>
+                                        <span>@exchangeRequestData.ExchangeTypeName</span>
+                                    </li>
+                                    @if (exchangeRequestData.ExchangeType != ExchangeType.Exact)
+                                    {
+                                        <li class="exchange-product">
+                                            <label>@T("Plugins.CW.Core.Exchanges.ReturnRequests.ReplacementProduct")</label>
+                                            <div class="rr-product-line">
+                                                @if (!string.IsNullOrEmpty(exchangeRequestData.ExchangeProductPictureUrl))
+                                                {
+                                                    <span class="rr-product-thumb">
+                                                        <img src="@exchangeRequestData.ExchangeProductPictureUrl" alt="@exchangeRequestData.ExchangeProductName" loading="lazy" />
+                                                    </span>
+                                                }
+                                                <span class="rr-product-detail">
+                                                    <span class="rr-product-name">
+                                                        <span>@exchangeRequestData.ExchangeItemSku - </span>
+                                                        <a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = exchangeRequestData.ExchangeProductSeName }))">@exchangeRequestData.ExchangeProductName</a>
+                                                        <span>x @exchangeRequestData.ExchangeQuantity</span>
+                                                    </span>
+                                                    @if (!string.IsNullOrWhiteSpace(exchangeRequestData.ExchangeProductAttributesInfo))
+                                                    {
+                                                        <span class="rr-attrs">@Html.Raw(exchangeRequestData.ExchangeProductAttributesInfo)</span>
+                                                    }
+                                                </span>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+                    }
+
+
+                    @if (!string.IsNullOrEmpty(item.Comments))
+                    {
+                        <li class="comments">
+                            <label>@T("Account.CustomerReturnRequests.Comments")</label>
+                            <div>@Html.Raw(htmlFormatter.FormatText(item.Comments))</div>
+                        </li>
+                    }
+
+                    @if (allowChangeReturn && exchangeRequestData != null && exchangeRequestData.ExchangeType != ExchangeType.Exact)
+                    {
+                        <li class="actions">
+                            <input type="button" value="@T("Plugins.CW.Core.Exchanges.ReturnRequests.EditExchangeItem")"
+                                   data-productid="@exchangeRequestData.ExchangeProductId"
+                                   data-returnrequestid="@item.Id"
+                                   data-orderitemid="@exchangeRequestData.OrderItemId"
+                                   data-currentattrs="@exchangeRequestData.CurrentAttributesJson"
+                                   class="button-2 change-return-button" />
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+        @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.CustomerReturnRequestsBottom, additionalData = Model })
+    </div>
+</div>
+@Html.AntiForgeryToken()
+@await Html.PartialAsync("~/Plugins/CW.Core/Views/Exchanges/_ExchangePickerModal.cshtml")
+
+<script asp-location="Footer">
+    $(function () {
+        cwExchangesGather.initEditExchangeItem({
+            replacementListUrl: '@Url.Action("ReplacementProductList", "Exchanges")',
+            replacementOptionsUrl: '@Url.Action("ReplacementProductOptions", "Exchanges")',
+            editExchangedItemUrl: '@Url.Action("EditExchangedItem", "Exchanges")',
+            @* JSON-encoded, so a translation with a quote cannot break the script *@
+            text: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                ["pickerTitle"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.Title").Text,
+                ["loadingProducts"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.LoadingProducts").Text,
+                ["loadingOptions"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.LoadingOptions").Text,
+                ["loadProductsError"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.LoadProductsError").Text,
+                ["loadOptionsError"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.LoadOptionsError").Text,
+                ["selectAllOptions"] = T("Plugins.CW.Core.Exchanges.Wizard.Picker.SelectAllOptions").Text,
+                ["sameCombination"] = T("Plugins.CW.Core.Exchanges.Wizard.Edit.SameCombination").Text,
+                ["updateFailed"] = T("Plugins.CW.Core.Exchanges.Wizard.Edit.UpdateFailed").Text,
+                ["updateError"] = T("Plugins.CW.Core.Exchanges.Wizard.Edit.UpdateError").Text
+            }))
+        });
+    });
+</script>

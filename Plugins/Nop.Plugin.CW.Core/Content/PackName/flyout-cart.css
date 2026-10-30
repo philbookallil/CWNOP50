@@ -1,0 +1,52 @@
+﻿/* Flyout (mini) shopping cart — packname additions.
+ *
+ * Loaded globally from Services/EventConsumer.cs (PageRenderingEvent) rather than from the view:
+ * the flyout renders out of _Header.cshtml, which runs after the <head> has already been written,
+ * so NopHtml.AddCssFileParts from the view itself would never reach the page. */
+
+/* .item is the theme's (styles.css:8223) — reopened here to make room for the remove button and to
+ * give it something to position against. */
+.mini-shopping-cart .item {
+    position: relative;
+    padding-right: 26px;
+}
+
+    .mini-shopping-cart .item .mini-cart-remove {
+        position: absolute;
+        top: 8px;
+        right: 0;
+        line-height: 0;
+    }
+
+    /* Three classes deep on purpose: the theme styles `.mini-shopping-cart button[type="button"]` as a
+ * blue uppercase block button (styles.css:8293), and every rule below has to beat it. */
+    .mini-shopping-cart .item .mini-cart-remove-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        background: none;
+        background-color: transparent;
+        color: #8a8f98;
+        text-transform: none;
+        line-height: 0;
+        cursor: pointer;
+        transition: color .15s ease, background-color .15s ease, border-color .15s ease;
+    }
+
+        .mini-shopping-cart .item .mini-cart-remove-btn:hover,
+        .mini-shopping-cart .item .mini-cart-remove-btn:focus-visible {
+            color: #22262e;
+            background-color: #f1f2f4;
+            border-color: #e6e8ec;
+        }
+
+        .mini-shopping-cart .item .mini-cart-remove-btn .cw-icon {
+            width: 15px;
+            height: 15px;
+            pointer-events: none; /* clicks land on the button, never the svg */
+        }

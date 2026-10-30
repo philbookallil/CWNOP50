@@ -1,0 +1,181 @@
+﻿@model CWOrderBillingShippingModel
+
+@{
+    var order = Model.Order;
+    var canShipmentsView = await permissionService.AuthorizeAsync(StandardPermission.Orders.SHIPMENTS_VIEW);
+
+    var canCreateShipments = await permissionService.AuthorizeAsync(StandardPermission.Orders.SHIPMENTS_CREATE_EDIT_DELETE);
+}
+
+<div class="card-body">
+    <div class="row">
+        <div class="col-md-6 card-group">
+            @await Html.PartialAsync("_CWOrderDetails.BillingAddress", order)
+        </div>
+
+        <div class="col-md-6 card-group">
+            @if (order.IsShippable)
+            {
+                <div class="card mb-3">
+                    <div class="card-header clearfix">
+                        @T("Plugins.CW.Core.Admin.Orders.ShippingDestinations")
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            @T("Plugins.CW.Core.Admin.Orders.ShippingDestinations.Hint")
+                        </p>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>@T("Plugins.CW.Core.Admin.Orders.ShippingDestinations.Destination")</th>
+                                    <th>@T("Admin.Orders.Fields.ShippingMethod")</th>
+                                    <th>@T("Plugins.CW.Core.Admin.Orders.ShippingDestinations.PackNames")</th>
+                                    <th>@T("Admin.Orders.Fields.ShippingStatus")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var destination in Model.Destinations)
+                                {
+                                    <tr>
+                                        <td>@destination.AddressSummary</td>
+                                        <td>@destination.ShippingMethod</td>
+                                        <td>@string.Join(", ", destination.PackNames)</td>
+                                        <td>@destination.ShippingStatus</td>
+                                        <td class="text-right text-nowrap">
+                                            @if (canCreateShipments && order.CanAddNewShipments && destination.HasItemsToShip)
+                                            {
+                                                <button type="submit" class="btn btn-primary btn-sm"
+                                                        onclick="javascript:setLocation('@(Url.Action("AddShipment", "Order", new { id = order.Id, cwDestination = destination.Key }))'); return false;">
+                                                    <i class="fas fa-truck"></i>
+                                                    @T("Plugins.CW.Core.Admin.Orders.Shipments.AddForDestination")
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">&mdash;</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="form-group row mx-auto">
+                    <div class="col-auto">
+                        @T("Admin.Orders.ShippingInfo.NotRequired")
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (order.IsShippable && canShipmentsView)
+    {
+        <div class="card card-default">
+            <div class="card-header">
+                @T("Admin.Orders.Shipments")
+            </div>
+            <div class="card-body">
+                @await Html.PartialAsync("Table", new DataTablesModel
+                {
+                    Name = "shipments-grid",
+                    UrlRead = new DataUrl("ShipmentsByOrder", "CWOrder", new RouteValueDictionary { [nameof(OrderShipmentSearchModel.OrderId)] = order.Id }),
+                    PrimaryKeyColumn = nameof(ShipmentModel.Id),
+                    Length = order.OrderShipmentSearchModel.PageSize,
+                    LengthMenu = order.OrderShipmentSearchModel.AvailablePageSizes,
+                    ColumnCollection = new List<ColumnProperty>
+                    {
+                        new ColumnProperty(null)
+                        {
+                            Render = new RenderChildCaret(),
+                            Width = "5",
+                            Searchable = false,
+                            ClassName = NopColumnClassDefaults.ChildControl
+                        },
+                        new ColumnProperty(nameof(ShipmentModel.Id))
+                        {
+                            Title = T("Admin.Orders.Shipments.ID").Text,
+                            Width = "50"
+                        },
+                        new ColumnProperty(nameof(CWShipmentModel.Destination))
+                        {
+                            Title = T("Plugins.CW.Core.Admin.Orders.Shipments.Destination").Text
+                        },
+                        new ColumnProperty(nameof(ShipmentModel.TrackingNumber))
+                        {
+                            Title = T("Admin.Orders.Shipments.TrackingNumber").Text
+                        },
+                        (order.PickupInStore
+                            ? new ColumnProperty(nameof(ShipmentModel.ReadyForPickupDate))
+                            {
+                                Title = T("Admin.Orders.Shipments.ReadyForPickupDate").Text,
+                                Width = "150"
+                            }
+                            : new ColumnProperty(nameof(ShipmentModel.ShippedDate))
+                            {
+                                Title = T("Admin.Orders.Shipments.ShippedDate").Text,
+                                Width = "150"
+                            }),
+                        new ColumnProperty(nameof(ShipmentModel.DeliveryDate))
+                        {
+                            Title = T("Admin.Orders.Shipments.DeliveryDate").Text,
+                            Width = "150"
+                        },
+                        new ColumnProperty(nameof(ShipmentModel.Id))
+                        {
+                            Title = T("Admin.Common.View").Text,
+                            Width = "100",
+                            ClassName = NopColumnClassDefaults.Button,
+                            Render = new RenderButtonView(new DataUrl("~/Admin/Order/ShipmentDetails/"))
+                        }
+                    },
+                    ChildTable = new DataTablesModel
+                    {
+                        Name = "shipment-items-grid",
+                        UrlRead = new DataUrl("ShipmentsItemsByShipmentId", "Order", null),
+                        IsChildTable = true,
+                        Length = order.OrderShipmentSearchModel.PageSize,
+                        LengthMenu = order.OrderShipmentSearchModel.AvailablePageSizes,
+                        Filters = new List<FilterParameter>
+                        {
+                            new FilterParameter(nameof(ShipmentItemSearchModel.ShipmentId), nameof(ShipmentModel.Id), true)
+                        },
+                        ColumnCollection = new List<ColumnProperty>
+                        {
+                            new ColumnProperty(nameof(ShipmentItemModel.ProductName))
+                            {
+                                Title = T("Admin.Orders.Shipments.Products.ProductName").Text,
+                                Width = "400"
+                            },
+                            new ColumnProperty(nameof(ShipmentItemModel.ShippedFromWarehouse))
+                            {
+                                Title = T("Admin.Orders.Shipments.Products.Warehouse").Text,
+                                Width = "150"
+                            },
+                            new ColumnProperty(nameof(ShipmentItemModel.QuantityInThisShipment))
+                            {
+                                Title = T("Admin.Orders.Shipments.Products.QtyShipped").Text,
+                                Width = "150"
+                            },
+                            new ColumnProperty(nameof(ShipmentItemModel.ItemWeight))
+                            {
+                                Title = T("Admin.Orders.Shipments.Products.ItemWeight").Text,
+                                Width = "150"
+                            },
+                            new ColumnProperty(nameof(ShipmentItemModel.ItemDimensions))
+                            {
+                                Title = T("Admin.Orders.Shipments.Products.ItemDimensions").Text,
+                                Width = "150"
+                            }
+                        }
+                    }
+                })
+            </div>
+        </div>
+    }
+</div>

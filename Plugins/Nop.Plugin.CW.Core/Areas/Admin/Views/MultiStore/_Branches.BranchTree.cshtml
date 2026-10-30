@@ -1,0 +1,142 @@
+@model BranchTreeModel
+
+<div class="card card-default card-ms-section">
+    <div class="card-header">
+        <span class="ms-card-title">@T("Plugins.CW.Core.Admin.Branches")</span>
+    </div>
+
+    <div class="card-body p-0">
+        @if (!Model.Branches.Any())
+        {
+            <div id="empty-tree-msg">
+                @T("Plugins.CW.Core.Admin.Branches.NoBranchesYet")
+            </div>
+        }
+
+        <ul class="branch-tree" id="branch-tree-root">
+            @if (Model.Branches.Any())
+            {
+                @await Html.PartialAsync("_Branches.BranchNodes", new BranchNodesModel
+                {
+                    Nodes       = Model.Branches,
+                    SelectedIds = Model.SelectedIds
+                })
+            }
+        </ul>
+
+        <div class="branch-add-root-row">
+            <button id="bd-new-root-btn" class="btn btn-success btn-xs">
+                @T("Plugins.CW.Core.Admin.Branches.AddRootBranch")
+            </button>
+        </div>
+    </div>
+</div>
+
+@* The selected path, so the script below reads it from the DOM instead of having it
+   serialised into a script literal. *@
+<div class="btree-config"
+     data-selected-ids="@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SelectedIds))"
+     style="display: none;"></div>
+
+<script>
+(function () {
+
+    //OFF BEFORE ON, NAMESPACED, AND BOUND TO THE PANEL RATHER THAN THE DOCUMENT.
+    //loadBranchTree() reloads this partial into #branch-panel on every branch save, create and
+    //delete, and the three handlers below used to be $(document).on('click', ...) with no
+    //namespace and no teardown. document is never replaced, so every reload left the previous
+    //generation attached: after three saves, one click on a branch row asked the unsaved-changes
+    //question three times and called selectBranch three times. #branch-panel is created once and
+    //only has its innerHTML swapped, so it is the right delegation root - the rows themselves are
+    //replaced, which is why these cannot be direct binds.
+    var $treePanel = $('#branch-panel').off('.btree');
+
+    var $cfg = $treePanel.find('.btree-config');
+
+    // ── Row selection ──────────────────────────────────────────────────
+    $treePanel.on('click.btree', '.branch-row', function (e) {
+        // Ignore clicks on the toggle arrow or action buttons
+        if ($(e.target).closest('.branch-toggle').length) return;
+
+        //ASK BEFORE ANYTHING IS PAINTED. This handler does its own teardown - it moves the
+        //selection and expands the node - before delegating to selectBranch, which is where the
+        //gate lives. On a refusal selectBranch returned without loading anything, but the tree had
+        //already been repainted, so the admin was left with one branch highlighted and a different
+        //one loaded. Nothing visible may happen before the question is answered.
+        if (!Admin.StoreNav.canLeaveForm()) return;
+
+        $('.branch-row').removeClass('selected');
+        $(this).addClass('selected');
+
+        var id   = $(this).data('id');
+        var name = $(this).data('name');
+
+        Admin.StoreNav.cacheName('branch', String(id), name);
+
+        // Cache all ancestor names too
+        $(this).parents('.branch-node').each(function () {
+            var $r = $(this).find('> .branch-row');
+            Admin.StoreNav.cacheName('branch', String($r.data('id')), $r.data('name'));
+        });
+
+        // Expand children if collapsed
+        var $node     = $(this).closest('.branch-node');
+        var $children = $node.find('> .branch-children');
+        if ($children.length && !$children.hasClass('expanded')) {
+            $children.addClass('expanded');
+            $(this).find('.branch-toggle').addClass('open');
+        }
+
+        Admin.StoreNav.selectBranch(buildPathTo(id));
+    });
+
+    // ── Toggle expand/collapse ─────────────────────────────────────────
+    $treePanel.on('click.btree', '.branch-toggle', function (e) {
+        e.stopPropagation();
+        var $children = $(this).closest('.branch-node').find('> .branch-children');
+        $children.toggleClass('expanded');
+        $(this).toggleClass('open');
+    });
+
+    // ── Add root branch button ─────────────────────────────────────────
+    $treePanel.on('click.btree', '#bd-new-root-btn', function () {
+        Admin.StoreNav.selectBranch([]);
+    });
+
+    // ── Build ancestor path for StoreNav ──────────────────────────────
+    function buildPathTo(targetId) {
+        var path    = [{ id: String(targetId) }];
+        var $cur    = $('[data-id="' + targetId + '"]')
+                        .closest('.branch-node')
+                        .parent()
+                        .closest('.branch-node');
+
+        while ($cur.length) {
+            var $row = $cur.find('> .branch-row');
+            var pid  = String($row.data('id'));
+            Admin.StoreNav.cacheName('branch', pid, $row.data('name'));
+            path.unshift({ id: pid });
+            $cur = $cur.parent().closest('.branch-node');
+        }
+
+        return path;
+    }
+
+    // ── Restore selection on hard-refresh load ─────────────────────────
+    //jQuery parses a data- attribute holding JSON into a real array, so this needs no JSON.parse.
+    var selectedIds = $cfg.data('selectedIds');
+
+    if (selectedIds && selectedIds.length) {
+        selectedIds.forEach(function (id) {
+            var $row = $('[data-id="' + id + '"]');
+            if (!$row.length) return;
+            $row.addClass('selected');
+            $row.parents('.branch-children').each(function () {
+                $(this).addClass('expanded');
+                $(this).siblings('.branch-row').find('.branch-toggle').addClass('open');
+            });
+        });
+    }
+
+})();
+</script>

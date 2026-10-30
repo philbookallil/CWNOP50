@@ -1,0 +1,140 @@
+@model PackNameBoxModel
+
+@if (!string.IsNullOrEmpty(Model.Item.PackNameModel.POEntry))
+{
+    <div class="pack-name-po-entry">
+        @Html.CWIcon("cw-icon-po", "pack-name-po-entry-icon")
+        <span class="pack-name-po-entry-value">@Model.Item.PackNameModel.POEntry</span>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ShippingSubsidyDisplay))
+{
+    <div class="packname-shipping-subsidy">
+        @Html.CWIcon("cw-icon-Globe", "shipping-subsidy-icon")
+        <span>@T("Plugins.CW.Core.Subsidy.ShippingCoveredBy")</span>
+        <strong>@Model.ShippingSubsidyDisplay</strong>
+    </div>
+}
+@{
+    var shippingOption = Model.ShippingData.ShippingMethod;
+    var shippingAddress = Model.ShippingData.Address;
+
+    @if (shippingOption.ShippingMethods.Any())
+    {
+        <div class="pack-name-shipping-methods pack-name-section">
+            <div class="pack-name-section-title">
+                @Html.CWIcon("cw-icon-truck", "pack-name-section-icon")
+                <span>@T("Plugins.CW.Core.PackNameCheckout.ShippingMethods")</span>
+            </div>
+            @foreach (var shippingMethod in shippingOption.ShippingMethods)
+            {
+                <div class="pack-name-shipping-method">
+                    <div>
+                        <input type="radio" id="shipping-method-@Model.Item.PackNameModel.Id-@shippingMethod.Name.Replace(" ", "-")-@Model.Item.Id" name="SelectedShippingMethodId-@Model.Item.Id" value="@shippingMethod.Name" @(shippingMethod.Name == Model.ShippingData.SelectedShippingMethod ? "checked" : "") />
+                        <label for="shipping-method-@Model.Item.PackNameModel.Id-@shippingMethod.Name.Replace(" ", "-")-@Model.Item.Id">
+                            @($"{shippingMethod.Name} - {shippingMethod.Fee}")
+                        </label>
+                    </div>
+                    <span>@Html.Raw(shippingMethod.Description)</span>
+                </div>
+            }
+            @if (Model.ShippingData.SharedWithPackNames.Count > 0)
+            {
+                <div class="pack-name-shared-destination">
+                    @(string.Format(T("Plugins.CW.Core.PackNameCheckout.SharedDestination").Text, string.Join(", ", Model.ShippingData.SharedWithPackNames), Model.ShippingData.SharedDestinationFee))
+                </div>
+            }
+        </div>
+        <script asp-location="Footer">
+            $(document).ready(function () {
+                $("input[name='SelectedShippingMethodId-@Model.Item.Id']").change(function() {
+                    updateShippingMethod(@Model.Item.PackNameModel.Id, $(this).val());
+                })
+            });
+        </script>
+    }
+    else
+    {
+        <span>No shipping methods available</span>
+    }
+
+    <div class="pack-name-address-selection pack-name-section">
+        <div class="pack-name-section-title">
+            @Html.CWIcon("cw-icon-location", "pack-name-section-icon")
+            <span>@T("Plugins.CW.Core.PackNameCheckout.ShippingAddresses")</span>
+        </div>
+        @foreach (var address in Model.AvailableAddresses)
+        {
+            <div class="pack-name-address-item">
+                <div class="address-item-header address-item-header-@Model.Item.Id collapsed">
+                    <input type="radio" id="address-@Model.Item.PackNameModel.Id-@address.Id-@Model.Item.Id" name="SelectedAddressId-@Model.Item.Id" value="@address.Id" @(address.Id == shippingAddress?.Id ? "checked" : "") />
+                    <label for="address-@Model.Item.PackNameModel.Id-@address.Id-@Model.Item.Id">
+                        @if (address.Id == Model.BranchDefaultAddressId && !string.IsNullOrEmpty(Model.Item.PackNameModel.Branch))
+                        {
+                            @string.Format(T("Plugins.CW.Core.PackNameCheckout.DefaultShippingAddressName").Text, Model.Item.PackNameModel.Branch)
+                        }
+                        else
+                        {
+                            @await Html.PartialAsync("_ShippingAddressName", address)
+                        }
+                    </label>
+                    <div class="toggle-icon">
+                        <div class="arrow"></div>
+                    </div>
+                </div>
+                <div class="pack-name-address-details" style="display: none;">
+                    @await Html.PartialAsync("_ShippingAddress", address)
+                </div>
+            </div>
+        }
+        @if (Model.CanAddAddress)
+        {
+            <div class="pack-name-address-item pack-name-address-add" data-packname-name="@Model.Item.PackNameModel.Name" onclick="addPackNameAddress(@Model.Item.PackNameModel.Id, this.getAttribute('data-packname-name'));">
+                <div class="address-item-header">
+                    @T("Plugins.CW.Core.PackNameCheckout.ShippingAddresses.AddNew")
+                </div>
+            </div>
+        }
+        <script asp-location="Footer">
+            $(document).ready(function () {
+                $("input[name='SelectedAddressId-@Model.Item.Id']").change(function() {
+                    updateShippingAddress(@Model.Item.PackNameModel.Id, $(this).val());
+                })
+            });
+        </script>
+    </div>
+}
+
+<div id="pack-name-errors-hidden-@Model.Item.Id" style="display: none;">
+    @if (Model.ShippingData.ShippingMethod.Warnings.Count > 0)
+    {
+        <ul>
+            @foreach (var warning in Model.ShippingData.ShippingMethod.Warnings)
+            {
+                <li>@warning</li>
+            }
+        </ul>
+    }
+</div>
+
+<script asp-location="Footer">
+    $(document).ready(function () {
+        $('#pack-name-errors-@Model.Item.Id').html($('#pack-name-errors-hidden-@Model.Item.Id').html());
+
+        $('.address-item-header-@Model.Item.Id .toggle-icon').click(function () {
+            let $container = $(this).closest('.pack-name-address-item');
+            let $header = $(this).closest('.address-item-header');
+
+            $container.find('.pack-name-address-details').slideToggle();
+
+            if ($header.hasClass('collapsed')) {
+                $header.addClass('expanded');
+                $header.removeClass('collapsed');
+            }
+            else {
+                $header.addClass('collapsed');
+                $header.removeClass('expanded');
+            }
+        });
+    });
+</script>

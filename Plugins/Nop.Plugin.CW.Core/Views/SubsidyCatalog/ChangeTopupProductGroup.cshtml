@@ -1,0 +1,36 @@
+﻿@model ProductGroupTopupInputModel
+
+<form id="product-group-topup-form" class="cw-dialog-form">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="message-error"></div>
+    @Html.HiddenFor(m => m.SubsidyPackNameId)
+    @Html.HiddenFor(m => m.ProductGroupId)
+
+    <div class="cw-dialog-form-context">
+        <div class="cw-dialog-form-name">@Model.PackNameName</div>
+        <div class="cw-dialog-form-subtitle">@Model.ProductGroupName</div>
+    </div>
+
+    <div class="cw-dialog-field-row">
+        <div class="cw-dialog-field">
+            <label asp-for="Quantity">@T("Plugins.CW.Core.Subsidy.ProductGroup.Topup.Fields.Quantity")</label>
+            <input asp-for="Quantity" type="number" step="1" min="0" />
+            <span asp-validation-for="Quantity" class="field-validation-error"></span>
+        </div>
+        <div class="cw-dialog-field">
+            <label asp-for="Credit">@T("Plugins.CW.Core.Subsidy.ProductGroup.Topup.Fields.Credit")</label>
+            <input asp-for="Credit" type="number" step="0.01" min="0" />
+            <span asp-validation-for="Credit" class="field-validation-error"></span>
+        </div>
+    </div>
+
+    <div class="cw-dialog-field">
+        <label asp-for="Reason">@T("Plugins.CW.Core.Subsidy.ProductGroup.Topup.Fields.Reason")</label>
+        <textarea asp-for="Reason" maxlength="255"></textarea>
+        <span asp-validation-for="Reason" class="field-validation-error"></span>
+    </div>
+
+    <button type="button" class="cw-dialog-save-btn" onclick="saveProductGroupTopup()">
+        @T("Plugins.CW.Core.ChangeTopup.Save")
+    </button>
+</form>

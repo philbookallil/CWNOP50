@@ -1,0 +1,300 @@
+﻿@model BranchModel
+
+<div class="form-horizontal">
+    @*THE BRANCH IS THE PAGE, NOT A CARD. It used to carry the same card classes as the
+      collections below it, which made it read as one more sibling of the things it contains.
+      Its name and code are the page's subject line; the collections' own count chips are the
+      census, so there is nothing to repeat here.*@
+    <div class="ms-branch-head">
+        @if (Model.IsNew)
+        {
+            <h2 class="ms-branch-name">
+                @(Model.ParentBranchId.HasValue ? T("Plugins.CW.Core.Admin.Branches.NewChildBranch") : T("Plugins.CW.Core.Admin.Branches.NewRootBranch"))
+            </h2>
+        }
+        else
+        {
+            <div class="ms-branch-title" id="bd-title" role="button" title="@T("Plugins.CW.Core.Admin.Branches.Branch.Details")">
+                <h2 class="ms-branch-name">@Model.Name</h2>
+                <span class="ms-branch-code">@Model.BranchCode</span>
+                <span class="ms-branch-meta">@Model.StaffCount @T("Plugins.CW.Core.Admin.Branches.Branch.Field.StaffCount")</span>
+            </div>
+            @if (!Model.Active)
+            {
+                <span class="ms-branch-inactive">@T("Plugins.CW.Core.Admin.Branches.Branch.Inactive")</span>
+            }
+        }
+
+        <div class="ms-branch-actions">
+            @*ADD CHILD AND DELETE ACT ON THE BRANCH, not on its form, so they stay reachable with
+              the form collapsed. Save is inside the disclosure, next to what it saves.*@
+            @if (!Model.IsNew)
+            {
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        id="bd-add-child-btn"
+                        data-id="@Model.Id"
+                        data-name="@Html.Encode(Model.Name)">
+                    @T("Plugins.CW.Core.Admin.Branches.AddChildBranch")
+                </button>
+                <button type="button" class="btn btn-danger btn-sm"
+                        id="bd-delete-btn" data-id="@Model.Id">
+                    @T("Admin.Common.Delete")
+                </button>
+            }
+            <button type="button" class="ms-disclosure" id="bd-disclosure">
+                <i class="fas fa-caret-right bp-expand-icon" id="branch-detail-ei"></i>
+                @T("Plugins.CW.Core.Admin.Branches.Branch.Details")
+            </button>
+        </div>
+    </div>
+
+    <div id="branch-detail-body" class="bp-card-body-collapsible">
+        <div class="ms-branch-form">
+            <form id="branch-detail-form" class="ms-detail-form"
+                  asp-controller="MultiStore"
+                  asp-action="SaveBranch"
+                  method="post">
+
+                @*SAVE AND ITS STAMP LIVE WITH THE FORM. They used to sit in the card header,
+                  outside the <form> element - and markSaved($form) looks for the stamp with
+                  .find(), so it never found it and saving a branch showed no confirmation at all.*@
+                <div class="ms-branch-formbar">
+                    <span class="ms-saved-stamp" style="display:none"></span>
+                    <button type="button" class="btn btn-primary btn-sm" id="bd-save-btn">
+                        @T("Admin.Common.Save")
+                    </button>
+                </div>
+
+                    @Html.AntiForgeryToken()
+                    <input asp-for="Id" type="hidden" />
+                    @*Every error this form can raise for a property with no visible editor - ParentBranchId and
+                      StoreId are hidden inputs - lands here. Without it a server-side refusal redisplays the form
+                      unchanged and the admin is told nothing (the E1/E2 defect class from part 1).*@
+                    <div asp-validation-summary="All"></div>
+                    <input asp-for="StoreId" type="hidden" />
+                    <input asp-for="IsNew" type="hidden" />
+                    <input asp-for="ParentBranchId" type="hidden" />
+
+                    <div class="row">
+                        <div class="col-md-6">
+
+                            @if (Model.ParentBranchId.HasValue)
+                            {
+                                <div class="form-group row">
+                                    <div class="col-md-4">
+                                        <nop-label asp-for="ParentBranchName" />
+                                    </div>
+                                    <div class="col-md-8">
+                                        <nop-editor asp-for="ParentBranchName" html-attributes="@(new { disabled = true })" />
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="form-group row">
+                                <div class="col-md-4"><nop-label asp-for="BranchCode" /></div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="BranchCode" asp-required="true"/>
+                                    <span asp-validation-for="BranchCode"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-4"><nop-label asp-for="Name" /></div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="Name" asp-required="true"/>
+                                    <span asp-validation-for="Name"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-4"><nop-label asp-for="CardCode" /></div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="CardCode" />
+                                    <span asp-validation-for="CardCode"></span>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="col-md-6">
+
+                            <div class="form-group row">
+                                <div class="col-md-4"><nop-label asp-for="BranchNumber" /></div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="BranchNumber" />
+                                    <span asp-validation-for="BranchNumber"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-4"><nop-label asp-for="PaymentTerms" /></div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="PaymentTerms" />
+                                    <span asp-validation-for="PaymentTerms"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-4"><nop-label asp-for="BranchShippingMethods" /></div>
+                                <div class="col-md-8">
+                                    <nop-select asp-for="BranchShippingMethods" asp-items="Model.AvailableShippingMethods" asp-multiple="true" />
+                                    <span asp-validation-for="BranchShippingMethods"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-4"><nop-label asp-for="Active" /></div>
+                                <div class="col-md-8">
+                                    <nop-editor asp-for="Active" />
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    (function () {
+        const $form = $('#branch-detail-form');
+        $.validator.unobtrusive.parse($form);
+
+        //Baseline for the unsaved-edit gate. Every way out of this form - the tree, the breadcrumb,
+        //a tab, "add child branch", "new root branch" - runs a gated function in Admin.StoreNav.
+        Admin.StoreNav.watchForm($form);
+
+        //A CREATE reloads this whole panel through selectBranch(), so the stamp is carried across
+        //that reload rather than written onto the markup that is about to be thrown away.
+        Admin.StoreNav.consumeSavedFlash($form);
+
+        //THE DISCLOSURE. A branch being created ALWAYS opens: its form is the only thing on the
+        //page, so there is no reading where closed is right. On an existing branch the collections
+        //and their add rows are below, so it starts closed - unless the admin has opened or closed
+        //it by hand this session, which is their choice and follows them from branch to branch.
+        //
+        //ISNEW OUTRANKS THE REMEMBERED VALUE, it is not merely the fallback when nothing is
+        //remembered. Written the other way round, collapsing the disclosure once on any existing
+        //branch left "Add root branch" showing a title and an empty page.
+        (function () {
+            const isNew = @Model.IsNew.ToString().ToLowerInvariant();
+            const remembered = Admin.StoreNav.branchDetailOpen();
+            const open = isNew ? true : (remembered === null ? false : remembered);
+
+            $('#branch-detail-body').toggleClass('collapsed', !open);
+            $('#branch-detail-ei').toggleClass('open', open);
+
+            //The disclosure and the title are two handles on the same body.
+            $('#bd-disclosure, #bd-title').on('click', function () {
+                const nowOpen = $('#branch-detail-body').hasClass('collapsed');
+                $('#branch-detail-body').toggleClass('collapsed', !nowOpen);
+                $('#branch-detail-ei').toggleClass('open', nowOpen);
+                Admin.StoreNav.branchDetailOpen(nowOpen);
+            });
+        })();
+
+        // Add child branch button (in header)
+        $('#bd-add-child-btn').on('click', function () {
+            const parentId   = $(this).data('id');
+            const parentName = $(this).data('name');
+            Admin.StoreNav.cacheName('branch', String(parentId), parentName);
+            Admin.StoreNav.loadNewChildDetail(String(parentId));
+        });
+
+        // Save
+        $('#bd-save-btn').on('click', function () {
+            const $btn = $(this);
+            if (!$form.valid()) return;
+            //Localised, not a bare string expression - as one it rendered the literal
+            //"Plugins.CW.Core.Admin.Saving.Text" onto the button. The resource
+            //itself was always there (CWCorePlugin.cs:504, "Saving…"). Note: Razor parses an at-sign
+            //inside a JS comment, so do not write one here even to describe the bug.
+            $btn.prop('disabled', true).text('@T("Plugins.CW.Core.Admin.Saving").Text');
+
+            $.ajax({
+                type: 'POST',
+                url:  $form.attr('action'),
+                data: $form.serialize(),
+                success: function (result, status, xhr) {
+                    const ct = xhr.getResponseHeader('Content-Type') || '';
+                    if (ct.indexOf('text/html') !== -1) {
+                        //Validation failed: the partial comes back with the messages. Re-enable first -
+                        //the swap replaces this button's markup, and if the server ever returns the
+                        //form without it the admin is left with a dead "Saving…" button.
+                        $btn.prop('disabled', false).text('@T("Admin.Common.Save").Text');
+                        $('#branch-right-col').html(result);
+                        //AFTER THE SWAP: this partial carries its own script, so inserting it runs
+                        //watchForm again and re-baselines to the posted values - which would read as
+                        //clean. The rejected edits are real work and must still be asked about.
+                        Admin.StoreNav.markFormDirty($('#branch-detail-form'));
+                        return;
+                    }
+                    //JSON REFUSAL. SaveBranch answers {success:false,error:...} when the branch was
+                    //deleted from another tab. Without this the payload fell through to the else below,
+                    //updateNodeInTree found no matching row and returned, and NOTHING re-enabled the
+                    //button: the refusal was invisible and the form stayed dead until a reload. Same
+                    //shape as the Delete handler further down, which has had this check all along.
+                    //Re-enable BEFORE alerting - an alert blocks, and a disabled button behind it is
+                    //what the admin is left looking at if they dismiss it and try again.
+                    if (result && result.success === false) {
+                        $btn.prop('disabled', false).text('@T("Admin.Common.Save").Text');
+                        alert(result.error || result.message || Admin.StoreNav.res('branch.couldNotSave', 'Could not save the branch.'));
+                        return;
+                    }
+                    //RESTORE THE BUTTON HERE, NOT IN THE TREE HELPER. updateNodeInTree used to own the
+                    //re-enable, but it sits after that function's `if (!$row.length) return;` - so a
+                    //successful save whose node is not currently rendered saved the branch and left the
+                    //form dead on "Saving...". Every exit from this handler
+                    //now restores the control it disabled, and the label stays the localised one.
+                    $btn.prop('disabled', false).text('@T("Admin.Common.Save").Text');
+
+                    //RE-BASELINE BEFORE EITHER BRANCH. selectBranch() below is gated, and would
+                    //otherwise ask the admin to discard the edits it has just saved.
+                    Admin.StoreNav.watchForm($form);
+
+                    if (result.isNew) {
+                        Admin.StoreNav.flashSavedAfterReload();
+                        Admin.StoreNav.appendNodeToTree(result);
+                        Admin.StoreNav.cacheName('branch', String(result.id), result.name);
+                        const newPath = result.parentId
+                            ? [...Admin.StoreNav.getState().branchPath, { id: String(result.id) }]
+                            : [{ id: String(result.id) }];
+                        Admin.StoreNav.selectBranch(newPath);
+                    } else {
+                        Admin.StoreNav.updateNodeInTree(result);
+                        Admin.StoreNav.markSaved($form);
+                    }
+                },
+                error: function () {
+                    $btn.prop('disabled', false)
+                        .text('@T("Admin.Common.Save").Text');
+                    alert(Admin.StoreNav.res('common.serverError', 'A server error occurred. Please try again.'));
+                }
+            });
+        });
+
+        // Delete
+        $('#bd-delete-btn').on('click', function () {
+            if (!confirm('@T("Plugins.CW.Core.Admin.Branches.DeleteConfirmMessage").Text')) return;
+            const id = $(this).data('id');
+
+            postData = { id };
+            addAntiForgeryToken(postData);
+
+            $.post('/Admin/MultiStore/DeleteBranch',
+                postData,
+                function (result) {
+                    if (!result.success) { alert(result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.')); return; }
+                    $('[data-node-id="' + id + '"]').remove();
+                    //The branch is gone, so there is nothing left to save and nothing to ask about.
+                    Admin.StoreNav.releaseForm($form);
+                    Admin.StoreNav.selectBranch([]);
+                }
+            );
+        });
+
+        // New root branch button
+        $('#bd-new-root-btn').on('click', () => Admin.StoreNav.selectBranch([]));
+    })();
+</script>

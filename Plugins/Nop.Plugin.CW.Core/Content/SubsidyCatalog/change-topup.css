@@ -1,0 +1,227 @@
+/* ================================================================
+   CHANGE TOPUP DIALOG  —  Content/SubsidyCatalog/change-topup.css
+   Styles for ChangeTopup.cshtml loaded into the jQuery UI dialog.
+   Depends on: cw-dialog.css (spinner, form fields)
+   ================================================================ */
+
+
+/* ── Outer container ──────────────────────────────────────────── */
+
+.cw-topup-container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+}
+
+.cw-topup-empty {
+    padding: 32px 16px;
+    text-align: center;
+    font-size: 14px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+
+/* ── Per-subsidy card ─────────────────────────────────────────── */
+
+.cw-topup-subsidy {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+
+/* Subsidy card header: name/description left, credit controls right */
+
+.cw-topup-subsidy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 14px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.cw-topup-subsidy-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.cw-topup-subsidy-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: #212529;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cw-topup-subsidy-desc {
+    font-size: 12px;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Credit + topup columns in the header: ONE grid, so the amounts share a right edge whatever
+   the labels are translated to. Two rows of label/value, then the Change button on its own
+   line under the value column. */
+
+.cw-topup-global-section {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: end;
+    align-items: baseline;
+    gap: 3px 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.cw-topup-credit-row {
+    display: contents;
+}
+
+.cw-topup-change-link-block {
+    grid-column: 2;
+    justify-self: end;
+    padding-inline: 0;
+}
+
+.cw-topup-credit-label {
+    color: #6c757d;
+}
+
+.cw-topup-credit-value {
+    font-weight: 600;
+    color: #212529;
+    min-width: 54px;
+    text-align: right;
+}
+
+
+/* ── "Change" inline link-button ─────────────────────────────── */
+/* Used both in the subsidy header and in pg rows */
+
+.cw-topup-change-link {
+    background: none;
+    border: none;
+    padding: 1px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #00549f;
+    cursor: pointer;
+    border-radius: 3px;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.cw-topup-change-link:hover {
+    color: #003d7a;
+    text-decoration: underline;
+    background-color: #e8f0fb;
+}
+
+.cw-topup-change-link:focus {
+    outline: 2px solid rgba(0, 84, 159, 0.3);
+    outline-offset: 1px;
+}
+
+
+/* ── Product group grid ───────────────────────────────────────── */
+/*
+   Columns: [icon+name flex] [base qty] [topup qty] [base $] [topup $] [action]
+   Widths keep the credit columns from crowding on ~700px dialogs.
+*/
+
+.cw-topup-pg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.cw-topup-pg-table thead th {
+    padding: 5px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6c757d;
+    background-color: #fafafa;
+    border-bottom: 1px solid #dee2e6;
+    text-align: center;
+}
+
+.cw-topup-pg-table thead th:first-child {
+    text-align: left;
+}
+
+.cw-topup-pg-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.1s;
+}
+
+.cw-topup-pg-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.cw-topup-pg-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.cw-topup-pg-table td {
+    padding: 8px 10px;
+    text-align: center;
+    color: #495057;
+    vertical-align: middle;
+}
+
+.cw-topup-pg-table td:first-child {
+    text-align: left;
+}
+
+/* Product group name cell: icon + label */
+
+.cw-topup-pg-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #343a40;
+    white-space: nowrap;
+}
+
+.cw-topup-pg-name .pg-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Topup values rendered as chips so they stand out */
+
+.cw-topup-pg-topup-val {
+    display: inline-block;
+    font-weight: 700;
+    color: #004085;
+    background-color: #e7f1ff;
+    padding: 1px 7px;
+    border-radius: 8px;
+    font-size: 12px;
+    min-width: 28px;
+    text-align: center;
+}
+
+/* Action column */
+
+.cw-topup-pg-table td.cw-topup-pg-action {
+    white-space: nowrap;
+    text-align: right;
+    padding-right: 12px;
+}

@@ -1,0 +1,149 @@
+/* ================================================================
+   FLYOUT CONTENT WRAPPER
+   ================================================================ */
+
+.subsidy-flyout-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ================================================================
+   CIRCLE + BADGE BASE — duplicated here so flyout works on
+   pages where subsidy-catalog.css is not loaded
+   ================================================================ */
+
+.circle {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background-color 0.15s;
+}
+
+    .circle.available {
+        background-color: #28a745;
+    }
+
+    .circle.in-cart {
+        background-color: #fd7e14;
+    }
+
+    .circle.used {
+        background-color: #ced4da;
+    }
+
+.qty-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+    .qty-badge.available {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .qty-badge.in-cart {
+        background-color: #ffeeba;
+        color: #856404;
+    }
+
+    .qty-badge.used {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
+
+/* ================================================================
+   ITEMS LIST — compact overrides of .bar-item from subsidy-bar.css
+   ================================================================ */
+
+.flyout-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+    .flyout-items .bar-item {
+        font-size: 0.78rem;
+        min-height: 18px;
+        gap: 6px;
+    }
+
+        .flyout-items .bar-item .pg-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .flyout-items .bar-item .pg-name {
+            font-size: 0.78rem;
+        }
+
+    /* Global credit chip in flyout */
+    .flyout-items .global-credit-item .pg-credit {
+        font-size: 0.72rem;
+    }
+
+    .flyout-items .pg-usage .circle {
+        width: 10px;
+        height: 10px;
+    }
+
+    .flyout-items .pg-usage .qty-badge {
+        min-width: 18px;
+        height: 15px;
+        font-size: 0.6rem;
+    }
+
+.flyout-empty {
+    font-size: 0.78rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+
+/* ================================================================
+   LEGEND ROW
+   ================================================================ */
+
+.flyout-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-top: 1px solid #f0f0f0;
+}
+
+/* ================================================================
+   FOOTER — link to full catalog
+   ================================================================ */
+
+.flyout-footer {
+    padding: 6px 12px 8px;
+    border-top: 1px solid #f0f0f0;
+    text-align: right;
+}
+
+.flyout-catalog-link {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #00549f;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+}
+
+    .flyout-catalog-link:hover {
+        color: #003d7a;
+        text-decoration: underline;
+    }

@@ -1,0 +1,171 @@
+﻿@model PackNameListModel
+
+<form id="pnlist-detail-form" class="ms-detail-form"
+        asp-controller="MultiStore"
+        asp-action="SavePackNameList"
+        method="post">
+
+    @Html.AntiForgeryToken()
+    <input asp-for="Id" type="hidden" />
+    <input asp-for="StoreId" type="hidden" />
+    <input asp-for="BranchId" type="hidden" />
+    <input asp-for="IsNew" type="hidden" />
+
+    <div class="form-horizontal">
+        <div class="card card-default bp-card card-ms-section">
+
+            <div class="card-header d-flex align-items-center">
+                <button type="button"
+                        class="btn btn-sm btn-focus-back"
+                        id="btn-focus-back">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    @T("Plugins.CW.Core.Admin.Common.Back")
+                </button>
+
+                <span class="ms-card-title">
+                    @if (Model.IsNew)
+                    {
+                        @T("Plugins.CW.Core.Admin.PackNameLists.PackNameList.New")
+                    }
+                    else
+                    {
+                        @Model.Name
+                    }
+                </span>
+        
+                <div class="ml-auto d-flex align-items-center" style="gap:6px">
+                    @*SAVE NEVER NAVIGATES: the panel stays put, so this is the only
+                      confirmation a save gets. Admin.StoreNav.markSaved() fills and shows it.*@
+                    <span class="ms-saved-stamp" style="display:none"></span>
+                    <button type="button"
+                            class="btn btn-primary btn-sm"
+                            id="btn-focus-save">
+                        @T("Admin.Common.Save")
+                    </button>
+                    @if (!Model.IsNew)
+                    {
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                id="btn-focus-delete"
+                                data-id="@Model.Id"
+                                data-url="@Url.Action("DeletePackNameList", "MultiStore")"
+                                data-confirm="@T("Plugins.CW.Core.Admin.PackNameLists.DeleteConfirmMessage")">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                            @T("Admin.Common.Delete")
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Branch" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Branch" html-attributes="@(new { disabled = true })" />
+                                <span asp-validation-for="Branch"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="Name" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Name" asp-required="true"/>
+                                <span asp-validation-for="Name"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-4">
+                                <nop-label asp-for="IsDefault" />
+                            </div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="IsDefault" html-attributes="@(new { disabled = "true" })" />
+                                <span asp-validation-for="IsDefault"></span>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="col-md-6">
+
+                        <div class="form-group row">
+                            <div class="col-md-4"><nop-label asp-for="AllManagers" /></div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="AllManagers" />
+                                <span asp-validation-for="AllManagers"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row managers-field">
+                            <div class="col-md-4"><nop-label asp-for="ParentManagers" /></div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="ParentManagers" />
+                                <span asp-validation-for="ParentManagers"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-4"><nop-label asp-for="Active" /></div>
+                            <div class="col-md-8">
+                                <nop-editor asp-for="Active" />
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @await Html.PartialAsync("_Branches.PackNameListDetail.Managers", Model)
+</form>
+
+@* The Razor-built id for the AllManagers checkbox, read by the script below. *@
+<div class="pnlist-detail-config"
+     data-all-managers-id="@Html.IdFor(model => model.AllManagers)"
+     style="display: none;"></div>
+
+<script>
+    (function () {
+        //BOTH HALVES OF THE AllManagers TOGGLE LIVE HERE NOW. This partial and its Managers child
+        //each bound their own handler to the same checkbox - toggleManagers for the form field,
+        //toggleManagersTable for the grid and its Add button - so the checkbox carried two globals
+        //defined in two files. They were not in conflict, but nothing said so; one function makes
+        //that plain, and the child partial no longer needs a script at all.
+        var $form = $('#pnlist-detail-form');
+        //THE CONFIG DIV IS A SIBLING OF THE FORM, NOT A CHILD - it sits after </form>, so
+        //$form.find() cannot see it. .last() picks this partial's own div if an older generation
+        //of the panel is still in the DOM when this runs.
+        var $cfg = $('.pnlist-detail-config').last();
+        var $chk = $('#' + $cfg.data('allManagersId'));
+
+        //The form is re-injected on every list open, so drop the previous generation's handler.
+        $form.off('.pnlist');
+
+        function toggleManagers() {
+            if ($chk.is(':checked')) {
+                $('.managers-field').hideElement();
+                $('.all-managers-selected-text').show();
+                $('.managers-table').hide();
+            } else {
+                $('.managers-field').showElement();
+                $('.all-managers-selected-text').hide();
+                $('.managers-table').show();
+                //On load the grid initialises itself a tick later (its init runs in a ready callback,
+                //which jQuery 3 defers); refreshing before that creates an empty table and the real
+                //initialisation is then refused. A user toggle finds the grid and refreshes it.
+                if ($.fn.dataTable.isDataTable('#packnamelistmanagers-grid')) {
+                    updateTable('#packnamelistmanagers-grid');
+                }
+            }
+        }
+
+        $form.on('click.pnlist', '#' + $cfg.data('allManagersId'), toggleManagers);
+        toggleManagers();
+    })();
+</script>

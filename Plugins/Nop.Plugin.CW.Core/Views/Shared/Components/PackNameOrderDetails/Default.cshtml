@@ -1,0 +1,218 @@
+﻿@model PackNameOrderDetailsModel
+
+@using Nop.Core.Domain.Media
+@using Nop.Core.Domain.Catalog
+@using Nop.Plugin.CW.Core.Extensions
+@using Nop.Plugin.CW.Core.Helpers
+@using Nop.Web.Components
+
+@inject MediaSettings mediaSettings
+
+@{
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Order/packname-order-details.css");
+}
+
+@if (!Model.HasPackNameItems)
+{
+    return;
+}
+
+<div class="packname-order-details">
+    @foreach (var group in Model.Groups)
+    {
+        <div class="packname-order-group">
+            <div class="pack-name-panel-header">
+                <div class="pack-name-header-info">
+                    <div class="pack-name-info">
+                        <div class="pack-name-name" style="color: @PackNameColourHelper.Normalize(group.Colour)">
+                            @Html.PackNameTypeIcon(group.PackNameIconClass, "pack-name-icon")
+                            <span>@group.PackName</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(group.Branch))
+                        {
+                            <div class="pack-name-branch">
+                                @Html.CWIcon("cw-icon-truck", "pack-name-branch-icon")
+                                <span>@group.Branch</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(group.Department))
+                        {
+                            <div class="pack-name-department">
+                                @Html.CWIcon("cw-icon-department", "pack-name-department-icon")
+                                <span>@group.Department</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(group.CostCenter))
+                        {
+                            <div class="pack-name-costcenter">
+                                @Html.CWIcon("cw-icon-costcenter", "pack-name-costcenter-icon")
+                                <span>@group.CostCenter</span>
+                            </div>
+                        }
+                    </div>
+                    <div class="pack-name-shipping-method">
+                        @Html.CWIcon("cw-icon-truck", "pack-name-shipping-method-icon")
+                        <div class="pack-name-shipping-method-info">
+                            <span class="pack-name-shipping-method-name">@group.ShippingMethod</span>
+                            @if (group.IsSharedShipping)
+                            {
+                                <span class="pack-name-shipping-shared">
+                                    @string.Format(T("Plugins.CW.Core.Order.SharedShippingWith").Text, string.Join(", ", group.SharedWithPackNames))
+                                </span>
+                            }
+                        </div>
+                    </div>
+                    @if (!group.PickupInStore && !string.IsNullOrEmpty(group.AddressName))
+                    {
+                        <div class="pack-name-shipping-address">
+                            @Html.CWIcon("cw-icon-location", "pack-name-shipping-address-icon")
+                            <div class="pack-name-shipping-address-info">
+                                <span class="pack-name-shipping-address-name">
+                                    @group.AddressName
+                                    @if (!string.IsNullOrEmpty(group.AddressLine1))
+                                    {
+                                        <text>, @group.AddressLine1</text>
+                                    }
+                                    @if (!string.IsNullOrEmpty(group.AddressCityStateZip))
+                                    {
+                                        <text>, @group.AddressCityStateZip</text>
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="packname-order-items">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            @if (Model.ShowProductThumbnail)
+                            {
+                                <th class="picture">@T("Order.Product(s).Image")</th>
+                            }
+                            <th>@T("Order.Product(s).Name")</th>
+                            @if (Model.ShowSku)
+                            {
+                                <th>@T("Order.Product(s).SKU")</th>
+                            }
+                            @if (Model.ShowVendorName)
+                            {
+                                <th class="vendor">@T("Order.Product(s).VendorName")</th>
+                            }
+                            <th>@T("Order.Product(s).Price")</th>
+                            <th>@T("Order.Product(s).Quantity")</th>
+                            <th>@T("Order.Product(s).Total")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in group.Items)
+                        {
+                            //nop's own line: its download and licence links, rental dates and vendor
+                            Model.OrderItems.TryGetValue(item.OrderItemId, out var orderItem);
+
+                            <tr>
+                                @if (Model.ShowProductThumbnail)
+                                {
+                                    <td class="picture">
+                                        @if (!Model.PrintMode)
+                                        {
+                                            <a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.ProductSeName }))">
+                                                <img alt="@item.PictureAlternateText" src="@item.PictureUrl"
+                                                     title="@item.ProductName" width="@mediaSettings.OrderThumbPictureSize" />
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <img alt="@item.PictureAlternateText" src="@item.PictureUrl"
+                                                 title="@item.ProductName" width="@mediaSettings.OrderThumbPictureSize" />
+                                        }
+                                    </td>
+                                }
+                                <td class="product">
+                                    @if (!Model.PrintMode)
+                                    {
+                                        <em><a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.ProductSeName }))">@item.ProductName</a></em>
+                                    }
+                                    else
+                                    {
+                                        @item.ProductName
+                                    }
+                                    @if (!string.IsNullOrEmpty(item.AttributeInfo))
+                                    {
+                                        <div class="attributes">@Html.Raw(item.AttributeInfo)</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(orderItem?.RentalInfo))
+                                    {
+                                        <div class="rental-info">
+                                            @Html.Raw(orderItem.RentalInfo)
+                                        </div>
+                                    }
+                                    @if (orderItem?.DownloadId > 0)
+                                    {
+                                        <div class="download">
+                                            <a href="@Url.RouteUrl(NopRouteNames.Standard.GET_DOWNLOAD, new { orderItemId = orderItem.OrderItemGuid })">@T("DownloadableProducts.Fields.Download")</a>
+                                        </div>
+                                    }
+                                    @if (orderItem?.LicenseId > 0)
+                                    {
+                                        <div class="download license">
+                                            <a href="@Url.RouteUrl(NopRouteNames.Standard.GET_LICENSE, new { orderItemId = orderItem.OrderItemGuid })">@T("DownloadableProducts.Fields.DownloadLicense")</a>
+                                        </div>
+                                    }
+                                    @if (orderItem != null)
+                                    {
+                                        @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OrderDetailsProductLine, additionalData = orderItem })
+                                    }
+                                </td>
+                                @if (Model.ShowSku)
+                                {
+                                    <td class="sku">@item.Sku</td>
+                                }
+                                @if (Model.ShowVendorName)
+                                {
+                                    <td class="vendor">@orderItem?.VendorName</td>
+                                }
+                                <td class="unit-price">@item.UnitPrice</td>
+                                <td class="quantity">@item.Quantity</td>
+                                <td class="total">
+                                    @item.SubTotal
+                                    @if (item.SubsidyBreakdown.Count > 0)
+                                    {
+                                        <div class="cart-item-subsidy-breakdown">
+                                            @foreach (var b in item.SubsidyBreakdown)
+                                            {
+                                                <div class="subsidy-breakdown-row"
+                                                     title="@(b.ProductGroupId.HasValue ? b.ProductGroupName : T("Plugins.CW.Core.Subsidy.GlobalCredit").Text)">
+                                                    @Html.CWIcon("cw-icon-subsidy", "subsidy-indicator")
+                                                    @if (b.ProductGroupId.HasValue)
+                                                    {
+                                                        @Html.PgIcon(b.ProductGroupIcon, null, b.ProductGroupColour)
+                                                    }
+                                                    else
+                                                    {
+                                                        @Html.CWIcon("cw-icon-Globe")
+                                                    }
+                                                    @if (b.QuantityUsed > 0)
+                                                    {
+                                                        <span class="breakdown-qty">@T("Plugins.CW.Core.Order.SubsidyUnits", b.QuantityUsed)</span>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(b.CreditDisplay))
+                                                    {
+                                                        if (b.QuantityUsed > 0) { <span class="breakdown-sep">·</span> }
+                                                        <span class="breakdown-credit">@b.CreditDisplay</span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

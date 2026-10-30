@@ -1,0 +1,249 @@
+@using Nop.Core;
+@using Nop.Core.Domain.Catalog;
+
+@inject IStoreContext _storeContext
+
+@model CWSubmitReturnRequestModel
+
+@{
+    Layout = "_ColumnsOne";
+
+    //title
+    NopHtml.AddTitleParts(Model.ReturnRequestPageTitle);
+    //page class
+    NopHtml.AppendPageCssClassParts("html-return-request-page");
+
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Exchanges/exchanges-wizard.css");
+
+    //the wizard is for the order's own customer; a guest's withdrawal link (nop's token) goes through nop's return form
+    var features = await cwFeatures.GetFeaturesAsync();
+    var useWizard = features.Exchanges && string.IsNullOrEmpty(Model.WithdrawalToken);
+    var actionUrl = useWizard
+        ? Url.Action("Gather", "Exchanges", new { orderId = Model.OrderId })
+        : Url.RouteUrl(NopRouteNames.Standard.RETURN_REQUEST, new { orderId = Model.OrderId });
+
+    var currentStore = await _storeContext.GetCurrentStoreAsync();
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Exchanges/exchanges-gather.js");
+}
+
+<div class="page return-request-page cw-return-wizard">
+    <div class="page-title">
+        <h1>@Html.Raw(Model.ReturnRequestTitle)</h1>
+    </div>
+    <div class="page-body">
+        @if (!string.IsNullOrEmpty(Model.Result))
+        {
+            <div class="result">
+                @Model.Result
+            </div>
+        }
+        else
+        {
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="wizard-error" role="alert" tabindex="-1" id="wizard-error">
+                    <span class="wizard-error-icon" aria-hidden="true">!</span>
+                    <div asp-validation-summary="All"></div>
+                </div>
+            }
+            <form id="return-start-form" action="@actionUrl" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="WithdrawalToken" />
+                <section class="section">
+                    @if (useWizard)
+                    {
+                        <h2 class="title">
+                            @Html.Raw(T("Plugins.CW.Core.Exchanges.Wizard.Start.Step1"))
+                        </h2>
+                    }
+                    else
+                    {
+                        <h2 class="title">
+                            @T("ReturnRequests.SelectProduct(s)")
+                        </h2>
+                    }
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <colgroup>
+                                <col />
+                                <col width="1" />
+                                <col width="1" />
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th class="product">
+                                        @T("ReturnRequests.Products.Name")
+                                    </th>
+                                    <th class="unit-price">
+                                        @T("ReturnRequests.Products.Price")
+                                    </th>
+                                    <th class="quantity">
+                                        @T("ReturnRequests.Products.Quantity")
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Items)
+                                {
+                                    var cwItem = item as CWSubmitReturnRequestModel.CWOrderItemModel;
+
+                                    <tr>
+                                        <td class="product">
+                                            <div class="item-with-thumb">
+                                                @if (!string.IsNullOrEmpty(cwItem?.PictureUrl))
+                                                {
+                                                    <span class="item-thumb">
+                                                        <img src="@cwItem.PictureUrl" alt="@item.ProductName" loading="lazy" />
+                                                    </span>
+                                                }
+                                                <span class="item-detail">
+                                                    <span class="product-name">
+                                                        <a href="@(await NopUrl.RouteGenericUrlAsync<Product>(new { SeName = item.ProductSeName }))">@item.ProductName</a>
+                                                    </span>
+                                                    @if (!string.IsNullOrEmpty(item.AttributeInfo))
+                                                    {
+                                                        <span class="attributes">@Html.Raw(item.AttributeInfo)</span>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(cwItem?.Packname))
+                                                    {
+                                                        <span class="item-packname"><strong>@T("Plugins.CW.Core.Exchanges.Wizard.Fields.Packname"):</strong> @cwItem.Packname</span>
+                                                    }
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="unit-price">
+                                            @item.UnitPrice
+                                        </td>
+                                        <td class="quantity">
+                                            <select name="quantity@(item.Id)">
+                                                @for (var i = 0; i <= item.Quantity; i++)
+                                                {
+                                                    <option value="@(i)">@(i)</option>
+                                                }
+                                            </select>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="fieldset">
+                    @if (useWizard)
+                    {
+                        <h2 class="title">
+                            @Html.Raw(T("Plugins.CW.Core.Exchanges.Wizard.Start.Step2"))
+                        </h2>
+                    }
+                    else
+                    {
+                        <h2 class="title">
+                            @T("ReturnRequests.WhyReturning")
+                        </h2>
+                    }
+                    <div class="form-fields">
+                        @*the wizard's fees and return modes follow the reason and action, so it always asks for both*@
+                        @if (useWizard || Model.ReturnReasonsEnabled)
+                        {
+                            <div class="inputs">
+                                <label asp-for="ReturnRequestReasonId" asp-postfix=":"></label>
+                                <select asp-for="ReturnRequestReasonId" asp-items="@Model.ReturnReasonItems" class="return-reasons"></select>
+                            </div>
+                        }
+                        @if (useWizard || Model.ReturnActionsEnabled)
+                        {
+                            <div class="inputs">
+                                <label asp-for="ReturnRequestActionId" asp-postfix=":"></label>
+                                <select asp-for="ReturnRequestActionId" asp-items="@Model.ReturnActionItems" class="return-actions"></select>
+                            </div>
+                        }
+                        <div class="inputs">
+                            <label asp-for="Comments" asp-postfix=":"></label>
+                            <textarea asp-for="Comments" class="comment"></textarea>
+                            <span asp-validation-for="Comments"></span>
+                        </div>
+                        @if (Model.AllowFiles)
+                        {
+                            //ex. ['jpg', 'txt', 'zip'] or []
+                            var allowedFileExtensionsList = new List<string>();
+                            var allowedFileTypes = string.Empty;
+
+                            if (allowedFileExtensionsList.Any())
+                            {
+                                var fileTypeList = allowedFileExtensionsList
+                                .Select(x => new FileExtensionContentTypeProvider().TryGetContentType($".{x}", out var contentType) ? $"'{contentType}'" : null)
+                                .Where(ft => !string.IsNullOrEmpty(ft))
+                                .ToList();
+
+                                allowedFileTypes = string.Join(", ", fileTypeList);
+                            }
+
+                            var controlId = Html.IdFor(model => model.UploadedFileGuid);
+
+                            @* register CSS and JS *@
+                            <link rel="stylesheet" href="~/lib_npm/filepond/filepond.min.css" />
+                            <script asp-exclude-from-bundle="true" src="~/lib_npm/filepond/filepond.min.js" asp-location="Footer"></script>
+                            <script asp-exclude-from-bundle="true" src="~/lib_npm/filepond-plugin-file-validate-type/filepond-plugin-file-validate-type.min.js" asp-location="Footer"></script>
+
+                            <div class="inputs return-request-file">
+                                <input id="@(controlId)" name="@(controlId)" type="hidden" />
+                                <div id="@(controlId)element" class="filepond"></div>
+                            </div>
+
+                            <script asp-location="Footer">
+                                $(function () {
+                                    // Register the plugin
+                                    FilePond.registerPlugin(FilePondPluginFileValidateType);
+
+                                    // Create a FilePond instance
+                                    FilePond.create(document.querySelector("#@(controlId)element"), {
+                                        credits: false,
+                                        acceptedFileTypes: [@Html.Raw(allowedFileTypes)],
+                                        allowRemove: false,
+                                        allowMultiple: false,
+                                        maxFiles: 1,
+                                        server: {
+                                            process: {
+                                                url:'@(Url.RouteUrl(NopRouteNames.Ajax.UPLOAD_FILE_RETURN_REQUEST))',
+                                                onload: function(response) {
+                                                    const r = JSON.parse(response);
+
+                                                    $("#@(controlId)").val(r.downloadGuid);
+
+                                                    if (r.message) {
+                                                        alert(r.message);
+                                                    }
+                                                }
+                                            },
+                                            revert: (uniqueFileId, load, error) => {
+                                                $("#@(controlId)").val('');
+                                                load();
+                                            },
+                                        },
+                                        labelIdle: '<span class="filepond--label-action">@T("ReturnRequests.UploadedFile")</span>',
+                                        labelFileProcessing: '@T("Common.FileUploader.Processing")',
+                                    });
+                                });
+                            </script>
+                        }
+                    </div>
+                </section>
+                <section class="buttons">
+                    <button type="submit" name="submit-return-request" class="button-1 submit-return-request-button">@Model.ReturnRequestSubmitText</button>
+                </section>
+            </form>
+        }
+    </div>
+</div>
+<script asp-location="Footer">
+    $(function () {
+        cwExchangesGather.initReasonCascade({
+            actionsForReasonUrl: '@Html.Raw(Url.Action("GetActionsForReason", "Exchanges"))',
+            storeId: @currentStore.Id,
+            reasonSelector: '.return-reasons',
+            actionSelector: '.return-actions'
+        });
+        cwExchangesGather.submitOnce($('#return-start-form'));
+    });
+</script>

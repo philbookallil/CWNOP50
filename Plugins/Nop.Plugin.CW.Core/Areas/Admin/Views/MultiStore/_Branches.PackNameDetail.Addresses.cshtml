@@ -1,0 +1,140 @@
+﻿@model PackNameModel
+
+<div class="card card-default bp-card card-ms-inner-section">
+    <div class="card-header d-flex align-items-center">
+        <span class="ms-card-title">
+            @T("Admin.Customers.Customers.Addresses")
+        </span>
+        @if (!Model.IsNew)
+        {
+            <div class="ml-auto d-flex align-items-center" style="gap:6px">
+                <button type="submit" class="btn btn-primary btn-sm" onclick="javascript:OpenWindow('@(Url.Action("PackNameAddressPopup", "MultiStore", new {packNameId = Model.Id, btnId = "btnRefreshBranchPackNameAddresses", formId = "pn-detail-form"}))', 800, 800, true); return false;">
+                    @T("Plugins.CW.Core.Admin.PackNames.PackName.AddPackNameAddress")
+                </button>
+            </div>
+        }
+    </div>
+    @if (!Model.IsNew)
+    {
+        <div class="card-body">
+            @{
+                var gridModel = new DataTablesModel
+                {
+                    Name = "branch-packname-addresses-grid",
+                    UrlRead = new DataUrl("PackNameAddresses", "MultiStore", new RouteValueDictionary { [nameof(Model.CWAddressSearchModel.EntityId)] = Model.CWAddressSearchModel.EntityId }),
+                    UrlDelete = new DataUrl("PackNameAddressDelete", "MultiStore", new RouteValueDictionary { [nameof(Model.CWAddressSearchModel.EntityId)] = Model.CWAddressSearchModel.EntityId }),
+                    Length = Model.CWAddressSearchModel.PageSize,
+                    LengthMenu = Model.CWAddressSearchModel.AvailablePageSizes,
+                    ColumnCollection = new List<ColumnProperty>
+                    {
+                        new ColumnProperty(nameof(CWAddressModel.FirstName))
+                        {
+                            Title = T("Admin.Address.Fields.FirstName").Text
+                        },
+                        new ColumnProperty(nameof(CWAddressModel.LastName))
+                        {
+                            Title = T("Admin.Address.Fields.LastName").Text
+                        },
+                        new ColumnProperty(nameof(CWAddressModel.Email))
+                        {
+                            Title = T("Admin.Address.Fields.Email").Text
+                        },
+                        new ColumnProperty(nameof(CWAddressModel.PhoneNumber))
+                        {
+                            Title = T("Admin.Address.Fields.PhoneNumber").Text
+                        },
+                        new ColumnProperty(nameof(CWAddressModel.FaxNumber))
+                        {
+                            Title = T("Admin.Address.Fields.FaxNumber").Text
+                        },
+                        new ColumnProperty(nameof(CWAddressModel.AddressHtml))
+                        {
+                            Title = T("Admin.Address").Text,
+                            Encode = false
+                        },
+                        new ColumnProperty(nameof(CWAddressModel.AddressId))
+                        {
+                            Title = T("Admin.Common.Edit").Text,
+                            Width = "100",
+                            ClassName =  NopColumnClassDefaults.Button,
+                            Render = new RenderCustom("Admin.StoreNav.render.addressEdit")
+                        },
+                        new ColumnProperty(nameof(CWAddressModel.AddressId))
+                        {
+                            Title = T("Admin.Common.Delete").Text,
+                            Width = "100",
+                            Render = new RenderCustom("Admin.StoreNav.render.addressDelete"),
+                            ClassName =  NopColumnClassDefaults.Button
+                        }
+                    }
+                };
+            }
+
+            @await Html.PartialAsync("Table", gridModel)
+        </div>
+        <button type="submit" id="btnRefreshBranchPackNameAddresses" style="display: none"></button>
+    }
+    else
+    {
+        <div class="card-body">
+            @T("Plugins.CW.Core.Admin.PackNames.PackName.Addresses.SaveBeforeEdit")
+        </div>
+    }
+</div>
+
+@*CONFIG, NOT CODE. The popup action, its id parameter, the entity id, the refresh button and the
+  owning form arrive as data, so the script below is plain JavaScript with no Razor in it.
+  The IsEditable branch these renders used to carry now lives in Admin.StoreNav.render.addressEdit /
+  addressDelete, which keeps it for every address grid rather than only these two.*@
+<div class="addr-grid-config"
+     data-grid-id="branch-packname-addresses-grid"
+     data-popup-url="@Url.Action("PackNameAddressPopup", "MultiStore")"
+     data-id-param="packNameId"
+     data-entity-id="@Model.Id"
+     data-btn-id="btnRefreshBranchPackNameAddresses"
+     data-form-id="pn-detail-form"
+     style="display:none"></div>
+
+<script>
+(function () {
+
+    var $cfg = $('.addr-grid-config[data-grid-id="branch-packname-addresses-grid"]').last();
+    if (!$cfg.length) return;
+
+    var gridId   = $cfg.data('grid-id');
+    var popupUrl = $cfg.data('popup-url');
+    var idParam  = $cfg.data('id-param');
+    var entityId = $cfg.data('entity-id');
+    var btnId    = $cfg.data('btn-id');
+    var formId   = $cfg.data('form-id');
+    var $grid    = $('#' + gridId);
+
+    //The table is inside the markup this partial replaces, so it is a new element on every render and
+    //handlers cannot stack. The namespace is belt-and-braces: if this grid is ever moved into a
+    //container that outlives the partial, the .off() is already where it needs to be - that is the
+    //case where it stops being optional.
+    $grid.off('.addr');
+
+    $grid.on('click.addr', '.btn-edit-address', function () {
+        OpenWindow(popupUrl + '?' + idParam + '=' + entityId
+                   + '&addressId=' + $(this).data('address-id')
+                   + '&btnId=' + btnId + '&formId=' + formId, 800, 800, true);
+        return false;
+    });
+
+    //Table.cshtml:107 declares `function table_deletedata_<name>(dataId)` at top level, where <name>
+    //is the grid's Name with hyphens replaced by underscores. Deriving it keeps delete working without
+    //a second piece of config that could drift from the grid's actual name.
+    $grid.on('click.addr', '.btn-delete-address', function () {
+        var fn = window['table_deletedata_' + gridId.replace(/-/g, '_')];
+        if (typeof fn === 'function') fn($(this).data('address-id'));
+        return false;
+    });
+
+    $('#' + btnId).off('.addr').on('click.addr', function () {
+        updateTable('#' + gridId);
+        return false;
+    });
+
+})();
+</script>

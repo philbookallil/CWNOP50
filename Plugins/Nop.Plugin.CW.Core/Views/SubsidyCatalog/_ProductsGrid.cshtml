@@ -1,0 +1,15 @@
+﻿@model SubsidyCatalogProductGroupModel
+
+@if (Model.Products.Any())
+{
+    <div class="@(Model.ViewMode == "list" ? "product-list" : "product-grid")">
+        <div class="item-grid">
+            @foreach (var product in Model.Products)
+            {
+                <div class="item-box">
+                    @await Html.PartialAsync("_ProductBox", product)
+                </div>
+            }
+        </div>
+    </div>
+}

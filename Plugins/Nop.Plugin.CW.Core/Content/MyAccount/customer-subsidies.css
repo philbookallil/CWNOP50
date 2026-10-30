@@ -1,0 +1,290 @@
+﻿/* The customer's subsidy page (My Account > Subsidies). One card per assignment: status, the remaining
+   figure with a usage bar, the product groups, and the history folded under a summary. Scoped to the page. */
+
+.customer-subsidies-page .subsidies-packname {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 18px;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+    .customer-subsidies-page .subsidies-packname .subsidies-packname-name {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .customer-subsidies-page .subsidies-packname .subsidies-packname-icon {
+        display: inline-flex;
+    }
+
+        .customer-subsidies-page .subsidies-packname .subsidies-packname-icon svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+            display: none;
+        }
+
+        /* show only the icon of the packname's type */
+        .customer-subsidies-page .subsidies-packname .subsidies-packname-icon.packname-group .packname-group,
+        .customer-subsidies-page .subsidies-packname .subsidies-packname-icon.packname-customer .packname-customer,
+        .customer-subsidies-page .subsidies-packname .subsidies-packname-icon.packname-no-customer .packname-no-customer {
+            display: inline-block;
+        }
+
+    /* the packname's colour stays on who it is (its type icon and name); its details follow a thin divider, with grey
+       icons of one size and darker grey text */
+    .customer-subsidies-page .subsidies-packname .subsidies-packname-detail {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: #495057;
+    }
+
+        .customer-subsidies-page .subsidies-packname .subsidies-packname-detail svg.cw-icon.subsidies-packname-detail-icon {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            color: #868e96;
+        }
+
+    .customer-subsidies-page .subsidies-packname .subsidies-packname-name + .subsidies-packname-detail {
+        padding-left: 14px;
+        border-left: 1px solid #d5d9dd;
+    }
+
+    .customer-subsidies-page .subsidies-packname .subsidies-packname-note {
+        color: #6c757d;
+    }
+
+.customer-subsidies-page .no-data {
+    padding: 20px;
+    color: #777;
+}
+
+.customer-subsidies-page .subsidy-card {
+    border: 1px solid #e6e6e6;
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    background: #fff;
+}
+
+    .customer-subsidies-page .subsidy-card.subsidy-card-inactive {
+        background: #fafafa;
+    }
+
+.customer-subsidies-page .subsidy-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px 16px;
+}
+
+    .customer-subsidies-page .subsidy-card-header h2 {
+        margin: 0;
+        font-size: 16px;
+    }
+
+.customer-subsidies-page .subsidy-card-description {
+    color: #6c757d;
+    font-size: 13px;
+}
+
+.customer-subsidies-page .subsidy-status {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+    .customer-subsidies-page .subsidy-status.subsidy-status-open {
+        background: #e6f4ea;
+        color: #2f8f4e;
+    }
+
+    .customer-subsidies-page .subsidy-status.subsidy-status-soon {
+        background: #e8f0fa;
+        color: #2a6ebb;
+    }
+
+    .customer-subsidies-page .subsidy-status.subsidy-status-closed {
+        background: #fbf1dc;
+        color: #b7791f;
+    }
+
+.customer-subsidies-page .subsidy-remaining {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 24px;
+    align-items: end;
+    margin-top: 14px;
+}
+
+.customer-subsidies-page .subsidy-eyebrow {
+    margin-bottom: 6px;
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #6c757d;
+}
+
+.customer-subsidies-page .subsidy-big {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.customer-subsidies-page .subsidy-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: #e3e6ea;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+    .customer-subsidies-page .subsidy-bar i {
+        display: block;
+        height: 100%;
+        background: #2a6ebb;
+    }
+
+.customer-subsidies-page .subsidy-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: #6c757d;
+}
+
+    .customer-subsidies-page .subsidy-legend b {
+        color: #212529;
+        font-weight: 600;
+    }
+
+.customer-subsidies-page .subsidy-dim {
+    color: #6c757d;
+}
+
+.customer-subsidies-page .subsidy-table-wrapper {
+    overflow-x: auto;
+    margin-top: 14px;
+}
+
+.customer-subsidies-page .subsidy-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .customer-subsidies-page .subsidy-table th,
+    .customer-subsidies-page .subsidy-table td {
+        padding: 7px 8px;
+        border-top: 1px solid #e6e6e6;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .customer-subsidies-page .subsidy-table th {
+        border-top: 0;
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+        color: #6c757d;
+    }
+
+        .customer-subsidies-page .subsidy-table th:first-child,
+        .customer-subsidies-page .subsidy-table td:first-child {
+            text-align: left;
+        }
+
+.customer-subsidies-page .subsidy-group-name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+    .customer-subsidies-page .subsidy-group-name .subsidy-group-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+/* the seasons before the current one: each a closed statement, newest first */
+.customer-subsidies-page .subsidy-seasons {
+    margin-top: 12px;
+}
+
+    .customer-subsidies-page .subsidy-seasons > summary {
+        cursor: pointer;
+        font-size: 13px;
+        color: #00549f;
+    }
+
+    .customer-subsidies-page .subsidy-seasons .subsidy-season {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .customer-subsidies-page .subsidy-seasons .subsidy-season-title {
+        font-weight: 600;
+        font-size: 13px;
+        color: #495057;
+    }
+
+    .customer-subsidies-page .subsidy-seasons .subsidy-season-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+        margin: 4px 0 8px;
+        font-size: 13px;
+        color: #495057;
+    }
+
+.customer-subsidies-page .subsidy-history {
+    margin-top: 14px;
+    border-top: 1px solid #e6e6e6;
+    padding-top: 10px;
+}
+
+    .customer-subsidies-page .subsidy-history summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: #2a6ebb;
+    }
+
+    .customer-subsidies-page .subsidy-history .subsidy-history-what {
+        text-align: left;
+        white-space: normal;
+    }
+
+        /* the theme makes links inherit their colour, so a linked row would read like the unlinked ones */
+        .customer-subsidies-page .subsidy-history .subsidy-history-what a {
+            color: #2a6ebb;
+            text-decoration: underline;
+        }
+
+    .customer-subsidies-page .subsidy-history .subsidy-history-date {
+        text-align: left;
+    }
+
+    .customer-subsidies-page .subsidy-history .subsidy-history-empty,
+    .customer-subsidies-page .subsidy-history .subsidy-history-more {
+        margin-top: 8px;
+        font-size: 12.5px;
+    }
+
+@media (max-width: 560px) {
+    .customer-subsidies-page .subsidy-remaining {
+        grid-template-columns: 1fr;
+    }
+}

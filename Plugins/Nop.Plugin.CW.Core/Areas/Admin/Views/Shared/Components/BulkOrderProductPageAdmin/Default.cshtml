@@ -1,0 +1,55 @@
+@model BulkOrderProductPageModel
+
+@{
+    var customer = await workContext.GetCurrentCustomerAsync();
+
+    const string hideBlockAttributeName = "ProductPage.HideBulkOrderBlock";
+    var hideBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideBlockAttributeName);
+}
+
+<nop-card asp-name="product-bulk-order" asp-icon="fas fa-table-cells"
+          asp-title="@T("Plugins.CW.Core.Admin.BulkOrder.ProductPanel")"
+          asp-hide-block-attribute-name="@hideBlockAttributeName" asp-hide="@hideBlock" asp-advanced="false">
+
+    <div class="card-body">
+        @*Three radios, not a checkbox. The state is genuinely three-valued and a checkbox cannot say "follow
+          the store" - which is the state almost every product should be in. 4.6 needed two columns to express
+          it (LockBulkOrder + LockBulkOrderOverride) and read as a double negative because of it.
+
+          The name is the raw attribute key rather than a model property path: nop's ProductController binds its
+          own ProductModel and knows nothing about this input, so it is read back off Request.Form by name in
+          EventConsumer. Keeping the key as the name means the writer and the reader are greppable from each
+          other, which is the same reason the constant exists at all.*@
+
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-label asp-for="ShowOnProductPage" />
+            </div>
+            <div class="col-md-9">
+                <div class="form-check">
+                    <input type="radio" class="form-check-input" id="bulk-onpage-default"
+                           name="@CWCoreDefaults.BULKORDER_SHOW_ON_PRODUCT_PAGE_PROPERTY" value=""
+                           checked="@(Model.ShowOnProductPage == string.Empty)" />
+                    <label class="form-check-label" for="bulk-onpage-default">
+                        @string.Format(T("Plugins.CW.Core.Admin.BulkOrder.ShowOnProductPage.Store").Text,
+                            Model.StoreDefault
+                                ? T("Plugins.CW.Core.Admin.BulkOrder.ShowOnProductPage.StoreOn").Text
+                                : T("Plugins.CW.Core.Admin.BulkOrder.ShowOnProductPage.StoreOff").Text)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" class="form-check-input" id="bulk-onpage-on"
+                           name="@CWCoreDefaults.BULKORDER_SHOW_ON_PRODUCT_PAGE_PROPERTY" value="1"
+                           checked="@(Model.ShowOnProductPage == "1")" />
+                    <label class="form-check-label" for="bulk-onpage-on">@T("Plugins.CW.Core.Admin.BulkOrder.ShowOnProductPage.On")</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" class="form-check-input" id="bulk-onpage-off"
+                           name="@CWCoreDefaults.BULKORDER_SHOW_ON_PRODUCT_PAGE_PROPERTY" value="0"
+                           checked="@(Model.ShowOnProductPage == "0")" />
+                    <label class="form-check-label" for="bulk-onpage-off">@T("Plugins.CW.Core.Admin.BulkOrder.ShowOnProductPage.Off")</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</nop-card>

@@ -1,0 +1,18 @@
+@using Nop.Plugin.CW.Core.Filters
+
+@model CWShipmentDestinationModel
+
+<div class="d-inline-block align-middle text-left ml-2" style="max-width: 380px;">
+    <span class="badge badge-info" style="white-space: normal; font-size: 90%;">
+        <i class="fas fa-truck"></i>
+        @T("Plugins.CW.Core.Admin.Orders.Shipments.ShippingTo"): @Model.Label
+    </span>
+    @if (Model.DestinationKey.HasValue)
+    {
+        <div class="text-muted small">@T("Plugins.CW.Core.Admin.Orders.Shipments.ShippingTo.Hint")</div>
+    }
+</div>
+@if (Model.DestinationKey.HasValue)
+{
+    <input type="hidden" name="@AddShipmentDestinationFilter.DESTINATION_KEY" value="@Model.DestinationKey.Value" />
+}

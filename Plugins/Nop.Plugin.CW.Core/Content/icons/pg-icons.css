@@ -1,0 +1,19 @@
+/* pg-icons.css
+ * Product group icon classes — SVG sprite based.
+ *
+ * SPRITE PATH: ~/Plugins/CW.Core/Content/icons/pg-icons.svg
+ *
+ * Usage:
+ *   <svg class="pg-icon" aria-hidden="true">
+ *     <use href="/Plugins/CW.Core/Content/icons/pg-icons.svg#pg-icon-shirt"/>
+ *   </svg>
+ */
+
+.pg-icon {
+    display: inline-block;
+    vertical-align: middle;
+    fill: currentColor;
+    overflow: visible;
+    width: 38px;
+    height: 38px;
+}

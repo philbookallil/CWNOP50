@@ -1,0 +1,48 @@
+/* cw-icons.css
+ * CW icon system — SVG sprite based.
+ * 
+ * Usage in HTML/Razor:
+ *   <svg class="cw-icon cw-icon--md" aria-hidden="true">
+ *     <use href="/Plugins/CW.Core/icons/cw-icons.svg#cw-icon-department"/>
+ *   </svg>
+ */
+
+/* ── Base icon styles ────────────────────────────────────── */
+.cw-icon {
+    display: inline-block;
+    vertical-align: middle;
+    fill: currentColor;
+    overflow: visible;
+}
+
+/* ── Size variants ───────────────────────────────────────── */
+.cw-icon--xs {
+    width: 14px;
+    height: 14px;
+}
+
+.cw-icon--sm {
+    width: 18px;
+    height: 18px;
+}
+
+.cw-icon--md {
+    width: 24px;
+    height: 24px;
+}
+
+.cw-icon--lg {
+    width: 38px;
+    height: 38px;
+}
+
+.cw-icon--xl {
+    width: 48px;
+    height: 48px;
+}
+
+/* ── Default size when no modifier given ─────────────────── */
+.cw-icon {
+    width: 18px;
+    height: 18px;
+}

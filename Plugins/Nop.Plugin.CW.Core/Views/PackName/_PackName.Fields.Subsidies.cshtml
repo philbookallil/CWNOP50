@@ -1,0 +1,26 @@
+﻿@model PackNameRegisterModel
+
+@*nothing to tick: the store's active subsidies are the only ones the form can assign*@
+@if (!Model.SubsidySelectionEnabled || Model.AvailableSubsidies.Count == 0)
+{
+    return;
+}
+
+<div class="fieldset packname-subsidies">
+    <div class="form-fields">
+        <div class="inputs packname-subsidies-field">
+            <label asp-for="SubsidyIds" asp-postfix=":"></label>
+            <ul class="packname-subsidies-list">
+                @foreach (var subsidy in Model.AvailableSubsidies)
+                {
+                    var inputId = $"packname-subsidy-{subsidy.Value}";
+                    <li>
+                        <input type="checkbox" id="@inputId" name="@Html.NameFor(model => model.SubsidyIds)" value="@subsidy.Value" checked="@subsidy.Selected" />
+                        <label class="forcheckbox" for="@inputId">@subsidy.Text</label>
+                    </li>
+                }
+            </ul>
+            <span asp-validation-for="SubsidyIds"></span>
+        </div>
+    </div>
+</div>

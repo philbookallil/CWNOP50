@@ -1,0 +1,24 @@
+﻿@using Nop.Core;
+
+@model CWReturnRequestModel
+
+@inject IWorkContext _workContext
+
+@{
+    var allowEdit = Model.IsEditable;
+
+    var currency = await _workContext.GetWorkingCurrencyAsync();
+
+    var model = new FeeConceptComponentModel
+    {
+        Currency = currency,
+        //Priced by ExchangeService, not here, so the frozen charge wins once the case has resolved.
+        FeeAmount = Model.RepackagingFeeAmount,
+        FeeConceptHiddenField = Model.RepackagingFeeConfig != null ? Html.HiddenFor(m => m.RepackagingFeeConfig.Concept) : null,
+        Label = Html.LabelFor(m => m.StaffRepackQty),
+        TextBox = Html.TextBoxFor(m => m.StaffRepackQty, allowEdit ? null : new { disabled = true }),
+        Rule = Model.RepackagingFeeConfig
+    };
+}
+
+@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Shared/_FeeConceptRow.cshtml", model)

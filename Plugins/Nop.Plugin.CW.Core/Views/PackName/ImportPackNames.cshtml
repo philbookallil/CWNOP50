@@ -1,0 +1,23 @@
+﻿@model PackNameImportModel
+
+@{
+    Layout = "_ColumnsOne";
+
+    NopHtml.AddTitleParts(T("Plugins.CW.Core.PackNames.PackName.ImportXls").Text);
+    NopHtml.AppendPageCssClassParts("html-packname-import-page");
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/PackName/packname-import.css");
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/PackName/packname-import.js");
+
+    Model.TemplateUrl = Url.Action("ImportPackNamesTemplate", "PackName");
+    Model.ImportUrl = Url.Action("ImportPackNames", "PackName");
+    Model.ErrorReportUrl = Url.Action("ImportPackNamesErrorReport", "PackName");
+}
+
+<div class="page packname-import-page">
+    <div class="page-title">
+        <h1>@T("Plugins.CW.Core.PackNames.PackName.ImportXls")</h1>
+    </div>
+    <div class="page-body">
+        @await Html.PartialAsync("~/Plugins/CW.Core/Views/PackName/_PackNameImport.cshtml", Model)
+    </div>
+</div>

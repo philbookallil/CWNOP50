@@ -1,0 +1,196 @@
+﻿@model OrderModel
+
+<div class="card mb-3">
+    <div class="card-header clearfix">
+        @T("Admin.Orders.Fields.BillingAddress")
+    </div>
+    <div class="card-body">
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.FullName")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.FirstName @Model.BillingAddress.LastName
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.Email")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.Email
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.Phone")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.PhoneNumber
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.Fax")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.FaxNumber
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.Company")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.Company
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.Address1")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.Address1
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.Address2")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.Address2
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.City")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.City
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.County")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.County
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.StateProvince")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.StateProvinceName
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.ZipPostalCode")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.ZipPostalCode
+                </div>
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <div class="label-wrapper">
+                    <label class="col-form-label">
+                        @T("Admin.Orders.Address.Country")
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-text-row">
+                    @Model.BillingAddress.CountryName
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.BillingAddress.FormattedCustomAddressAttributes))
+        {
+            <div class="form-group row">
+                <div class="col-md-4">
+                    <div class="label-wrapper">
+                        <label class="col-form-label">@T("Admin.Orders.Address.CustomAttributes")</label>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="form-text-row">
+                        @Html.Raw(Model.BillingAddress.FormattedCustomAddressAttributes)
+                    </div>
+                </div>
+            </div>
+        }
+
+    </div>
+
+    @* no edit link: this partial renders only packname orders, whose addresses the packname order guard keeps as placed *@
+</div>

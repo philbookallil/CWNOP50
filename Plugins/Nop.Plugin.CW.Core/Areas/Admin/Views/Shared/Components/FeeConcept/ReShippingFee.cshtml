@@ -1,0 +1,26 @@
+﻿@using Nop.Core;
+
+@model CWReturnRequestModel
+
+@inject IWorkContext _workContext
+
+@{
+    var allowEdit = Model.IsEditable;
+
+    var currency = await _workContext.GetWorkingCurrencyAsync();
+
+    var model = new FeeConceptComponentModel
+    {
+        Currency = currency,
+        //Priced by ExchangeService, not here, so the frozen charge wins once the case has resolved.
+        FeeAmount = Model.ShippingFeeAmount,
+        //Null once the store's rule has been removed. The row still renders, because the frozen charge is
+        //what is collected; there is simply no live rule name left to round-trip.
+        FeeConceptHiddenField = Model.ShippingFeeConfig != null ? Html.HiddenFor(m => m.ShippingFeeConfig.Concept) : null,
+        Label = Html.LabelFor(m => m.StaffShipQty),
+        TextBox = Html.TextBoxFor(m => m.StaffShipQty, allowEdit ? null : new { disabled = true }),
+        Rule = Model.ShippingFeeConfig
+    };
+}
+
+@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Shared/_FeeConceptRow.cshtml", model)
