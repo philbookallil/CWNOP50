@@ -252,10 +252,11 @@ or edited. Where each developer keeps them is in their `CLAUDE.local.md`.
 | What | Where | Use it for |
 |---|---|---|
 | **4.90 source** (the port source) | `CLAUDE.local.md` | `Nop.Plugin.CW.Core`, `.CW.Freight`, `.CW.ThemeCore`, `.CW.Theme.Standard` and `CWLibraries/` as they stand in 4.9; their plans (`CWPlans/`) and docs (`CWDocs/`); the 4.9 `CLAUDE.md`, `tasks/lessons.md` and `Tests/CW.Tests` (the CW.Core suite) |
+| **5.00 beta port source** | `CLAUDE.local.md` | CW.Core as ported to the 5.00 beta (phases 1–5), `CWLibraries/CW.Common`, the CW.Core suite in `Tests/CW.Tests/Core`, `CWPlans/CWCore_Port_Strategy.md` and the phase specs in `CWPlans/Deprecated/`, its `CLAUDE.md` and `tasks/`. The starting point of the move to the final 5.00 (`CWPlans/CWCore_Final500_Strategy.md`); its `Libraries/` and `Presentation/` are the unmodified beta |
 | **4.6 source** | `CLAUDE.local.md` | Where the packname / subsidy port came from (`Nop.Plugin.Jim2.BE` = packnames, `Jim2.Allowances` = subsidies, `Jim2.Common`) |
 | **4.1 source** | `CLAUDE.local.md` | Checking original behaviour when a port is suspected of having dropped something (`Nop.Plugin.TIG.Base`, `.Exchanges`, `.Subsidy`, `.CreditNotes`, `.BulkOrdering`) |
 
-All three are **reference material**: read them, never edit them, never build them here, and never copy a folder
+All of them are **reference material**: read them, never edit them, never build them here, and never copy a folder
 across wholesale. Port deliberately, into the 5.00 patterns (§10.5).
 
 > **Name collision — scope every search.** The same names live in several places: a CW.Core class exists in the 4.90
@@ -274,9 +275,8 @@ across wholesale. Port deliberately, into the 5.00 patterns (§10.5).
 | Plugin | Purpose | Status in 5.00 | Reference doc |
 |---|---|---|---|
 | `Nop.Plugin.ExternalAuth.SSO` | Single sign-on with Entra ID (OIDC / SAML 2.0) | **Ported** 2026-10-19; reviewed and extended (plugin version `…_DATA_0.12`); unit tests in `Tests/CW.Tests` (94 cases). OIDC and SAML sign-in pass against Keycloak 26 (2026-10-21); Entra still open (§22 Note C) | `Plugins/Nop.Plugin.ExternalAuth.SSO/References/SSO_Plugin_Reference.md` |
-| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Porting** — phase 2 of 7 (the C# core: services, business logic, helpers, background queue; nop's interfaces not yet replaced) applied 2026-10-25, T1–T9 passed; §13–§21 still describe its 4.9 code | `CWPlans/CWCore_Port_Strategy.md`; the 4.90 source's `CLAUDE.md` and `CWPlans/` |
 | `Nop.Plugin.CW.Freight` | Shipping rate computation: flat-rate methods per store, restricted countries; the methods CW.Core's packname checkout offers | **Ported** 2026-10-26 (`2026_10_26_DATA_1.2`); one installation migration, admin fixes. Unit tests in `Tests/CW.Tests` (8 cases); installed on a local site 2026-10-26 and T3–T7 passed (admin pages, cart shipping estimate) | `Plugins/Nop.Plugin.CW.Freight/References/Freight_Plugin_Reference.md` |
-| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Porting** — phases 1–4 of 7 applied, phase 5 (storefront, parts 5a–5h) in progress: 5a (packname selector, info strip, packname management) and 5b (subsidy catalogue, subsidy bar, top-ups) applied 2026-10-28; phase 4 parts 4.0 (admin foundation), 4a (MultiStore and branches) and 4b (customers, department ACL) applied 2026-10-26, all checks passed; 4b.1 (customer and packname branch kept in step) applied 2026-10-26; 4c (subsidies admin), 4d (credit notes admin) and 4e (exchanges configuration and return requests) applied 2026-10-27; 4f (admin order page) and 4g (bulk ordering admin) applied 2026-10-28, which completes phase 4; the storefront UI (phase 5) not yet ported; §13–§21 still describe its 4.9 code | `CWPlans/CWCore_Port_Strategy.md`; the 4.90 source's `CLAUDE.md` and `CWPlans/` |
+| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Moving to the final 5.00** — phases 1–5 of 7 were applied on the 5.00 beta (2026-10-24 to 2026-10-30, the beta port source, §3.1); the plugin is not yet in this repository. It comes across from the beta port and takes the beta → final changes (`CWPlans/CWCore_Final500_Strategy.md`), then phases 6 (outputs) and 7 (regression) run here; §13–§21 still describe its 4.9 code | `CWPlans/CWCore_Final500_Strategy.md`; the beta port source's `CWPlans/CWCore_Port_Strategy.md`; the 4.90 source's `CLAUDE.md` and `CWPlans/` |
 | `Nop.Plugin.CW.Freight` | Shipping / freight | Not started | 4.90 source |
 | `Nop.Plugin.CW.ThemeCore` | Theme framework: accent colours, custom CSS, layout options, logos, Brand Designer with live preview | **Ported** 2026-10-29 (`2026_10_29_DATA_1.3`); installed on a local site with `CW.Standard` active, Configure page and live preview (home, category, product, cart, checkout) pass. Unit tests in `Tests/CW.Tests` (112 cases, 4 ignored: the custom-CSS sanitizer's escape bypasses, open) | `Plugins/Nop.Plugin.CW.ThemeCore/References/ThemeCore_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Theme.Standard` | Settings for the `CW.Standard` theme (light nav bar, square corners); the theme's own storefront text | **Ported** 2026-10-29 (`2026_10_29_DATA_1.1`), with ThemeCore (§10.2 framework exception, `DependsOnSystemNames`) | ThemeCore reference doc |
@@ -299,7 +299,9 @@ Update this table as each plugin lands. Coupling rules between them are in §10.
 | ORM / data access | **`IRepository<T>` exclusively** — no EF Core, no Dapper, no custom `DbContext` |
 | Migrations | **FluentMigrator**, in each plugin's own `Data/Migrations/` folder |
 | Validation (admin models) | **FluentValidation**, nop standard pattern |
-| Object mapping | **Mapster** (nop 5.00 replaced AutoMapper) — profiles inherit `Nop.Core.Infrastructure.Mapper.BaseMapperProfile` (an `IOrderedMapperProfile`) and call its `CreateMap<,>()`, never the Mapster API directly. Mapping by hand in a factory is fine for a few fields (the SSO plugin has no profile) |
+| Object mapping | **Mapster** (nop 5.00 replaced AutoMapper) — profiles inherit `Nop.Core.Infrastructure.Mapper.BaseMapperProfile` (an `IOrderedMapperProfile`) and call its `CreateMap<,>()`, never the Mapster API directly. Mapping by hand in a factory is fine for a few fields (the SSO plugin has no profile). **nop's admin profile applies its `ForAllMaps` rules to plugin maps too** (one global Mapster configuration, load-order dependent): a map whose destination is ACL-, store- or discount-supported, localized, a settings model or a `BaseNopModel` can silently lose those members. Never copy a nop model into a CW model that extends it through the mapper — prepare the CW model in place; every CW map is covered by `CWMapperGlobalRulesTests` (add a new map's deliberate ignores to its list). The same goes for a CW model's copy constructor: derive from nop's record copy constructor (`: base(model)`), never copy members by hand |
+| Script and style paths | nop 5.00's `AppendScriptParts` / `AddScriptParts` (and the CSS ones) take the app-relative `~/Plugins/...` path and strip its first character: pass the `~/` string, never `Url.Content(...)` (already `/Plugins/...`, it throws *The path in 'value' must start with '/'* when the page renders; the build does not catch it) |
+| nop 5.00 options with packnames | Keep **off**: sign-in by phone code (`OtpSettings.LoginByPhoneEnabled`, skips nop's sign-in path and so CW's landing and packname set-up), vendors (`VendorSettings`, stashed packname lines vanish or double), price lists (per-customer prices cached per role), the withdrawal form, auto-cancel of unpaid orders. Decided 2026-10-23 / 2026-10-29; `CWPlans/CWCore_Port_Strategy.md` §7.3 |
 | Dependency injection | Register via `INopStartup.ConfigureServices(IServiceCollection)`. Constructor injection only — no `EngineContext.Current.Resolve<T>()` in new code. |
 | Caching | `IStaticCacheManager` (distributed cache supported) |
 | Frontend (admin) | jQuery 3.7 + AdminLTE 3.2 + **Bootstrap 4.6** |
@@ -1163,7 +1165,7 @@ Most decoupled, but reflection-heavy and brittle to renames.
 
 ### 10.3 Copied nop method bodies — **re-diff these on every nopCommerce upgrade**
 
-> **CW.Core's copies were re-diffed against 5.00 in its phase 2** (`CWPlans/CWCore_Phase2_Spec.md` §3): the
+> **CW.Core's copies were re-diffed against 5.00 in its phase 2** (the beta port source's `CWPlans/Deprecated/CWCore_Phase2_Spec.md` §3): the
 > three nop originals that changed (`SaveOrderDetailsAsync`, `PlaceOrderAsync`, `AddToCartAsync`), `SearchProductsAsync`
 > and the two PDF methods were brought up to 5.00; the rest are unchanged in 5.00. The SSO plugin copies no nop method
 > bodies.
@@ -1238,6 +1240,16 @@ The last two are the ones a theme is most likely to have restyled.
    the whole point of this section.
 
 Admin views are unaffected — themes do not apply to the admin area.
+
+**Final 5.00: a theme can also replace a plugin view given by path** (`Nop.Web.Framework/Themes/ThemeableRazorViewEngine.cs`,
+new in the final release, registered as `IRazorViewEngine`). When a storefront request asks for a view by an explicit
+`~/Plugins/<folder>/….cshtml` path (`View(path)`, `PartialView(path)`, `<partial name="~/Plugins/…">`,
+`RenderPartialViewToStringAsync(path, …)`), nop first tries `~/Themes/{theme}/Plugins/<folder>/….cshtml` and uses the
+plugin's file only when the theme has none. It does not apply to the admin area, to paths with an `Admin` segment, or to
+views found **by name** — CW.Core's forks of nop views above still come from the expander, ahead of the theme. So a
+theme cannot replace a CW fork, but it can replace any CW.Core storefront view CW.Core opens by path (the packname
+checkout, subsidy catalogue and other CW-own views). When a theme is enabled, also check for a
+`~/Themes/{theme}/Plugins/CW.Core/` folder: anything in it replaces CW.Core's file silently.
 
 ### 10.5 Porting a plugin from 4.90 to 5.00
 
