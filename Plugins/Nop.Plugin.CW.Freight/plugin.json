@@ -1,0 +1,11 @@
+{
+  "Group": "CW",
+  "FriendlyName": "CW Freight Plugin",
+  "SystemName": "CW.Freight",
+  "Version": "2026_10_26_DATA_1.2",
+  "SupportedVersions": [ "5.00" ],
+  "Author": "Cityweb",
+  "DisplayOrder": 3,
+  "FileName": "Nop.Plugin.CW.Freight.dll",
+  "Description": "Nop.Plugin.CW.Freight (Prefix FR) This plugin implements shipping/freight features for the CW E-Commerce solution"
+}

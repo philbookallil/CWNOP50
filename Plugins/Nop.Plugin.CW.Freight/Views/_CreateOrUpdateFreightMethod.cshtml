@@ -1,0 +1,118 @@
+@model Nop.Plugin.CW.Freight.Models.CWShippingMethodModel
+
+@Html.ValidationSummary(false)
+<input asp-for="Id" type="hidden" />
+
+<div class="cards-group">
+    <div class="card card-default">
+        <div class="card-body">
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="Name" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="Name" asp-required="true" />
+                    <span asp-validation-for="Name"></span>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="Description" />
+                </div>
+                <div class="col-md-9">
+                    <nop-textarea asp-for="Description"></nop-textarea>
+                    <span asp-validation-for="Description"></span>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="DisplayOrder" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="DisplayOrder" />
+                    <span asp-validation-for="DisplayOrder"></span>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="Rate" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="Rate" />
+                    <span asp-validation-for="Rate"></span>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="LowestOrderTotal" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="LowestOrderTotal" />
+                    <span asp-validation-for="LowestOrderTotal"></span>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="HighestOrderTotal" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="HighestOrderTotal" />
+                    <span asp-validation-for="HighestOrderTotal"></span>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="ApplyPerBranch" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="ApplyPerBranch" />
+                    <span asp-validation-for="ApplyPerBranch"></span>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="SelectedStoreIds" />
+                </div>
+                <div class="col-md-9">
+                    <nop-select asp-for="SelectedStoreIds"
+                                asp-items="Model.AvailableStores"
+                                asp-multiple="true" />
+                    <span asp-validation-for="SelectedStoreIds"></span>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="SelectedCustomerRoleIds" />
+                </div>
+                <div class="col-md-9">
+                    <nop-select asp-for="SelectedCustomerRoleIds"
+                                asp-items="Model.AvailableCustomerRoles"
+                                asp-multiple="true" />
+                    <span asp-validation-for="SelectedCustomerRoleIds"></span>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-label asp-for="RestrictedCountryIds" />
+                </div>
+                <div class="col-md-9">
+                    <nop-select asp-for="RestrictedCountryIds"
+                                asp-items="Model.AvailableCountries"
+                                asp-multiple="true" />
+                    <span asp-validation-for="RestrictedCountryIds"></span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

@@ -1,0 +1,56 @@
+@model Nop.Plugin.CW.Freight.Models.ConfigurationModel
+@using Nop.Plugin.CW.Freight.Models
+@using Nop.Web.Framework.Models.DataTables
+
+@await Html.PartialAsync("Table", new DataTablesModel
+{
+    Name = "methods-grid",
+    UrlRead = new DataUrl("MethodList", "CWFreight", null),
+    SearchButtonId = "search-methods",
+    Length = Model.PageSize,
+    LengthMenu = Model.AvailablePageSizes,
+    Filters = new List<FilterParameter>
+    {
+        new FilterParameter(nameof(ConfigurationModel.SearchStoreId))
+    },
+    ColumnCollection = new List<ColumnProperty>
+    {
+        new ColumnProperty(nameof(CWShippingMethodModel.Name))
+        {
+            Title = T("Admin.Configuration.Shipping.Methods.Fields.Name").Text,
+            Width = "200"
+        },
+        new ColumnProperty(nameof(CWShippingMethodModel.Description))
+        {
+            Title = T("Admin.Configuration.Shipping.Methods.Fields.Description").Text,
+            Width = "300"
+        },
+        new ColumnProperty(nameof(CWShippingMethodModel.DisplayOrder))
+        {
+            Title = T("Admin.Configuration.Shipping.Methods.Fields.DisplayOrder").Text,
+            Width = "80"
+        },
+        new ColumnProperty(nameof(CWShippingMethodModel.Rate))
+        {
+            Title = T("Plugins.CW.Freight.Fields.Rate").Text,
+            Width = "100"
+        },
+        new ColumnProperty(nameof(CWShippingMethodModel.LowestOrderTotal))
+        {
+            Title = T("Plugins.CW.Freight.Fields.LowestOrderTotal").Text,
+            Width = "120"
+        },
+        new ColumnProperty(nameof(CWShippingMethodModel.HighestOrderTotal))
+        {
+            Title = T("Plugins.CW.Freight.Fields.HighestOrderTotal").Text,
+            Width = "120"
+        },
+        new ColumnProperty(nameof(CWShippingMethodModel.Id))
+        {
+            Title = T("Admin.Common.Edit").Text,
+            Width = "80",
+            ClassName = NopColumnClassDefaults.Button,
+            Render = new RenderButtonEdit(new DataUrl("~/Admin/CWFreight/EditFreightMethod/"))
+        }
+    }
+})

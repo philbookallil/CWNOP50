@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Plugins\Nop.Plugin.CW.Freight\Nop.Plugin.CW.Freight.csproj" />
     <ProjectReference Include="..\..\Plugins\Nop.Plugin.ExternalAuth.SSO\Nop.Plugin.ExternalAuth.SSO.csproj" />
     <ProjectReference Include="..\..\Plugins\Nop.Plugin.Payments.NABGateway\Nop.Plugin.Payments.NABGateway.csproj" />
   </ItemGroup>

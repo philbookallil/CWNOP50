@@ -1,0 +1,35 @@
+@model Nop.Plugin.CW.Freight.Models.CWShippingMethodModel
+
+@{
+    Layout = "_AdminLayout";
+    NopHtml.SetActiveMenuItemSystemName("Shipping providers");
+    ViewBag.PageTitle = T("Admin.Configuration.Shipping.Methods.AddNew").Text;
+}
+
+<form asp-controller="CWFreight" asp-action="CreateFreightMethod" method="post">
+    <div class="content-header clearfix">
+        <h1 class="float-left">
+            @T("Admin.Configuration.Shipping.Methods.AddNew")
+            <small>
+                <i class="fas fa-arrow-circle-left"></i>
+                <a asp-controller="CWFreight" asp-action="Configure">
+                    @T("Admin.Configuration.Shipping.Methods.BackToList")
+                </a>
+            </small>
+        </h1>
+        <div class="float-right">
+            <button type="submit" name="save" class="btn btn-primary">
+                <i class="far fa-save"></i>
+                @T("Admin.Common.Save")
+            </button>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="form-horizontal">
+                @await Html.PartialAsync("~/Plugins/CW.Freight/Views/_CreateOrUpdateFreightMethod.cshtml", Model)
+            </div>
+        </div>
+    </section>
+</form>
