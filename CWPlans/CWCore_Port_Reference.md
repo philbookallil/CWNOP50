@@ -754,7 +754,6 @@ M3's data had these flags on *Received*, so an authorisation made no credit note
 ## 9. Open after the port
 
 **CW.Core:**
-- `CLAUDE.md` §13–§21 still describe the 4.9 code. They are the next documentation step.
 - The *ReturnAuthorisedPayment* and *ReturnAuthorisedExcepted* customer e-mails are sent only when their templates
   exist, and CW.Core installs neither, on 4.9 as well. The customer gets no e-mail when a return is authorised.
 - A storefront access-denied lands on nop's *Page not found* and logs a 404. `PackNameController` (26 calls) and

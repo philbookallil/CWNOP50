@@ -3,8 +3,8 @@
 > **Read this document first on every task.** It is the working agreement for all contributors (human and AI) on this codebase.
 >
 > Adapted on 2026-10-20 from the 4.9 repository's `CLAUDE.md`, and realigned on 2026-10-22 with the latest copy of it
-> (the 4.90 source's `CLAUDE.md`, §3.1). The rules are the same; what describes code lists what is in **this** repository. Sections that
-> still describe 4.9 code carry a banner saying so (§13–§21).
+> (the 4.90 source's `CLAUDE.md`, §3.1). The rules are the same; what describes code lists what is in **this** repository.
+> §13–§21 (CW.Core) were brought up to date with the 5.00 code on 2026-10-31.
 
 ---
 
@@ -277,7 +277,7 @@ across wholesale. Port deliberately, into the 5.00 patterns (§10.5).
 |---|---|---|---|
 | `Nop.Plugin.ExternalAuth.SSO` | Single sign-on with Entra ID (OIDC / SAML 2.0) | **Ported** 2026-10-19; reviewed and extended (plugin version `…_DATA_0.12`); unit tests in `Tests/CW.Tests` (94 cases). OIDC and SAML sign-in pass against Keycloak 26 (2026-10-21); Entra still open (§22 Note C) | `Plugins/Nop.Plugin.ExternalAuth.SSO/References/SSO_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Freight` | Shipping rate computation: flat-rate methods per store, restricted countries; the methods CW.Core's packname checkout offers | **Ported** 2026-10-26 (`2026_10_26_DATA_1.2`); one installation migration, admin fixes. Unit tests in `Tests/CW.Tests` (8 cases); installed on a local site 2026-10-26 and T3–T7 passed (admin pages, cart shipping estimate) | `Plugins/Nop.Plugin.CW.Freight/References/Freight_Plugin_Reference.md` |
-| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Ported** 2026-10-31 — phases 1–5 on the 5.00 beta, then moved to the final 5.00 (M1–M4), phase 6 (outputs) and phase 7 (regression: 173 of 182 pass, none fail) approved, the deferred fixes applied (`2026_10_31_DATA_0.2`). Unit tests in `Tests/CW.Tests/Core` (634 cases). §13–§21 still describe its 4.9 code (next documentation step) | `CWPlans/CWCore_Port_Reference.md`; the feature references in `CWPlans/` (`subsidy-system.md`, `MultiStore_Management_Reference.md`, `Exchanges_Returns_CreditNotes_Reference.md`, `PackName_Order_Shipments.md`, `BulkOrdering_Design.md`, `Feature_Toggles_Reference.md`) |
+| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Ported** 2026-10-31 — phases 1–5 on the 5.00 beta, then moved to the final 5.00 (M1–M4), phase 6 (outputs) and phase 7 (regression: 173 of 182 pass, none fail) approved, the deferred fixes applied (`2026_10_31_DATA_0.2`). Unit tests in `Tests/CW.Tests/Core` (634 cases). §13–§21 describe its 5.00 code | `CWPlans/CWCore_Port_Reference.md`; the feature references in `CWPlans/` (`subsidy-system.md`, `MultiStore_Management_Reference.md`, `Exchanges_Returns_CreditNotes_Reference.md`, `PackName_Order_Shipments.md`, `BulkOrdering_Design.md`, `Feature_Toggles_Reference.md`) |
 | `Nop.Plugin.CW.Freight` | Shipping / freight | Not started | 4.90 source |
 | `Nop.Plugin.CW.ThemeCore` | Theme framework: accent colours, custom CSS, layout options, logos, Brand Designer with live preview | **Ported** 2026-10-29 (`2026_10_29_DATA_1.3`); installed on a local site with `CW.Standard` active, Configure page and live preview (home, category, product, cart, checkout) pass. Unit tests in `Tests/CW.Tests` (112 cases, 4 ignored: the custom-CSS sanitizer's escape bypasses, open) | `Plugins/Nop.Plugin.CW.ThemeCore/References/ThemeCore_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Theme.Standard` | Settings for the `CW.Standard` theme (light nav bar, square corners); the theme's own storefront text | **Ported** 2026-10-29 (`2026_10_29_DATA_1.1`), with ThemeCore (§10.2 framework exception, `DependsOnSystemNames`) | ThemeCore reference doc |
@@ -1386,12 +1386,12 @@ Plugins/Nop.Plugin.CW.<Feature>/
 
 ---
 
-## 13. Nop.Plugin.CW.Core — Full Reference *(4.9 code — not yet in this repository)*
+## 13. Nop.Plugin.CW.Core — Full Reference
 
-> **§13–§21 describe CW.Core as it stands in the 4.9 repository** (the 4.90 source, §3.1). None of it exists here
-> yet. They are kept so the port has its map: when a part of CW.Core lands in 5.00, check its section against the
-> 5.00 code, correct it, and remove it from this banner's scope. Until then, verify anything taken from §13–§21
-> against the 4.9 source before relying on it.
+> **§13–§21 describe CW.Core on nopCommerce 5.00**, checked against this repository's code on 2026-10-31, after the
+> port (`CWPlans/CWCore_Port_Reference.md`). Where they say "phase N" without more, they mean a phase of the 4.9
+> subsidy / packname fix strategy (`CWPlans/Deprecated/Subsidy_PackName_Fix_Strategy.md`), which is when that behaviour
+> was built; the port's own parts are named as such. Keep these sections current when the code changes.
 
 ### 13.1 Plugin Metadata
 
@@ -1400,7 +1400,7 @@ Plugins/Nop.Plugin.CW.<Feature>/
 | SystemName | `CW.Core` |
 | Group | `CW` |
 | FriendlyName | `CW Core Plugin` |
-| Supported NOP Version | `4.90` |
+| Supported NOP Version | `5.00` (`plugin.json` `SupportedVersions`; version `2026_10_31_DATA_0.2` at the end of the port) |
 | DLL | `Nop.Plugin.CW.Core.dll` |
 
 ### 13.2 Key Domains
@@ -1425,20 +1425,22 @@ Nop.Plugin.CW.Core/
 │   └── Views/             — Admin Razor views
 ├── BusinessLogic/         — Orchestrator classes coordinating multiple services (see §6.13)
 ├── Data/
-│   ├── Mapping/           — LinqToDB entity builders (NopEntityBuilder<T>)
-│   ├── Migrations/        — FluentMigrator migration classes
-│   ├── MigrationVersions.cs
-│   └── Mapping/CWNameCompatibility.cs  — Entity → table name map
+│   ├── Mapping/           — LinqToDB entity builders (NopEntityBuilder<T>), one folder per feature
+│   ├── Mapping/CWNameCompatibility.cs  — Entity → table name map
+│   ├── Migrations/        — one SchemaMigration: every table and the extra indexes (the 4.9 history of 33
+│   │                        migrations was not ported, decision D1; the SQL views, functions and procedures are
+│   │                        created by ICWDatabaseService on install and update)
+│   └── MigrationVersions.cs — InitialSchema
 ├── Background/            — IBackgroundTaskQueue + QueuedHostedService
 ├── Components/            — Public store ViewComponents (selector, info strip, subsidy bar, widgets)
 ├── Constants/             — Widget zones, activity types, message template / token names
 ├── Content/               — CW's own CSS / JS, by feature (admin under Content/Admin/) — see §9.8
 ├── Domain/                — Domain entities grouped by feature
-├── Extensions/            — Extension methods, shared CSS
+├── Extensions/            — Extension methods (icon HTML helpers, entity and import-result extensions)
 ├── Factories/             — Public store model factories
-├── Filters/               — Action filters
+├── Filters/               — Action filters; five are global MVC filters (§13.4)
 ├── Helpers/               — Business helpers
-├── Infrastructure/        — DI startup, mapper profiles, view expander
+├── Infrastructure/        — DI startup, Mapster profile, view expander and its nine locations, packname panel providers
 ├── Models/                — Public store view models
 ├── Services/              — Service layer grouped by feature
 ├── Validators/            — Public store FluentValidation validators
@@ -1485,7 +1487,7 @@ All registered as **Scoped** unless noted:
 | `ISubsidyCreditService` | `SubsidyCreditService` |
 | `ISubsidyReportingService` | `SubsidyReportingService` |
 | `IPackNameShippingMethodService` | `PackNameShippingMethodService` — the CW.Freight methods of a store, for the store and branch pickers, and the filter that keeps only offered names on every save (no reference to CW.Freight) |
-| `IPackNameProvisioningService` | `PackNameProvisioningService` — a new branch's default list (`UseBranchesAsPackNameList`) and a packname for a customer an admin links to a branch (`UseStaffAsPackName`), PackName-gated; also what the two Generate buttons run. Called explicitly, not an event consumer |
+| `IPackNameProvisioningService` | `PackNameProvisioningService` — a new branch's default list (`UseBranchesAsPackNameList`) and a packname for a customer an admin links to a branch (`UseStaffAsPackName`), PackName-gated; also what the two Generate buttons run. Called explicitly, not an event consumer. Provisioning skips a customer whose name the target list already has: `ProvisionCustomerBranchAsync` / `ApplyCustomerBranchAsync` return the reason (the customer page shows it as a warning), *Generate packnames* logs it |
 | `IPackNameRegistrationService` | `PackNameRegistrationService` — registers a packname with its optional account (random password, profile, attributes, default roles, branch link, its own copy of the delivery address), subsidy assignments and welcome e-mail in one transaction (`PackNameTransaction.Begin`, read committed); the storefront add form and the Excel import both call it, and the name is checked again inside the transaction |
 | `IPackNameImportService` | `PackNameImportService` — the Excel import for **two importers**: a manager (`BuildLayoutAsync`, storefront `PackNameController`) and an administrator (`BuildAdministratorLayoutAsync`, `MultiStoreController` region *PackName Import*); both build the layout through the protected `BuildLayoutForImporterAsync`. Template per store settings (the manager settings shape only a manager's), the file check (`CheckFileAsync`), read (the upload is copied into memory), check every row (nop's `CustomerInfoValidator` / `AddressValidator` included), then write ten rows per transaction, stopping at a batch refused while written; error report. The page's JSON is `PackNameImportResultExtensions.ToPageAnswer()` |
 | `IPackNameBulkService` | `PackNameBulkService` (`Services/PackNames/Bulk/`) — the admin packname grids' bulk Activate / Deactivate / Move / Delete (single save's and delete's rules, ten per transaction, each batch reading its rows and target again, the consumer's cache keys cleared again after each commit) and the Excel export; see `CWPlans/MultiStore_Management_Reference.md` §8h |
@@ -1498,6 +1500,15 @@ All registered as **Scoped** unless noted:
 | `IPackNamePanelProvider` | `SubsidyPackNamePanelProvider` (§21) |
 | Admin factories | `CustomerOverrideModelFactory` (as nop's `ICustomerModelFactory` too), `BranchModelFactory`, `MultiStoreModelFactory`, `PackNameModelFactory`, `SubsidyModelFactory`, `CWSettingModelFactory`, `CWAddressModelFactory`, `CreditNotesModelFactory`, `ReturnRequestOverrideModelFactory` (as nop's `IReturnRequestModelFactory` too), `ExchangeSettingsModelFactory`, `PackNameOrderModelFactory`, `ReturnRequestExchangeModelFactory` |
 | Public factories | `PackNameModelFactory`, `ShoppingCartOverrideModelFactory` (as nop's `IShoppingCartModelFactory` too), `PackNameCheckoutModelFactory`, `ExchangesModelFactory`, `ReturnRequestItemModelFactory`, `ReturnRequestOverrideModelFactory` (as nop's), `PackNameOrderModelFactory`, `SubsidyCatalogModelFactory`, `CustomerSubsidiesModelFactory`, `OrderOverrideModelFactory` (as nop's `IOrderModelFactory`), `BulkOrderModelFactory` |
+
+**Global MVC filters** (`services.Configure<MvcOptions>`, order 1): `ReturnRequestAdminFilter`,
+`PackNameCheckoutRedirectFilter`, `AddShipmentDestinationFilter`, `PackNameOrderAdminGuardFilter` and
+`ReturnRequestSubmitFilter` (new in 5.00: nop's return post with *Exchanges* off or a guest's withdrawal link refuses more
+units than CW's return page offers).
+
+**Event consumers** are found by nop, not registered here; besides `EventConsumer`, the ones a reader looks for are
+`PackNameCustomerBranchEventConsumer` (customer and packname kept in one branch) and
+`CustomerPermanentlyDeletedEventConsumer` (a GDPR delete also deletes the packname cart lines the cart override hides).
 
 The full list is `Infrastructure/NopStartup.cs`; this table names what a reader is likely to look for.
 
@@ -1522,7 +1533,7 @@ The full list is `Infrastructure/NopStartup.cs`; this table names what a reader 
 
 | Controller | Key Responsibilities |
 |---|---|
-| `BranchController` | The standalone *CW Admin › Branches* page (`Branch/Index` → `List`): branch list, create / edit / delete, branch addresses. **Kept by the manager (as in 4.1)** and held to the same rules as Manage Store's `SaveBranch` — shipping picker and filter, provisioning on create, parent same-store and loop checks, store never written on edit, the children delete rule (`CWPlans/MultiStore_Management_Reference.md` §8f) |
+| `BranchController` | The standalone *CW Admin › Branches* page (`Branch/Index` → `List`): branch list, create / edit / delete, branch addresses. **Kept by the manager (as in 4.1)** and held to the same rules as Manage Store's `SaveBranch` — shipping picker and filter, provisioning on create, parent same-store and loop checks, store never written on edit, the children delete rule (`CWPlans/MultiStore_Management_Reference.md` §8f). Its address grid posts the branch as `EntityId` (`AddressDelete(int id, int entityId)`) |
 | `MultiStoreController` | MultiStore/store management, departments, cost centers, packName lists, packNames |
 | `SubsidyController` | CRUD for product groups, subsidies, subsidy-packName assignments, variations, topups |
 | `ExtendedCustomerController` | Overrides nop's customer admin (`admin/customer/*` routes) — PackName and CreditNotes tabs, the branch link (provisioning on Create / Edit) |
@@ -1550,7 +1561,7 @@ The full list is `Infrastructure/NopStartup.cs`; this table names what a reader 
 
 ---
 
-## 14. Domain Entities & Database Tables *(4.9 — see §13 banner)*
+## 14. Domain Entities & Database Tables
 
 ### 14.1 Table Naming Convention
 
@@ -1563,7 +1574,7 @@ As of the CW rename, `CW.Core`'s tables were migrated from the old company-wide 
 - `CORE_RET_*` — Return cases (`ReturnCase`, `ReturnCaseLine`, `ReturnResolution`, `ReturnCharge`; `Domain/Returns`, enums `ReturnCaseStatus`, `ReturnLineDisposition`, `ReturnResolutionStatus` — `Exchanges_Returns_CreditNotes_Reference.md`)
 - `vw_CORE_*` — SQL Views (read-only, accessed via LinqToDB repositories)
 
-Historical note: these tables were previously named `TIG_CO_*`, `TIG_SUB_*`, `TIG_EX_*`, and `vw_TIG_*`. A rename migration (`RenameCWTablesVersion`, see `Data/Migrations/`) renames them in place on any environment that still has the old names, preserving existing data. Plugins not yet renamed still use the old `TIG_{ABBREVIATION}_` convention.
+Historical note: in 4.9 these tables were first named `TIG_CO_*`, `TIG_SUB_*`, `TIG_EX_*` and `vw_TIG_*`, and a rename migration (`RenameCWTablesVersion`) moved them in place. 5.00 starts from a new database (decisions D1, D2): `SchemaMigration` creates the `CORE_*` names directly, and no CW plugin uses the `TIG_` prefix any more.
 
 ### 14.2 PackName / Branch Entities
 
@@ -1623,7 +1634,10 @@ Manager (bool), EmployeeNumber, POEntry, Comments, Deleted
 - `Manager = true` → must also have `CustomerId` → can order on behalf of others.
 - `IsCustomer` (computed, `[NotColumn]`): `CustomerId.HasValue && CustomerId > 0`.
 - Deleting the customer clears `CustomerId` and `Manager` (an `EntityDeletedEvent<Customer>` consumer); the packname
-  and its order snapshots stay. Deleting the packname (soft) deletes its cart lines and shipping assignment.
+  and its order snapshots stay. A GDPR (permanent) delete also deletes the customer's hidden packname cart lines
+  (`CustomerPermanentlyDeletedEventConsumer`). Deleting the packname (soft) deletes its cart lines and shipping assignment.
+- `Colour` is always a six-digit hex colour (`PackNameColourHelper.Normalize`, on the storefront, the import and every
+  admin save; an invalid colour keeps the old one on an edit, a new packname gets a random one).
 
 #### `PackNameAddressMapping` → `CORE_PN_PackNameAddresses`
 ```
@@ -1744,7 +1758,7 @@ All money incl. tax. `SettleableAmount` is what the pipeline was offered — goo
 shipping (packname carts; a plain cart offers nop's own total, §14.5). **Every reader of an order's
 subsidy / store credit reads this row** (`ICWOrderService.GetOrderSettlementAsync`, cached): customer order
 page, admin order cards, admin packname card, e-mail, invoice PDF, profit report. Never derive it again from
-the ledgers. Orders placed before phase 6 have no row and show nop's totals only. Not updated on cancel —
+the ledgers. (On 4.9, orders placed before fix-strategy phase 6 had no row; 5.00 starts from a new database.) Not updated on cancel —
 the credit returns through the views; the row records the placement. No fee and no payable column by design: fees
 are read from their own ledger and the payable is `Order.OrderTotal`, which the return-order path rewrites after
 settlement.
@@ -1853,7 +1867,7 @@ FeeRuleOperator { FixedPrice = 1, PerUnitsQuantity = 2 }
 
 ---
 
-## 15. Customer Attributes, Roles & Settings *(4.9 — see §13 banner)*
+## 15. Customer Attributes, Roles & Settings
 
 ### 15.1 CW Custom Customer Generic Attributes (`ExtendedCustomerAttributeNames`)
 
@@ -1903,7 +1917,8 @@ the allocation, and a closed period never blocks either.
 store*) and *CW Admin → Default settings* (store 0). Rewritten from the class at phase 8 Part 1 (2026-10-11).
 
 **Feature switches** — `PackNameEnable`, `SubsidyEnable`, `CreditNotesEnable`, `ExchangesEnable`, `BulkOrderEnable`:
-see `CWPlans/Feature_Toggles_Reference.md`. The `BulkOrder*` group is described in `CWPlans/BulkOrdering_Design.md` §12.
+see `CWPlans/Feature_Toggles_Reference.md`. The install seeds the first four (`CWCorePlugin`); `BulkOrderEnable` has no row until it
+is saved, so a new store starts with bulk ordering off. The `BulkOrder*` group is described in `CWPlans/BulkOrdering_Design.md` §12.
 
 | Setting | Purpose |
 |---|---|
@@ -1935,7 +1950,7 @@ Gone: `UseBranchAddress` (never existed in 4.9 — P-12, not needed), `GenderFil
 
 ---
 
-## 16. Caching Reference *(4.9 — see §13 banner)*
+## 16. Caching Reference
 
 ### PackName caches (`PackNameServicesDefaults`)
 - `CW.packname.bycustomer.{customerId}`
@@ -1993,7 +2008,7 @@ Gone: `UseBranchAddress` (never existed in 4.9 — P-12, not needed), `GenderFil
 
 ---
 
-## 17. Stored Procedures *(4.9 — see §13 banner)*
+## 17. Stored Procedures
 
 | SP Name | Used In |
 |---|---|
@@ -2007,7 +2022,7 @@ services with `_dataProvider.QueryAsync`, not through `ICWDatabaseService`.
 
 ---
 
-## 18. Permissions Reference *(4.9 — see §13 banner)*
+## 18. Permissions Reference
 
 | Constant | Key String | Default Role |
 |---|---|---|
@@ -2018,7 +2033,7 @@ services with `_dataProvider.QueryAsync`, not through `ICWDatabaseService`.
 
 ---
 
-## 19. Public Store — Navigation & Widgets *(4.9 — see §13 banner)*
+## 19. Public Store — Navigation & Widgets
 
 ### Customer Area Navigation
 
@@ -2052,7 +2067,7 @@ Registered in `CWCorePlugin` (`GetWidgetZonesAsync` / `_widgetComponents`):
 
 ---
 
-## 20. Activity Log Types *(4.9 — see §13 banner)*
+## 20. Activity Log Types
 
 Branch: `AddNewBranch`, `EditBranch`, `DeleteBranch`
 Department: `AddNewDepartment`, `EditDepartment`, `DeleteDepartment`
@@ -2070,7 +2085,7 @@ Credit notes (`Constants/CustomerActivityTypes`): `CreditNotesUndo`, `CreditNote
 
 ---
 
-## 21. Extension Patterns & Background Jobs *(4.9 — see §13 banner)*
+## 21. Extension Patterns & Background Jobs
 
 ### IPackNamePanelProvider
 
