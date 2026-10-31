@@ -12,7 +12,7 @@ spec, unit tests green (`CWPlans/CWCore_Final500_M2_Spec.md`; its runtime checks
 for three of its findings (`CWPlans/CWCore_Final500_M3Fixes_Spec.md`) applied 2026-10-30: build and tests green, R1–R3
 passed. M4 run 2026-10-31: 12 of 12 pass (`CWPlans/CWCore_Final500_M4_Plan.md` §4), approved. Phase 6 run 2026-10-31:
 14 of 14 pass, one after a fix (`CWPlans/CWCore_Final500_Phase6_Plan.md` §5; the fix
-`CWPlans/CWCore_Final500_Phase6Fixes_Spec.md`, applied), approved. Next: phase 7.
+`CWPlans/CWCore_Final500_Phase6Fixes_Spec.md`, applied), approved. Phase 7 planned 2026-10-31 (`CWPlans/CWCore_Final500_Phase7_Plan.md`); run 2026-10-31, groups A–Q and P: 173 of 182 pass, 0 fail, 9 skipped. No defect comes from the port. Four older defects were fixed (`CWPlans/CWCore_Final500_Phase7Fixes_Spec.md`, applied). Group U was skipped by decision, and the uninstall code was reviewed instead. Approved 2026-10-31.
 
 ---
 
@@ -130,7 +130,7 @@ tests and an independent review before hand-over; defects and decisions come as 
 | **M3 fixes** — applied 2026-10-30, `CWCore_Final500_M3Fixes_Spec.md` | M3's findings 1, 2 and 4: the return page's message when the store's rules offer no return, nop's own lists with *Exchanges* off, and the *Add packname* form refusing an over-long account field as the import does | Spec applied; build and tests green (631 CW.Core); its runtime checks R1–R3 pass |
 | **M4. Deferred runtime tests** — run 2026-10-31, `CWCore_Final500_M4_Plan.md` | 5h's T5, T8b, T9–T16, T18, T19 (beta §7.4) | Pass |
 | **Phase 6. Outputs** — approved 2026-10-31, `CWCore_Final500_Phase6_Plan.md`; fix `CWCore_Final500_Phase6Fixes_Spec.md` | Invoice and packing slip (SkiaSharp 4, the 5.00 PDF font), e-mails and tokens (packname rows, exchange e-mails), reports (profit with subsidy), each compared with 4.9's for the same order; the theme check of `CLAUDE.md` §10.4 | No difference that is not a 5.00 change |
-| **Phase 7. Regression** | Every phase-4/5 part's test plan end to end (beta port source `CWPlans/Deprecated/`, §6 of each); feature switches both ways; performance against 4.9 | No open defect from the port |
+| **Phase 7. Regression** — approved 2026-10-31, `CWCore_Final500_Phase7_Plan.md`; fixes `CWCore_Final500_Phase7Fixes_Spec.md` | Every phase-4/5 part's test plan end to end (beta port source `CWPlans/Deprecated/`, §6 of each); feature switches both ways; performance against 4.9 | No open defect from the port |
 | **After the port** | Beta §5.3's three deferred fixes (each with the manager where it says so); `CLAUDE.md` §13–§21 brought up to date; then the other plugins — `Integration.Odoo` first (D2: 5.00's data comes from it, and it depends on CW.Core), then ThemeCore / Theme.Standard and the themes | |
 
 M1 and M2 could be one delivery to save a build, but they stay two commits: M1 is a copy, M2 is the review surface.

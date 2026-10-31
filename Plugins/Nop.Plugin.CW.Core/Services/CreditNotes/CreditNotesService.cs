@@ -282,7 +282,7 @@ public class CreditNotesService : ICreditNotesService
         await _customerActivityService.InsertActivityAsync(
             createdByUser,
             "CreditNotesManual",
-            $"Manual Credit Note has been created with StoreId {creditNote.Id} and amount {amount} for customer StoreId: {editedCustomer.Id}",
+            $"Manual Credit Note has been created with Id {creditNote.Id} and amount {amount} for customer Id: {editedCustomer.Id}",
             creditNote);
     }
 

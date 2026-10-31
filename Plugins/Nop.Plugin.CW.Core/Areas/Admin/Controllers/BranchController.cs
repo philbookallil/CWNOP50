@@ -365,11 +365,11 @@ public class BranchController : BaseAdminController
 
     [HttpPost]
     [CheckPermission(CWPermissionConfigManager.ADMIN_ACCESS_BRANCH)]
-    public virtual async Task<IActionResult> AddressDelete(int id, int branchId)
+    public virtual async Task<IActionResult> AddressDelete(int id, int entityId)
     {
-        //try to get a branch with the specified id
-        var branch = await _branchService.GetBranchByIdAsync(branchId)
-            ?? throw new ArgumentException("No branch found with the specified id", nameof(branchId));
+        //try to get a branch with the specified id (the grid posts it as EntityId)
+        var branch = await _branchService.GetBranchByIdAsync(entityId)
+            ?? throw new ArgumentException("No branch found with the specified id", nameof(entityId));
 
         //try to get an address with the specified id
         var address = await _branchService.GetBranchAddressAsync(branch.Id, id);

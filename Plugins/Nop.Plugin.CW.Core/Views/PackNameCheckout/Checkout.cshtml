@@ -24,7 +24,7 @@
         <h1>@T("Checkout")</h1>
     </div>
     <div class="page-body checkout-data">
-        <div id="packname-checkout-loading" class="packname-checkout-loading" role="status" aria-label="@T("Common.Loading")">
+        <div id="packname-checkout-loading" class="packname-checkout-loading" role="status" aria-label="@T("Common.Wait")">
             <div class="packname-checkout-loading__spinner"></div>
         </div>
         @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OpcContentBefore, additionalData = Model })
