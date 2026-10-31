@@ -1372,6 +1372,9 @@ public class MultiStoreController : BaseAdminController
                 if (packName.CostCenterId.HasValue && packName.CostCenterId.Value == 0)
                     packName.CostCenterId = null;
 
+                //the storefront writes the colour into HTML: only a hex colour is kept, and a new packname without one gets a random colour
+                packName.Colour = PackNameColourHelper.Normalize(packName.Colour) ?? $"#{Random.Shared.Next(0x1000000):X6}";
+
                 await _packNameService.InsertPackNameAsync(packName);
 
                 //activity log
@@ -1397,6 +1400,7 @@ public class MultiStoreController : BaseAdminController
                 //onto the entity and orphan the packname. A posted list has already been confirmed to
                 //be in this store; a missing one keeps the list the packname is in today.
                 var packNameListIdBeforeMapping = packName.PackNameListId;
+                var colourBeforeMapping = packName.Colour;
 
                 packName = model.ToEntity(packName);
 
@@ -1415,6 +1419,9 @@ public class MultiStoreController : BaseAdminController
 
                 if (packName.CostCenterId.HasValue && packName.CostCenterId.Value == 0)
                     packName.CostCenterId = null;
+
+                //only a hex colour is kept; a posted colour that is not one leaves the packname's colour as it was
+                packName.Colour = PackNameColourHelper.Normalize(packName.Colour) ?? colourBeforeMapping;
 
                 await _packNameService.UpdatePackNameAsync(packName);
 
@@ -1518,6 +1525,9 @@ public class MultiStoreController : BaseAdminController
                 if (packName.CostCenterId.HasValue && packName.CostCenterId.Value == 0)
                     packName.CostCenterId = null;
 
+                //the storefront writes the colour into HTML: only a hex colour is kept, and a new packname without one gets a random colour
+                packName.Colour = PackNameColourHelper.Normalize(packName.Colour) ?? $"#{Random.Shared.Next(0x1000000):X6}";
+
                 await _packNameService.InsertPackNameAsync(packName);
 
                 //activity log
@@ -1545,6 +1555,7 @@ public class MultiStoreController : BaseAdminController
                 //been confirmed to be in this store by ValidatePackNameTargetAsync; a missing one keeps
                 //the list the packname is in today.
                 var packNameListIdBeforeMapping = packName.PackNameListId;
+                var colourBeforeMapping = packName.Colour;
 
                 packName = model.ToEntity(packName);
 
@@ -1563,6 +1574,9 @@ public class MultiStoreController : BaseAdminController
 
                 if (packName.CostCenterId.HasValue && packName.CostCenterId.Value == 0)
                     packName.CostCenterId = null;
+
+                //only a hex colour is kept; a posted colour that is not one leaves the packname's colour as it was
+                packName.Colour = PackNameColourHelper.Normalize(packName.Colour) ?? colourBeforeMapping;
 
                 await _packNameService.UpdatePackNameAsync(packName);
 
@@ -1871,6 +1885,9 @@ public class MultiStoreController : BaseAdminController
 
             if (packName.CostCenterId.HasValue && packName.CostCenterId.Value == 0)
                 packName.CostCenterId = null;
+
+            //the storefront writes the colour into HTML: only a hex colour is kept, and a new packname without one gets a random colour
+            packName.Colour = PackNameColourHelper.Normalize(packName.Colour) ?? $"#{Random.Shared.Next(0x1000000):X6}";
 
             await _packNameService.InsertPackNameAsync(packName);
 

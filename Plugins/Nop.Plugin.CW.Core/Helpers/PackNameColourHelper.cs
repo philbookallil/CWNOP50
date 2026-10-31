@@ -37,7 +37,7 @@ public static partial class PackNameColourHelper
     /// </summary>
     /// <remarks>
     /// The brightness weighs red, green and blue as the eye does (0.299, 0.587, 0.114), on a 0–255 scale; above 130 is
-    /// light. A colour that is not a hex colour (the admin pages save it as typed) gets black.
+    /// light. A colour that is not a hex colour (one saved as free text before the admin saves normalised it) gets black.
     /// </remarks>
     /// <param name="colour">The packname's colour</param>
     /// <returns>"#000" or "#FFF"</returns>

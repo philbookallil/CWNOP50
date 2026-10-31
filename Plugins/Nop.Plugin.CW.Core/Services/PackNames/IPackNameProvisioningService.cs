@@ -46,8 +46,12 @@ public interface IPackNameProvisioningService
     /// </summary>
     /// <param name="customer">The customer</param>
     /// <param name="branchId">The branch the customer was linked to</param>
-    /// <returns>A task that represents the asynchronous operation</returns>
-    Task ProvisionCustomerBranchAsync(Customer customer, int branchId);
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains why no packname was created when the store asks for one but the list already has a
+    /// packname of the customer's name; otherwise null
+    /// </returns>
+    Task<string> ProvisionCustomerBranchAsync(Customer customer, int branchId);
 
     /// <summary>
     /// Checks a change of a customer's branch against their packname, which follows them into the branch's default
@@ -71,8 +75,11 @@ public interface IPackNameProvisioningService
     /// </summary>
     /// <param name="customer">The customer</param>
     /// <param name="branchId">The customer's new branch</param>
-    /// <returns>A task that represents the asynchronous operation</returns>
-    Task ApplyCustomerBranchAsync(Customer customer, int branchId);
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains why the customer got no packname (see ProvisionCustomerBranchAsync), or null
+    /// </returns>
+    Task<string> ApplyCustomerBranchAsync(Customer customer, int branchId);
 
     /// <summary>
     /// Keeps a packname's customer in the packname's branch: the customer's branch becomes the branch of the

@@ -30,6 +30,7 @@ public class PackNameProvisioningService : IPackNameProvisioningService
     protected readonly ICustomerOverrideService _customerService;
     protected readonly ICustomerActivityService _customerActivityService;
     protected readonly ILocalizationService _localizationService;
+    protected readonly ILogger _logger;
 
     #endregion
 
@@ -42,7 +43,8 @@ public class PackNameProvisioningService : IPackNameProvisioningService
         ICWFeatureService cwFeatureService,
         ICustomerOverrideService customerService,
         ICustomerActivityService customerActivityService,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        ILogger logger)
     {
         _branchService = branchService;
         _packNameService = packNameService;
@@ -52,6 +54,7 @@ public class PackNameProvisioningService : IPackNameProvisioningService
         _customerService = customerService;
         _customerActivityService = customerActivityService;
         _localizationService = localizationService;
+        _logger = logger;
     }
 
     #endregion
@@ -173,7 +176,8 @@ public class PackNameProvisioningService : IPackNameProvisioningService
     /// <param name="packNameList">Packname list</param>
     /// <returns>
     /// A task that represents the asynchronous operation
-    /// The task result contains the number of packnames created
+    /// The task result contains the number of packnames created; a customer whose name the list already has gets none,
+    /// with a warning in the log
     /// </returns>
     public virtual async Task<int> CreatePackNamesForCustomersWithoutOneAsync(PackNameList packNameList)
     {
@@ -184,11 +188,24 @@ public class PackNameProvisioningService : IPackNameProvisioningService
             return 0;
 
         var customers = await _multiStoreService.GetCustomersWithoutPackNameByBranchAsync(packNameList.BranchId.Value);
+        var created = 0;
 
         foreach (var customer in customers)
-            await _packNameService.InsertPackNameAsync(BuildPackName(packNameList, customer));
+        {
+            var packName = BuildPackName(packNameList, customer);
 
-        return customers.Count;
+            //read after each insert, so two customers of one name in the branch give one packname, not two
+            if (await _packNameService.PackNameNameExistsAsync(packNameList.Id, packName.Name))
+            {
+                await _logger.WarningAsync($"[PackNames] Generate packnames: no packname created for customer {customer.Id}: the list {packNameList.Name} (id {packNameList.Id}) already has a packname named {packName.Name}.");
+                continue;
+            }
+
+            await _packNameService.InsertPackNameAsync(packName);
+            created++;
+        }
+
+        return created;
     }
 
     /// <summary>
@@ -219,30 +236,42 @@ public class PackNameProvisioningService : IPackNameProvisioningService
     /// </summary>
     /// <param name="customer">The customer</param>
     /// <param name="branchId">The branch the customer was linked to</param>
-    /// <returns>A task that represents the asynchronous operation</returns>
-    public virtual async Task ProvisionCustomerBranchAsync(Customer customer, int branchId)
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains why no packname was created when the store asks for one but the list already has a
+    /// packname of the customer's name; otherwise null
+    /// </returns>
+    public virtual async Task<string> ProvisionCustomerBranchAsync(Customer customer, int branchId)
     {
         ArgumentNullException.ThrowIfNull(customer);
 
         var branch = await _branchService.GetBranchByIdAsync(branchId);
 
         if (branch == null || branch.Deleted)
-            return;
+            return null;
 
         if (!await _cwFeatureService.IsEnabledAsync(CWFeature.PackName, branch.StoreId))
-            return;
+            return null;
 
         var storeSettings = await _settingService.LoadSettingAsync<MultiStoreSettings>(branch.StoreId);
 
         if (!storeSettings.UseStaffAsPackName)
-            return;
+            return null;
 
         if (await _packNameService.GetPackNameByCustomerIdAsync(customer.Id) != null)
-            return;
+            return null;
 
         var packNameList = await EnsureDefaultPackNameListAsync(branch, (PackNameListNameFrom)storeSettings.PackNameListNameFrom);
+        var packName = BuildPackName(packNameList, customer);
 
-        await _packNameService.InsertPackNameAsync(BuildPackName(packNameList, customer));
+        //every other insert path refuses a name the list already has; provisioning skips the customer and says why
+        if (await _packNameService.PackNameNameExistsAsync(packNameList.Id, packName.Name))
+            return string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameNotCreated"),
+                packName.Name, packNameList.Name);
+
+        await _packNameService.InsertPackNameAsync(packName);
+
+        return null;
     }
 
     public virtual async Task<string> CheckCustomerBranchChangeAsync(Customer customer, int branchId)
@@ -279,30 +308,27 @@ public class PackNameProvisioningService : IPackNameProvisioningService
         return string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.PackNames.PackName.Field.Name.Exists"), packName.Name, branch.Name);
     }
 
-    public virtual async Task ApplyCustomerBranchAsync(Customer customer, int branchId)
+    public virtual async Task<string> ApplyCustomerBranchAsync(Customer customer, int branchId)
     {
         ArgumentNullException.ThrowIfNull(customer);
 
         var branch = await _branchService.GetBranchByIdAsync(branchId);
 
         if (branch == null || branch.Deleted)
-            return;
+            return null;
 
         var (packName, packNameList) = await GetBranchPackNameAsync(customer);
 
         //a customer without a packname may get one (provisioning reads the store's settings and switches; it does nothing
         //for a customer who already has a packname, in a store-wide list for instance)
         if (packName == null)
-        {
-            await ProvisionCustomerBranchAsync(customer, branchId);
-            return;
-        }
+            return await ProvisionCustomerBranchAsync(customer, branchId);
 
         if (packNameList.BranchId == branch.Id || packNameList.StoreId != branch.StoreId)
-            return;
+            return null;
 
         if (!await _cwFeatureService.IsEnabledAsync(CWFeature.PackName, branch.StoreId))
-            return;
+            return null;
 
         var storeSettings = await _settingService.LoadSettingAsync<MultiStoreSettings>(branch.StoreId);
         var targetList = await EnsureDefaultPackNameListAsync(branch, (PackNameListNameFrom)storeSettings.PackNameListNameFrom);
@@ -312,6 +338,8 @@ public class PackNameProvisioningService : IPackNameProvisioningService
 
         await _customerActivityService.InsertActivityAsync("EditPackName",
             string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.EditPackName"), packName.Name), packName);
+
+        return null;
     }
 
     public virtual async Task SetCustomerBranchFromPackNameAsync(PackName packName)

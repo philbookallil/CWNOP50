@@ -461,7 +461,12 @@ public partial class ExtendedCustomerController : BaseAdminController
 
                 //the store may ask for a packname for every customer linked to one of its branches
                 if (customerBranch.BranchId.HasValue)
-                    await _packNameProvisioningService.ProvisionCustomerBranchAsync(customer, customerBranch.BranchId.Value);
+                {
+                    var packNameWarning = await _packNameProvisioningService.ProvisionCustomerBranchAsync(customer, customerBranch.BranchId.Value);
+
+                    if (!string.IsNullOrEmpty(packNameWarning))
+                        _notificationService.WarningNotification(packNameWarning);
+                }
 
                 //password
                 if (!string.IsNullOrWhiteSpace(model.Password))
@@ -767,7 +772,12 @@ public partial class ExtendedCustomerController : BaseAdminController
                     //a new branch takes the customer's packname along, or gives the customer one when the store gives
                     //every branch customer a packname
                     if (customerBranch.BranchId.HasValue && customerBranch.BranchId != previousBranchId)
-                        await _packNameProvisioningService.ApplyCustomerBranchAsync(customer, customerBranch.BranchId.Value);
+                    {
+                        var packNameWarning = await _packNameProvisioningService.ApplyCustomerBranchAsync(customer, customerBranch.BranchId.Value);
+
+                        if (!string.IsNullOrEmpty(packNameWarning))
+                            _notificationService.WarningNotification(packNameWarning);
+                    }
 
                     scope.Complete();
                 }

@@ -37,6 +37,7 @@ public class PackNameProvisioningServiceTests
     private List<PackNameList> _listsOfBranch;
     private Mock<ICustomerOverrideService> _customers;
     private Mock<ICustomerActivityService> _activity;
+    private Mock<ILogger> _logger;
 
     //another branch of the same store, and a branch of another store, each with one list
     private readonly Branch _otherBranch = new() { Id = 6, StoreId = 1, Name = "Quay", BranchCode = "QAY" };
@@ -55,11 +56,12 @@ public class PackNameProvisioningServiceTests
             "Plugins.CW.Core.ActivityLog.EditPackName" => "edited {0}",
             "Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameNeedsBranch" => "The customer's packname {0} is in a branch, so the customer needs a branch too.",
             "Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameOtherStore" => "The customer's packname {0} belongs to another store, so it cannot follow the customer to branch {1}.",
+            "Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameNotCreated" => "{0} is in {1}",
             _ => key
         });
 
         return new PackNameProvisioningService(_branches.Object, _packNames.Object, _multiStore.Object,
-            settingService.Object, _features.Object, _customers.Object, _activity.Object, localization.Object);
+            settingService.Object, _features.Object, _customers.Object, _activity.Object, localization.Object, _logger.Object);
     }
 
     [SetUp]
@@ -90,6 +92,7 @@ public class PackNameProvisioningServiceTests
 
         _customers = new Mock<ICustomerOverrideService>();
         _activity = new Mock<ICustomerActivityService>();
+        _logger = new Mock<ILogger>();
     }
 
     private PackName CustomerPackNameIn(PackNameList list)
@@ -456,5 +459,45 @@ public class PackNameProvisioningServiceTests
         created.Should().Be(2);
         _packNames.Verify(service => service.InsertPackNameAsync(It.Is<PackName>(packName => packName.CustomerId == 1049 && packName.Gender == "M" && packName.PackNameListId == 7)), Times.Once);
         _packNames.Verify(service => service.InsertPackNameAsync(It.IsAny<PackName>()), Times.Exactly(2));
+    }
+
+    [Test]
+    public async Task A_linked_customer_whose_name_the_list_has_gets_no_packname_and_the_reason()
+    {
+        DefaultListOfBranch();
+        _packNames.Setup(service => service.PackNameNameExistsAsync(71, "Ann Lee", 0)).ReturnsAsync(true);
+
+        var reason = await Build().ProvisionCustomerBranchAsync(_customer, _branch.Id);
+
+        reason.Should().Be("Ann Lee is in Harbour");
+        _packNames.Verify(service => service.InsertPackNameAsync(It.IsAny<PackName>()), Times.Never);
+    }
+
+    [Test]
+    public async Task A_customer_moving_to_a_branch_whose_list_has_the_name_gets_the_reason()
+    {
+        DefaultListOfBranch();
+        _packNames.Setup(service => service.PackNameNameExistsAsync(71, "Ann Lee", 0)).ReturnsAsync(true);
+
+        var reason = await Build().ApplyCustomerBranchAsync(_customer, _branch.Id);
+
+        reason.Should().Be("Ann Lee is in Harbour");
+        _packNames.Verify(service => service.InsertPackNameAsync(It.IsAny<PackName>()), Times.Never);
+    }
+
+    [Test]
+    public async Task The_generator_skips_a_customer_whose_name_the_list_has_and_does_not_count_them()
+    {
+        var list = new PackNameList { Id = 7, BranchId = 5, Name = "Harbour" };
+        _multiStore.Setup(service => service.GetCustomersWithoutPackNameByBranchAsync(5))
+            .ReturnsAsync(new List<Customer> { _customer, new() { Id = 1049, FirstName = "Bo", LastName = "Ray" } });
+        _packNames.Setup(service => service.PackNameNameExistsAsync(7, "Ann Lee", 0)).ReturnsAsync(true);
+
+        var created = await Build().CreatePackNamesForCustomersWithoutOneAsync(list);
+
+        created.Should().Be(1);
+        _packNames.Verify(service => service.InsertPackNameAsync(It.Is<PackName>(packName => packName.CustomerId == 1049)), Times.Once);
+        _packNames.Verify(service => service.InsertPackNameAsync(It.IsAny<PackName>()), Times.Once);
+        _logger.Verify(logger => logger.WarningAsync(It.Is<string>(message => message.Contains("1048")), null, null), Times.Once);
     }
 }

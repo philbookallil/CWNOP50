@@ -946,6 +946,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.SelectBranch"] = "Select Branch",
             ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameNeedsBranch"] = "The customer's packname {0} is in a branch, so the customer needs a branch too. Delete the packname or unlink it from the customer first.",
             ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameOtherStore"] = "The customer's packname {0} belongs to another store, so it cannot follow the customer to branch {1}.",
+            ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameNotCreated"] = "The customer was saved without a packname: the list {1} already has a packname named {0}. Rename one of them, or create the customer's packname on the store page.",
             ["Plugins.CW.Core.Admin.Customers.Customer.Fields.RegisteredInBranch"] = "Branch",
             ["Plugins.CW.Core.Admin.Customers.Customer.NotFound"] = "That customer could not be loaded.",
 
