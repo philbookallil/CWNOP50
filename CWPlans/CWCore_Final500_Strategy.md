@@ -10,7 +10,9 @@ final release changed, and then finishes the port here (phases 6 and 7). The bet
 spec, unit tests green (`CWPlans/CWCore_Final500_M2_Spec.md`; its runtime checks T1–T7 run in M3). M3 run and approved
 2026-10-30: 31 of 31 checks pass (`CWPlans/CWCore_Final500_M3_Plan.md` §5); the uninstall check is deferred. The fixes
 for three of its findings (`CWPlans/CWCore_Final500_M3Fixes_Spec.md`) applied 2026-10-30: build and tests green, R1–R3
-passed. M4 run 2026-10-31: 12 of 12 pass (`CWPlans/CWCore_Final500_M4_Plan.md` §4), awaiting approval. Next: phase 6.
+passed. M4 run 2026-10-31: 12 of 12 pass (`CWPlans/CWCore_Final500_M4_Plan.md` §4), approved. Phase 6 run 2026-10-31:
+14 of 14 pass, one after a fix (`CWPlans/CWCore_Final500_Phase6_Plan.md` §5; the fix
+`CWPlans/CWCore_Final500_Phase6Fixes_Spec.md`, applied), approved. Next: phase 7.
 
 ---
 
@@ -127,7 +129,7 @@ tests and an independent review before hand-over; defects and decisions come as 
 | **M3. New database and runtime pass** — approved 2026-10-30, `CWCore_Final500_M3_Plan.md` | A fresh nop install on the new catalog `testnop50`; CW.Core installed (`SchemaMigration` + the SQL views, functions and procedures); §7.3's settings checked on the fresh install (withdrawal, auto-cancel, phone sign-in, vendors, price lists off; reminders on); a catalogue for §7.4 (size/colour combinations, a checkbox option, a required product, a three-level category, a closed ordering period); `CWPlans/TestData/` scripts rewritten for the new ids. Runtime checks: every CW storefront page opened by path (§2.2) loads under `DefaultClean`; one forked storefront view and one forked admin view render CW's version; the packname checkout's address and payment partials refresh through `RenderPartialViewToStringAsync`; then a smoke run of each phase-4/5 part's main flow | Install / uninstall clean (the uninstall deferred, decision 8); the checks pass |
 | **M3 fixes** — applied 2026-10-30, `CWCore_Final500_M3Fixes_Spec.md` | M3's findings 1, 2 and 4: the return page's message when the store's rules offer no return, nop's own lists with *Exchanges* off, and the *Add packname* form refusing an over-long account field as the import does | Spec applied; build and tests green (631 CW.Core); its runtime checks R1–R3 pass |
 | **M4. Deferred runtime tests** — run 2026-10-31, `CWCore_Final500_M4_Plan.md` | 5h's T5, T8b, T9–T16, T18, T19 (beta §7.4) | Pass |
-| **Phase 6. Outputs** | Invoice and packing slip (SkiaSharp 4, the 5.00 PDF font), e-mails and tokens (packname rows, exchange e-mails), reports (profit with subsidy), each compared with 4.9's for the same order; the theme check of `CLAUDE.md` §10.4 | No difference that is not a 5.00 change |
+| **Phase 6. Outputs** — approved 2026-10-31, `CWCore_Final500_Phase6_Plan.md`; fix `CWCore_Final500_Phase6Fixes_Spec.md` | Invoice and packing slip (SkiaSharp 4, the 5.00 PDF font), e-mails and tokens (packname rows, exchange e-mails), reports (profit with subsidy), each compared with 4.9's for the same order; the theme check of `CLAUDE.md` §10.4 | No difference that is not a 5.00 change |
 | **Phase 7. Regression** | Every phase-4/5 part's test plan end to end (beta port source `CWPlans/Deprecated/`, §6 of each); feature switches both ways; performance against 4.9 | No open defect from the port |
 | **After the port** | Beta §5.3's three deferred fixes (each with the manager where it says so); `CLAUDE.md` §13–§21 brought up to date; then the other plugins — `Integration.Odoo` first (D2: 5.00's data comes from it, and it depends on CW.Core), then ThemeCore / Theme.Standard and the themes | |
 
@@ -150,6 +152,11 @@ Decided 2026-10-30:
 8. The uninstall check of M3 runs later, not now: M3's data is kept for M4.
 9. M3's findings outside CW.Core are recorded, not changed now (below).
 
+Decided 2026-10-31:
+
+10. `testnop50` keeps 4.9's tax settings (prices include tax, display including tax, tax suffix shown, shipping
+    taxable), set for phase 6: testing uses 4.9's configuration.
+
 Open:
 
 - **Build and tests:** Claude's build environment cannot reach nuget.org or the .NET downloads this session, so the
@@ -169,3 +176,9 @@ Open:
   checkout (`Views/PackNameCheckout/Checkout.cshtml:27`, copied from it) use it: a *Resource string … not found*
   warning each time the checkout opens (M4). For CW's copy: either add the resource or use another key.
 - `Widgets.GoogleAnalytics` is installed on `testnop50` without being set up and logs an error on cart changes (M4).
+
+**For later — found in phase 6:**
+
+- `ReturnAuthorisedPayment.CustomerNotification` and `ReturnAuthorisedExcepted.CustomerNotification` are sent by
+  `ExchangeWorkflowMessageService` only when the template exists, and CW.Core installs neither (on 4.9 too): the
+  customer gets no e-mail when a return is authorised. A CW.Core gap carried from 4.9, not from the port.

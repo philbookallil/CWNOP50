@@ -89,6 +89,8 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         await InstallActivityLogTypesAsync();
         await InstallReturnReceiptTemplateAsync();
         await InstallCustomerRegistrationTemplateAsync();
+        await PointShipmentTemplatesAtShipmentAddressAsync();
+        await PointOrderTemplatesAtShippingDestinationsAsync();
 
         if (!_widgetSettings.ActiveWidgetSystemNames.Contains(CWCoreDefaults.SystemName))
         {
