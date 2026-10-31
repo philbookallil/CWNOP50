@@ -59,13 +59,14 @@ Before starting any task, self-classify its complexity:
   `CWPlans/Deprecated/`** (never delete them). Do **not** carry a "documents this replaces" list into
   the consolidated file.
 - **Specs, plans and phase records live in `CWPlans/`** at the repository root (e.g.
-  `CWPlans/CWCore_Port_Strategy.md`); superseded ones go in `CWPlans/Deprecated/`. The 4.90 `CWPlans/` documents
-  join them as they are migrated. A plugin's own reference document — what the plugin is and how it works — stays
+  `CWPlans/CWCore_Port_Reference.md`); superseded ones go in `CWPlans/Deprecated/`. CW.Core's 4.90 documents were
+  migrated on 2026-10-31: the references were checked against the 5.00 code and are in `CWPlans/` (the exchanges
+  functional guide in `CWDocs/`); finished 4.9 working documents are in `CWPlans/Deprecated/` as history. A plugin's own reference document — what the plugin is and how it works — stays
   in the plugin's `References/` folder (e.g. `Plugins/Nop.Plugin.ExternalAuth.SSO/References/`).
 - **A phase's test plan lives inside that phase's document**, not beside it. One file to hand someone, not two.
 - **Check every feature reader against the feature switch before specifying it** (CW.Core features, once ported).
   Any change that reads a feature's data — C#, Razor, JavaScript or SQL — is checked against
-  `CWPlans/Feature_Toggles_Reference.md` §1 (in the 4.90 source's `CWPlans/` until it is migrated, §3.1): the entry
+  `CWPlans/Feature_Toggles_Reference.md` §1: the entry
   points close when the feature is off (§1.1), and so does every restriction the feature puts on the rest of the
   store (§1.5). SQL is a reader too; subsidy SQL reads the switch from
   `vw_CORE_SUB_StoreSubsidyVariationSetting.SubsidyEnabled`. The test plan includes the feature-off case.
@@ -276,7 +277,7 @@ across wholesale. Port deliberately, into the 5.00 patterns (§10.5).
 |---|---|---|---|
 | `Nop.Plugin.ExternalAuth.SSO` | Single sign-on with Entra ID (OIDC / SAML 2.0) | **Ported** 2026-10-19; reviewed and extended (plugin version `…_DATA_0.12`); unit tests in `Tests/CW.Tests` (94 cases). OIDC and SAML sign-in pass against Keycloak 26 (2026-10-21); Entra still open (§22 Note C) | `Plugins/Nop.Plugin.ExternalAuth.SSO/References/SSO_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Freight` | Shipping rate computation: flat-rate methods per store, restricted countries; the methods CW.Core's packname checkout offers | **Ported** 2026-10-26 (`2026_10_26_DATA_1.2`); one installation migration, admin fixes. Unit tests in `Tests/CW.Tests` (8 cases); installed on a local site 2026-10-26 and T3–T7 passed (admin pages, cart shipping estimate) | `Plugins/Nop.Plugin.CW.Freight/References/Freight_Plugin_Reference.md` |
-| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Moving to the final 5.00** — phases 1–5 of 7 were applied on the 5.00 beta (2026-10-24 to 2026-10-30, the beta port source, §3.1). Copied unchanged from the beta port on 2026-10-30, with `CW.Common` and its tests; next it takes the beta → final changes (`CWPlans/CWCore_Final500_Strategy.md`), then phases 6 (outputs) and 7 (regression) run here; §13–§21 still describe its 4.9 code | `CWPlans/CWCore_Final500_Strategy.md`; `CWPlans/CWCore_Port_Strategy.md`; the 4.90 source's `CLAUDE.md` and `CWPlans/` |
+| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Ported** 2026-10-31 — phases 1–5 on the 5.00 beta, then moved to the final 5.00 (M1–M4), phase 6 (outputs) and phase 7 (regression: 173 of 182 pass, none fail) approved, the deferred fixes applied (`2026_10_31_DATA_0.2`). Unit tests in `Tests/CW.Tests/Core` (634 cases). §13–§21 still describe its 4.9 code (next documentation step) | `CWPlans/CWCore_Port_Reference.md`; the feature references in `CWPlans/` (`subsidy-system.md`, `MultiStore_Management_Reference.md`, `Exchanges_Returns_CreditNotes_Reference.md`, `PackName_Order_Shipments.md`, `BulkOrdering_Design.md`, `Feature_Toggles_Reference.md`) |
 | `Nop.Plugin.CW.Freight` | Shipping / freight | Not started | 4.90 source |
 | `Nop.Plugin.CW.ThemeCore` | Theme framework: accent colours, custom CSS, layout options, logos, Brand Designer with live preview | **Ported** 2026-10-29 (`2026_10_29_DATA_1.3`); installed on a local site with `CW.Standard` active, Configure page and live preview (home, category, product, cart, checkout) pass. Unit tests in `Tests/CW.Tests` (112 cases, 4 ignored: the custom-CSS sanitizer's escape bypasses, open) | `Plugins/Nop.Plugin.CW.ThemeCore/References/ThemeCore_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Theme.Standard` | Settings for the `CW.Standard` theme (light nav bar, square corners); the theme's own storefront text | **Ported** 2026-10-29 (`2026_10_29_DATA_1.1`), with ThemeCore (§10.2 framework exception, `DependsOnSystemNames`) | ThemeCore reference doc |
@@ -1902,7 +1903,7 @@ the allocation, and a closed period never blocks either.
 store*) and *CW Admin → Default settings* (store 0). Rewritten from the class at phase 8 Part 1 (2026-10-11).
 
 **Feature switches** — `PackNameEnable`, `SubsidyEnable`, `CreditNotesEnable`, `ExchangesEnable`, `BulkOrderEnable`:
-see `CWPlans/Feature_Toggles_Reference.md`. The `BulkOrder*` group is described in the bulk-ordering docs.
+see `CWPlans/Feature_Toggles_Reference.md`. The `BulkOrder*` group is described in `CWPlans/BulkOrdering_Design.md` §12.
 
 | Setting | Purpose |
 |---|---|
