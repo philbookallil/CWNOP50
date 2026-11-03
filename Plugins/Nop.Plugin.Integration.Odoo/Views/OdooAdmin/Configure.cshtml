@@ -1,0 +1,148 @@
+@model ConfigurationModel
+
+@{
+    NopHtml.SetActiveMenuItemSystemName(OdooConstants.SettingsMenuSystemName);
+    ViewBag.PageTitle = "Odoo Settings";
+
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/Integration.Odoo/Content/Admin/Odoo/odoo-admin.js");
+
+    var customer = await workContext.GetCurrentCustomerAsync();
+
+    const string hideOdooSettingsBlockAttributeName = "OdooSettingsPage.HideOdooSettingsBlock";
+    var hideOdooSettingsBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideOdooSettingsBlockAttributeName);
+
+    const string hideConnectionStatusBlockAttributeName = "OdooSettingsPage.HideConnectionStatusBlock";
+    var hideConnectionStatusBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideConnectionStatusBlockAttributeName);
+
+    const string hideDiagnosticsResultBlockAttributeName = "OdooSettingsPage.HideDiagnosticsResultBlock";
+    var hideDiagnosticsResultBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideDiagnosticsResultBlockAttributeName);
+}
+
+<form asp-controller="OdooAdmin" asp-action="Configure" method="post">
+
+    <div class="content-header clearfix">
+        <h1 class="float-left">
+            Odoo 19 Settings
+        </h1>
+        <div class="float-right">
+            <button type="submit" name="save" class="btn btn-primary">
+                <i class="far fa-floppy-disk"></i>
+                @T("Admin.Common.Save")
+            </button>
+            <a asp-action="TestConnection" class="btn btn-secondary">
+                <i class="far fa-check-circle"></i>
+                Test Connection
+            </a>
+            <button type="button" id="btnRunDiagnostics" class="btn btn-info ml-1">
+                <i class="fas fa-stethoscope"></i> Run Diagnostics
+            </button>
+        </div>
+    </div>
+
+    <div class="odoo-configure-config"
+         data-diagnostics-url="@Url.Action("Diagnostics", "OdooAdmin")"
+         style="display: none;"></div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="form-horizontal">
+                <nop-cards id="odoo-settings-cards">
+                    <nop-card asp-name="odoo-connection-settings" asp-icon="fas fa-plug" asp-title="Odoo 19 Connection" asp-hide-block-attribute-name="@hideOdooSettingsBlockAttributeName" asp-hide="@hideOdooSettingsBlock" asp-advanced="false">
+                        <div class="card-body">
+                            <p>
+                                Connect to the Odoo JSON-2 API, then start the syncs from the Sync Log page.
+                            </p>
+                            <hr />
+
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="OdooUrl" />
+                                </div>
+                                <div class="col-md-9">
+                                    <input asp-for="OdooUrl" type="text" class="form-control" placeholder="https://your-instance.odoo.com/" />
+                                    <span asp-validation-for="OdooUrl"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="DatabaseName" />
+                                </div>
+                                <div class="col-md-9">
+                                    <input asp-for="DatabaseName" type="text" class="form-control" placeholder="database-name" />
+                                    <span asp-validation-for="DatabaseName"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="Username" />
+                                </div>
+                                <div class="col-md-9">
+                                    <input asp-for="Username" type="text" class="form-control" placeholder="user@example.com" />
+                                    <span asp-validation-for="Username"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="ApiKey" />
+                                </div>
+                                <div class="col-md-9">
+                                    <input asp-for="ApiKey" type="password" class="form-control" autocomplete="new-password"
+                                           placeholder="@(Model.HasApiKey ? "A key is saved; leave blank to keep it" : "Enter API key")" />
+                                </div>
+                            </div>
+                        </div>
+                    </nop-card>
+
+                    @if (!string.IsNullOrEmpty(Model.ConnectionStatus))
+                    {
+                        <nop-card asp-name="odoo-connection-status" asp-icon="fas fa-exchange-alt" asp-title="Connection Status" asp-hide-block-attribute-name="@hideConnectionStatusBlockAttributeName" asp-hide="@hideConnectionStatusBlock" asp-advanced="false">
+                            <div class="card-body">
+                                <div class="alert @(Model.ConnectionStatus == "Connected" ? "alert-success" : "alert-danger")" role="alert">
+                                    <strong>Status:</strong> @Model.ConnectionStatus
+                                    @if (!string.IsNullOrEmpty(Model.TestResultMessage))
+                                    {
+                                        <br />
+                                        <small>@Model.TestResultMessage</small>
+                                    }
+                                </div>
+                            </div>
+                        </nop-card>
+                    }
+
+                    <nop-card asp-name="odoo-diagnostics-result" asp-icon="fas fa-stethoscope" asp-title="Diagnostics Result" asp-hide-block-attribute-name="@hideDiagnosticsResultBlockAttributeName" asp-hide="@hideDiagnosticsResultBlock" asp-advanced="false">
+                        <div class="card-body">
+                            <dl class="row">
+                                <dt class="col-sm-3">Odoo URL:</dt>
+                                <dd class="col-sm-9" id="diagnosticsOdooUrl"></dd>
+
+                                <dt class="col-sm-3">Database Name:</dt>
+                                <dd class="col-sm-9" id="diagnosticsDatabaseName"></dd>
+
+                                <dt class="col-sm-3">API Key Exists:</dt>
+                                <dd class="col-sm-9" id="diagnosticsApiKeyExists"></dd>
+
+                                <dt class="col-sm-3">Connection Status:</dt>
+                                <dd class="col-sm-9">
+                                    <span id="diagnosticsConnectionStatus" class="badge"></span>
+                                </dd>
+
+                                <dt class="col-sm-3">Details:</dt>
+                                <dd class="col-sm-9" id="diagnosticsTestResultMessage"></dd>
+                            </dl>
+                        </div>
+                    </nop-card>
+
+                    @if (Model.LastSyncDateTime.HasValue)
+                    {
+                        <div class="alert alert-info" role="alert">
+                            <strong>Last Sync:</strong> @Model.LastSyncDateTime.Value.ToString("g")
+                        </div>
+                    }
+                </nop-cards>
+            </div>
+        </div>
+    </section>
+</form>

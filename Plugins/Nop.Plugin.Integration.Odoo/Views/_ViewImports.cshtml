@@ -1,0 +1,24 @@
+﻿@inherits Nop.Web.Framework.Mvc.Razor.NopRazorPage<TModel>
+
+@inject INopHtmlHelper NopHtml
+@inject INopUrlHelper NopUrl
+@inject IGenericAttributeService genericAttributeService
+@inject IWorkContext workContext
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, Nop.Web.Framework
+
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
+@using Microsoft.AspNetCore.Routing
+@using System.Text.Encodings.Web
+@using Nop.Core
+@using Nop.Plugin.Integration.Odoo
+@using Nop.Plugin.Integration.Odoo.Models
+@using Nop.Services.Common
+@using Nop.Web.Framework
+@using Nop.Web.Framework.Extensions
+@using Nop.Web.Framework.Infrastructure
+@using Nop.Web.Framework.Models
+@using Nop.Web.Framework.Models.DataTables
+@using Nop.Web.Framework.Mvc.Routing
+@using Nop.Web.Framework.UI

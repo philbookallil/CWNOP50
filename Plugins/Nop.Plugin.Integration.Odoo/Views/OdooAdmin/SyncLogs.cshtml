@@ -1,0 +1,247 @@
+@model OdooLogEventSearchModel
+
+@{
+    ViewBag.PageTitle = "Odoo Sync Log";
+    NopHtml.SetActiveMenuItemSystemName(OdooConstants.SyncLogsMenuSystemName);
+
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/Integration.Odoo/Content/Admin/Odoo/odoo-admin.js");
+
+    var customer = await workContext.GetCurrentCustomerAsync();
+
+    const string hideDiagnosticsResultBlockAttributeName = "OdooSyncPage.HideDiagnosticsResultBlock";
+    var hideDiagnosticsResultBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideDiagnosticsResultBlockAttributeName);
+}
+
+<div class="odoo-synclog-config"
+     data-delete-selected-url="@Url.Action("LogEventDeleteSelected", "OdooAdmin")"
+     data-nothing-selected="@T("Admin.Common.Alert.NothingSelected")"
+     style="display: none;"></div>
+
+<form asp-controller="OdooAdmin" asp-action="SyncLogs" method="post">
+    <div class="content-header clearfix">
+        <h1 class="float-left">
+            Odoo Sync Log
+        </h1>
+        <div class="float-right">
+            <button type="button" id="delete-selected" class="btn btn-danger">
+                <i class="far fa-trash-can"></i>
+                Delete selected
+            </button>
+            <button type="submit" id="clearall" name="clearall" class="btn btn-danger">
+                <i class="far fa-trash-can"></i>
+                Clear log
+            </button>
+            @* In run order: each sync resolves its parents from the ones before it. *@
+            <button type="button" class="btn btn-info ml-1 odoo-run-sync" data-url="@Url.Action("SyncStores", "OdooAdmin")" data-label="Store Sync">
+                <i class="fas fa-sync"></i> Sync Stores
+            </button>
+            <button type="button" class="btn btn-info ml-1 odoo-run-sync" data-url="@Url.Action("SyncDepartments", "OdooAdmin")" data-label="Department Sync">
+                <i class="fas fa-sync"></i> Sync Departments
+            </button>
+            <button type="button" class="btn btn-info ml-1 odoo-run-sync" data-url="@Url.Action("SyncProducts", "OdooAdmin")" data-label="Product Sync">
+                <i class="fas fa-sync"></i> Sync Products
+            </button>
+            <button type="button" class="btn btn-info ml-1 odoo-run-sync" data-url="@Url.Action("SyncBranches", "OdooAdmin")" data-label="Branch Sync">
+                <i class="fas fa-sync"></i> Sync Branches
+            </button>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="form-horizontal">
+                <nop-cards id="sync-result-cards">
+                    <nop-card asp-name="odoo-sync-result" asp-icon="fas fa-exchange-alt" asp-title="Sync Result" asp-hide-block-attribute-name="@hideDiagnosticsResultBlockAttributeName" asp-hide="@hideDiagnosticsResultBlock" asp-advanced="false">
+                        <div class="card-body">
+                            <dl class="row">
+                                <dt class="col-sm-3">Status:</dt>
+                                <dd class="col-sm-9">
+                                    <span id="odooSyncStatus" class="badge"></span>
+                                </dd>
+                                <dt class="col-sm-3">Details:</dt>
+                                <dd class="col-sm-9" id="odooSyncMessage"></dd>
+                            </dl>
+                        </div>
+                    </nop-card>
+                </nop-cards>
+
+                <div class="cards-group">
+                    <div class="card card-default card-search">
+                        <div class="card-body">
+                            <div class="row search-row opened" data-hideAttribute="OdooSyncLogPage.HideSearchBlock">
+                                <div class="search-text">@T("Admin.Common.Search")</div>
+                                <div class="icon-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></div>
+                                <div class="icon-collapse"><i class="far fa-angle-up" aria-hidden="true"></i></div>
+                            </div>
+                            <div class="search-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <div class="col-md-4">
+                                                <nop-label asp-for="EventTypeId" />
+                                            </div>
+                                            <div class="col-md-8">
+                                                <nop-select asp-for="EventTypeId" asp-items="Model.AvailableEventTypes" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="text-center col-12">
+                                        <button type="button" id="search-events" class="btn btn-primary btn-search">
+                                            <i class="fas fa-magnifying-glass"></i>
+                                            @T("Admin.Common.Search")
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card card-default">
+                        <div class="card-body">
+                            @await Html.PartialAsync("Table", new DataTablesModel
+                            {
+                                Name = "odoo-logevent-grid",
+                                UrlRead = new DataUrl("LogEventList", "OdooAdmin", null),
+                                SearchButtonId = "search-events",
+                                Length = Model.PageSize,
+                                LengthMenu = Model.AvailablePageSizes,
+                                Filters = new List<FilterParameter>
+                                {
+                                    new FilterParameter(nameof(Model.EventTypeId)),
+                                },
+                                PrimaryKeyColumn = nameof(OdooLogEventModel.Id),
+                                ColumnCollection = new List<ColumnProperty>
+                                {
+                                    new ColumnProperty(nameof(OdooLogEventModel.Id))
+                                    {
+                                        IsMasterCheckBox = true,
+                                        Render = new RenderCheckBox("checkbox_event"),
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Width = "50"
+                                    },
+                                    new ColumnProperty(null)
+                                    {
+                                        Render = new RenderChildCaret(),
+                                        Width = "5",
+                                        Searchable = false,
+                                        ClassName = NopColumnClassDefaults.ChildControl
+                                    },
+                                    new ColumnProperty(nameof(OdooLogEventModel.Name))
+                                    {
+                                        Title = "Name",
+                                        Width = "150"
+                                    },
+                                    new ColumnProperty(nameof(OdooLogEventModel.EventType))
+                                    {
+                                        Title = "Event Type",
+                                        Width = "80",
+                                        ClassName = NopColumnClassDefaults.CenterAll
+                                    },
+                                    new ColumnProperty(nameof(OdooLogEventModel.Status))
+                                    {
+                                        Title = "Status",
+                                        Width = "100",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Render = new RenderCustom("renderColumnEventInfo"),
+                                    },
+                                    new ColumnProperty(nameof(OdooLogEventModel.Summary))
+                                    {
+                                        Title = "Result Summary",
+                                        Width = "250"
+                                    },
+                                    new ColumnProperty(nameof(OdooLogEventModel.StartedOn))
+                                    {
+                                        Title = "Started On",
+                                        Width = "160",
+                                        Render = new RenderDate()
+                                    },
+                                    new ColumnProperty(nameof(OdooLogEventModel.FinishedOn))
+                                    {
+                                        Title = "Finished On",
+                                        Width = "160",
+                                        Render = new RenderDate()
+                                    },
+                                    new ColumnProperty(nameof(OdooLogEventModel.TraceCount))
+                                    {
+                                        Title = "Traces",
+                                        Width = "60",
+                                        ClassName = NopColumnClassDefaults.CenterAll
+                                    },
+                                    new ColumnProperty(nameof(OdooLogEventModel.HasErrors))
+                                    {
+                                        Title = "Errors",
+                                        Width = "60",
+                                        ClassName = NopColumnClassDefaults.CenterAll,
+                                        Render = new RenderBoolean()
+                                    },
+                                },
+                                ChildTable = new DataTablesModel
+                                {
+                                    Name = "odoo-trace-grid",
+                                    UrlRead = new DataUrl("LogEventTraceList", "OdooAdmin", null),
+                                    IsChildTable = true,
+                                    Length = Model.PageSize,
+                                    LengthMenu = Model.AvailablePageSizes,
+                                    Filters = new List<FilterParameter>
+                                    {
+                                        new FilterParameter(nameof(OdooLogModel.LogEventId), nameof(OdooLogEventModel.Id), true)
+                                    },
+                                    ColumnCollection = new List<ColumnProperty>
+                                    {
+                                        new ColumnProperty(nameof(OdooLogModel.LogLevel))
+                                        {
+                                            Title = "Log Level",
+                                            Width = "100"
+                                        },
+                                        new ColumnProperty(nameof(OdooLogModel.ShortMessage))
+                                        {
+                                            Title = "Message"
+                                        },
+                                        new ColumnProperty(nameof(OdooLogModel.EntityType))
+                                        {
+                                            Title = "Entity Type",
+                                            Width = "100"
+                                        },
+                                        new ColumnProperty(nameof(OdooLogModel.OdooEntityId))
+                                        {
+                                            Title = "Odoo ID",
+                                            Width = "80",
+                                            ClassName = NopColumnClassDefaults.CenterAll
+                                        },
+                                        new ColumnProperty(nameof(OdooLogModel.NopEntityId))
+                                        {
+                                            Title = "Nop ID",
+                                            Width = "80",
+                                            ClassName = NopColumnClassDefaults.CenterAll
+                                        },
+                                        new ColumnProperty(nameof(OdooLogModel.CreatedOn))
+                                        {
+                                            Title = "Created On",
+                                            Width = "180",
+                                            Render = new RenderDate()
+                                        },
+                                        new ColumnProperty(nameof(OdooLogModel.Id))
+                                        {
+                                            Title = @T("Admin.Common.View").Text,
+                                            Width = "80",
+                                            ClassName = NopColumnClassDefaults.Button,
+                                            Render = new RenderButtonView(new DataUrl("SyncLogView/"))
+                                        }
+                                    }
+                                }
+                            })
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</form>
+<nop-alert asp-alert-id="deleteSelectedFailed" />
+<nop-alert asp-alert-id="nothingSelectedAlert" />
+<nop-action-confirmation asp-button-id="delete-selected" />
+<nop-action-confirmation asp-button-id="clearall" asp-action="SyncLogClearAll" />
+

@@ -1,0 +1,94 @@
+@model OdooLogModel
+
+@{
+    ViewBag.PageTitle = "Odoo Sync Log Entry";
+    NopHtml.SetActiveMenuItemSystemName(OdooConstants.SyncLogsMenuSystemName);
+}
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        Odoo Sync Log Entry
+        <small>
+            <i class="fas fa-arrow-circle-left"></i>
+            <a asp-action="SyncLogs">back to log list</a>
+        </small>
+    </h1>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="cards-group">
+                <div class="card card-default">
+                    <div class="card-body">
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="LogLevel" />
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-text-row">@Model.LogLevel</div>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="EntityType" />
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-text-row">@(Model.EntityType ?? "-")</div>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="OdooEntityId" />
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-text-row">@(Model.OdooEntityId?.ToString() ?? "-")</div>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="NopEntityId" />
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-text-row">@(Model.NopEntityId?.ToString() ?? "-")</div>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="ShortMessage" />
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-text-row">@Model.ShortMessage</div>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="FullMessage" />
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-text-row">
+                                    @if (!string.IsNullOrWhiteSpace(Model.FullMessage))
+                                    {
+                                        <pre style="white-space: pre-wrap; word-wrap: break-word;">@Model.FullMessage</pre>
+                                    }
+                                    else
+                                    {
+                                        <text>-</text>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="CreatedOn" />
+                            </div>
+                            <div class="col-md-9">
+                                <div class="form-text-row">@Model.CreatedOn.ToString("G")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
