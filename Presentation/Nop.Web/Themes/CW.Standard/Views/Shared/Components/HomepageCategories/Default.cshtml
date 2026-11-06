@@ -1,0 +1,34 @@
+@model IList<CategoryModel>
+@using Nop.Core.Domain.Catalog
+
+@*
+    CW.Standard override of the homepage categories grid.
+    Original CW markup: adds a section title, places the category name BELOW the image,
+    and adds a "View all" link. Structure based on nop's OSS core component.
+*@
+
+@if (Model.Count > 0)
+{
+    <section class="category-grid home-page-category-grid cw-featured-categories">
+        <h2 class="cw-section-title">Featured Categories</h2>
+        <div class="item-grid">
+            @foreach (var item in Model)
+            {
+                var categoryUrl = await NopUrl.RouteGenericUrlAsync<Category>(new { SeName = item.SeName });
+                <article class="item-box">
+                    <div class="picture">
+                        <a href="@categoryUrl" title="@item.PictureModel.Title">
+                            <img alt="@item.PictureModel.AlternateText" src="@item.PictureModel.ImageUrl" title="@item.PictureModel.Title" />
+                        </a>
+                    </div>
+                    <h2 class="title">
+                        <a href="@categoryUrl" title="@item.PictureModel.Title">@item.Name</a>
+                    </h2>
+                    <div class="cw-view-all">
+                        <a href="@categoryUrl">View all <span aria-hidden="true">&#8594;</span></a>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+}

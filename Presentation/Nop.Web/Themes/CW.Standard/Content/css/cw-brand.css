@@ -1,0 +1,892 @@
+/* =====================================================================
+   CW Standard — THEME LAYER (clean-room, original)
+
+   Loaded AFTER the base stylesheet (nop OSS DefaultClean). Original CW work:
+   it does NOT reproduce any third-party (Voyage) CSS — it implements a modern,
+   polished storefront look from scratch, driven by the per-store accent colours
+   CW.ThemeCore emits (--cw-*).
+
+   DESIGN TOKENS (below) is the designer's swap surface. Everything after it
+   reads from the tokens, layering polish over the base layout without replacing it.
+   ===================================================================== */
+
+/* ============================ DESIGN TOKENS ========================== */
+:root {
+    --cws-primary: var(--cw-primary, #4a4a4a);
+    --cws-primary-tint: var(--cw-primary-tint, #f5f5f5);
+    --cws-primary-dark: color-mix(in srgb, var(--cws-primary) 82%, #000);
+    --cws-success: var(--cw-success, #2e7d32);
+    --cws-danger: var(--cw-danger, #c62828);
+    --cws-warning: var(--cw-warning, #ef6c00);
+    --cws-ink: var(--cw-dark, #22262e);
+
+    /* navigation bar — default is a clean light bar (dark text, accent hover); the CW.Theme.Standard plugin can override these via Head.cshtml */
+    --cws-nav-bg: transparent;
+    --cws-nav-fg: var(--cws-ink);
+    --cws-nav-hover-bg: transparent;
+    --cws-nav-hover-fg: var(--cws-primary);
+
+    --cws-bg: #ffffff;
+    --cws-muted: #6b7280;
+    --cws-border: #e6e8ec;
+
+    --cws-font: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --cws-radius: 8px;
+    /* button radius — driven by the CW.ThemeCore "Button radius" knob (--cw-btn-radius); falls back to 5px */
+    --cws-radius-sm: var(--cw-btn-radius, 5px);
+    --cws-shadow: 0 2px 8px rgba(20, 23, 28, .07);
+    --cws-shadow-hover: 0 8px 24px rgba(20, 23, 28, .13);
+    --cws-transition: .18s ease;
+    --cws-container: 1200px;
+}
+
+/* ============================== TYPOGRAPHY ========================== */
+body { font-family: var(--cws-font); color: var(--cws-ink); }
+h1, h2, h3, h4 { font-weight: 700; letter-spacing: -.01em; }
+a { color: var(--cws-primary); transition: color var(--cws-transition); }
+a:hover { color: var(--cws-primary-dark); }
+
+.page-title, .entity-title, .product-name {
+    border-bottom: 1px solid var(--cws-border);
+    padding-bottom: 12px; margin-bottom: 20px;
+}
+.page-title h1, .product-essential h1 { position: relative; padding-bottom: 10px; }
+.page-title h1:after, .product-essential h1:after {
+    content: ""; position: absolute; left: 0; bottom: 0;
+    width: 56px; height: 3px; background: var(--cws-primary); border-radius: 2px;
+}
+
+/* =============================== HEADER ============================== */
+.header { padding: 14px 0; }
+.header-logo img { max-height: 60px; width: auto; }
+
+.header-selectors-wrapper,
+.header-links-wrapper { background: var(--cws-primary-tint); }
+
+/* --- CW.Standard header frame: slim utility bar over a logo/search main row --- */
+.cw-header { padding: 0; }
+.cw-header .cw-header-container { max-width: var(--cws-container); margin: 0 auto; padding: 0 20px; }
+/* upper: slim tinted bar, selectors left / links right; individual wrappers transparent (bar owns the tint) */
+.cw-header .header-upper { background: var(--cws-primary-tint); border-bottom: 1px solid var(--cws-border); }
+/* full-width so the links (Register/Login/Wishlist/Go to cart) reach the right edge of the tinted
+   bar instead of stopping at the centered container edge (which left a gap of blue on the right). */
+.cw-header .header-upper-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 38px; max-width: none !important; padding-right: 8px; }
+.cw-header .header-upper .header-selectors-wrapper,
+.cw-header .header-upper .header-links-wrapper { background: transparent; display: flex; align-items: center; gap: 14px; }
+/* lower: white main row — logo left, search grows */
+.cw-header .header-lower { background: #fff; padding: 16px 0; }
+.cw-header .header-lower-inner { display: flex; align-items: center; gap: 28px; }
+.cw-header .header-lower .header-logo { flex: 0 0 auto; margin: 0; }
+.cw-header .header-lower .search-box.store-search-box { flex: 1 1 auto; max-width: 620px; }
+/* search: input + button on one row (a connected search bar) instead of the button wrapping below */
+.cw-header .header-lower .search-box form { display: flex; align-items: stretch; width: 100%; }
+.cw-header .header-lower .search-box .search-box-text,
+.cw-header .header-lower .search-box input[type="text"] {
+    flex: 1 1 auto; width: auto; min-width: 0;
+    border-top-right-radius: 0; border-bottom-right-radius: 0;
+}
+.cw-header .header-lower .search-box .search-box-button {
+    flex: 0 0 auto; margin: 0;
+    border-top-left-radius: 0; border-bottom-left-radius: 0;
+}
+/* second (co-brand) logo — pushed to the far right of the main header row */
+.cw-header .header-lower .cw-second-logo { flex: 0 0 auto; margin-left: auto; display: flex; align-items: center; }
+.cw-header .header-lower .cw-second-logo img { max-height: 56px; width: auto; }
+/* reversed order (per-store ReverseLogos): second logo left, primary logo right */
+.cw-header--logos-reversed .header-lower .cw-second-logo { order: 1; margin-left: 0; }
+.cw-header--logos-reversed .header-lower .search-box.store-search-box { order: 2; }
+.cw-header--logos-reversed .header-lower .header-logo { order: 3; margin-left: auto; }
+@media (max-width: 767px) {
+    .cw-header .header-lower-inner { flex-wrap: wrap; gap: 14px; }
+    .cw-header .header-lower .search-box.store-search-box { flex: 1 1 100%; max-width: none; order: 3; }
+    .cw-header .header-lower .cw-second-logo { margin-left: 0; }
+    .cw-header .header-lower .cw-second-logo img { max-height: 44px; }
+}
+/* flex row so items space evenly with no trailing margin (base gives each li margin:0 10px,
+   which left a 10px gap after "Go to cart"). */
+.cw-header .header-upper .header-links ul { display: flex; align-items: center; gap: 16px; }
+.cw-header .header-upper .header-links li { margin: 0; }
+/* drop the cart <li> box so the "Go to cart" button becomes a direct flex item and sits flush
+   right (removes the last item's leftover spacing) */
+.cw-header .header-upper #topcartlink { display: contents; }
+.header-links a { color: var(--cws-muted); font-size: 13px; transition: color var(--cws-transition); }
+.header-links a:hover { color: var(--cws-primary); }
+
+/* search */
+.search-box .search-box-text,
+.search-box input[type="text"] {
+    border: 1px solid var(--cws-border);
+    border-radius: var(--cws-radius) 0 0 var(--cws-radius);
+    padding: 11px 14px; height: auto;
+}
+.search-box .search-box-button {
+    background: var(--cws-primary) !important;
+    border: 1px solid var(--cws-primary) !important;
+    border-radius: 0 var(--cws-radius) var(--cws-radius) 0;
+    padding: 11px 20px; color: #fff !important; font-weight: 600;
+    transition: background var(--cws-transition);
+}
+.search-box .search-box-button:hover { background: var(--cws-primary-dark) !important; }
+
+/* mini cart / wishlist counts — subtle light pill with accent number (not a heavy dark badge) */
+.cart-qty, .wishlist-qty,
+.header .cart-qty, .header .wishlist-qty {
+    background: var(--cws-primary-tint) !important;
+    color: var(--cws-primary) !important;
+    border-radius: 999px; padding: 0 7px; margin-left: 3px;
+    font-size: 12px; font-weight: 700;
+    min-width: 18px; display: inline-block; text-align: center;
+    box-shadow: none !important;
+}
+
+/* "Go to cart" button (CW header override) */
+.header-links .cw-cart-item { list-style: none; }
+.header-links .cw-cart-button {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--cws-primary) !important; color: #fff !important;
+    padding: 8px 16px; border-radius: var(--cws-radius-sm);
+    font-weight: 600; line-height: 1; text-decoration: none;
+    transition: background var(--cws-transition);
+}
+.header-links .cw-cart-button:hover { background: var(--cws-primary-dark) !important; text-decoration: none; }
+.header-links .cw-cart-button .cart-qty {
+    background: rgba(255,255,255,.22) !important; color: #fff !important;
+    padding: 0 7px; border-radius: 999px; font-size: 12px; margin-left: 0;
+}
+
+/* ========================= MAIN NAVIGATION BAR ====================== */
+.header-menu {
+    background: var(--cws-nav-bg);
+    border-top: 1px solid var(--cws-border);
+    border-bottom: 1px solid var(--cws-border);
+    margin: 6px 0;
+}
+/* nop 4.9 menu is a BEM structure: .menu > .menu__item > a.menu__link (no ul/li).
+   The base gives .menu__item padding:0 20px, making items wide enough to wrap onto 2 rows —
+   tighten the item + link padding so items are compact and fit a single row. */
+.header-menu .menu { justify-content: center; width: 100%; }
+/* Items are sized relative to the menu area: each flex-grows to an equal share
+   of the row (≈ 100% / item-count), so spacing scales with the container width
+   and adapts automatically to however many top-level items a store has.
+   Horizontal padding is kept small since width is driven by flex, not padding. */
+.header-menu .menu__item {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+.header-menu .menu__link {
+    color: var(--cws-nav-fg) !important;
+    font-weight: 600; font-size: 14px !important;
+    padding: 12px 8px !important;
+    justify-content: center; text-align: center;
+    white-space: nowrap;
+    transition: color var(--cws-transition);
+}
+.header-menu .menu__link:hover,
+.header-menu .menu__item.active > .menu__link {
+    color: var(--cws-nav-hover-fg) !important; text-decoration: none;
+}
+/* dropdown sublists */
+.top-menu .sublist, .header-menu .sublist {
+    box-shadow: var(--cws-shadow); border: 1px solid var(--cws-border);
+    border-radius: var(--cws-radius-sm); background: #fff;
+}
+.top-menu .sublist a:hover { color: var(--cws-primary); }
+
+/* ============================== BUTTONS ============================= */
+.button-1, .buttons input[type="submit"], .buttons .button-1,
+.product-box-add-to-cart-button, .add-to-cart-button,
+.newsletter-subscribe-button, .write-product-review-button,
+.wishlist-add-to-cart-button, .checkout-page .button-1,
+.shopping-cart-page .button-1, .register-button, .login-button {
+    background: var(--cws-primary) !important;
+    border: 1px solid var(--cws-primary) !important;
+    border-radius: var(--cws-radius-sm);
+    color: #fff !important; font-weight: 600;
+    padding: 11px 22px;
+    transition: background var(--cws-transition), box-shadow var(--cws-transition);
+}
+.button-1:hover, .product-box-add-to-cart-button:hover,
+.add-to-cart-button:hover, .search-box-button:hover,
+.newsletter-subscribe-button:hover {
+    background: var(--cws-primary-dark) !important; box-shadow: var(--cws-shadow);
+}
+.button-2 {
+    /* background-color (not the `background` shorthand) so sprite icons on some .button-2 buttons
+       (e.g. product-page wishlist/compare/email) aren't wiped by an implicit background-image:none */
+    background-color: #fff !important; color: var(--cws-primary) !important;
+    border: 1px solid var(--cws-primary) !important;
+    border-radius: var(--cws-radius-sm); font-weight: 600; padding: 10px 20px;
+}
+.button-2:hover { background-color: var(--cws-primary-tint) !important; }
+
+/* ========================= PRODUCT GRID / CARDS =====================
+   Voyage-equivalent product card, CSS-only over the core markup + DefaultClean
+   base (no view override needed — the base already ships the segmented button
+   row and square image box; this layer supplies the brand polish). */
+.item-box { margin-bottom: 30px; }
+.item-box .product-item, .item-box .sub-category-item {
+    background: #fff; border: 1px solid var(--cws-border);
+    border-radius: var(--cws-radius); box-shadow: var(--cws-shadow);
+    overflow: hidden; transition: transform var(--cws-transition), box-shadow var(--cws-transition);
+    height: 100%; display: flex; flex-direction: column;
+}
+.item-box .product-item:hover, .item-box .sub-category-item:hover {
+    transform: translateY(-3px); box-shadow: var(--cws-shadow-hover);
+}
+/* equal-height cards in grid view: the base lays .item-grid out with floats (can't equalise row
+   heights). Flex the grid (grid mode only — list view keeps its own layout) and let each card
+   stretch, so prices/buttons line up across the row. Base column widths (49% / 32.33%) are kept. */
+.product-grid .item-grid { display: flex; flex-wrap: wrap; align-items: stretch; }
+.product-grid .item-grid > .item-box { display: flex; flex-direction: column; float: none; }
+.product-grid .item-grid > .item-box > .product-item { flex: 1 1 auto; }
+.item-box .picture { overflow: hidden; margin: 0; }
+.item-box .picture img { transition: transform .3s ease; }
+.item-box .product-item:hover .picture img { transform: scale(1.04); }
+
+/* details column — flex so price + buttons pin to the card bottom, keeping
+   button rows aligned across cards of differing title/description length */
+.item-box .details { display: flex; flex-direction: column; flex: 1 1 auto; padding: 14px 14px 0; }
+.item-box .product-title { min-height: 2.6em; margin-bottom: 8px; font-size: 16px; }
+.item-box .product-title a { color: var(--cws-ink); font-weight: 600; }
+.item-box .product-title a:hover { color: var(--cws-primary); }
+.item-box .add-info { margin-top: auto; padding: 0 0 14px; }
+
+/* prices */
+.prices { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.prices .actual-price, .item-box .actual-price, .product-price span, .price.actual-price {
+    color: var(--cws-primary); font-weight: 800; font-size: 19px;
+}
+.prices .old-price, .item-box .old-price {
+    color: var(--cws-muted); text-decoration: line-through; font-size: 13px;
+}
+
+/* button row: prominent add-to-cart + compact icon actions (wishlist / compare).
+   The scoped rules also repair a bleed from the global `.button-2` shorthand,
+   which was overriding the base's sprite background on the icon buttons. */
+.item-box .buttons { display: flex; align-items: stretch; gap: 8px; margin: 0; font-size: 14px; }
+.item-box .buttons .product-box-add-to-cart-button {
+    flex: 1 1 auto; width: auto; height: 44px; border-radius: var(--cws-radius-sm);
+    text-transform: none; font-size: 14px; font-weight: 600;
+}
+/* compare / wishlist icon buttons — modern inline-SVG icons rendered via a ::before CSS mask.
+   The old 42x15 sprite PNGs looked tiny/plain; SVG masks are crisp at any size and let the icon
+   colour animate. Using a ::before also sidesteps the global `.button-2 { background:#fff !important }`
+   shorthand (which mangled the sprite background). */
+.item-box .buttons .add-to-wishlist-button,
+.item-box .buttons .add-to-compare-list-button {
+    position: relative;
+    flex: 0 0 44px; width: 44px; height: 44px; padding: 0; font-size: 0;
+    border-radius: var(--cws-radius-sm);
+    background: #fff !important;
+    border: 1px solid var(--cws-border) !important;
+    transition: background-color var(--cws-transition), border-color var(--cws-transition), transform var(--cws-transition), box-shadow var(--cws-transition);
+}
+.item-box .buttons .add-to-wishlist-button::before,
+.item-box .buttons .add-to-compare-list-button::before {
+    content: ""; position: absolute; inset: 0; margin: auto;
+    width: 22px; height: 22px;
+    background-color: var(--cws-ink);
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center; mask-position: center;
+    -webkit-mask-size: 22px 22px; mask-size: 22px 22px;
+    transition: background-color var(--cws-transition), transform var(--cws-transition);
+}
+.item-box .buttons .add-to-compare-list-button::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 6h11l-3-3 1.4-1.4L21.8 7l-5.4 5.4L15 11l3-3H7V6zm10 12H6l3 3-1.4 1.4L2.2 17l5.4-5.4L9 13l-3 3h11v2z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 6h11l-3-3 1.4-1.4L21.8 7l-5.4 5.4L15 11l3-3H7V6zm10 12H6l3 3-1.4 1.4L2.2 17l5.4-5.4L9 13l-3 3h11v2z'/%3E%3C/svg%3E");
+}
+.item-box .buttons .add-to-wishlist-button::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.3l-1.5-1.4C5.4 15.4 2 12.3 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.8-3.4 6.9-8.5 11.4L12 21.3z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.3l-1.5-1.4C5.4 15.4 2 12.3 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.8-3.4 6.9-8.5 11.4L12 21.3z'/%3E%3C/svg%3E");
+}
+/* hover: fill with the brand colour, icon turns white, subtle lift */
+.item-box .buttons .add-to-wishlist-button:hover,
+.item-box .buttons .add-to-compare-list-button:hover {
+    background: var(--cws-primary) !important; border-color: var(--cws-primary) !important;
+    transform: translateY(-1px); box-shadow: var(--cws-shadow);
+}
+.item-box .buttons .add-to-wishlist-button:hover::before,
+.item-box .buttons .add-to-compare-list-button:hover::before {
+    background-color: #fff; transform: scale(1.08);
+}
+
+/* product ribbon-ish marks */
+.item-box .product-item .picture .discount-percentage,
+.item-box .product-item .picture .save-percentage {
+    background: var(--cws-danger); color: #fff; border-radius: 999px;
+}
+
+/* ==================== CATALOG / CATEGORY PAGE ======================= */
+.category-description, .manufacturer-description, .vendor-description {
+    color: var(--cws-muted); line-height: 1.6; margin-bottom: 22px;
+}
+
+/* selectors toolbar (view mode · sort · page size) — a single tidy bar */
+.product-selectors {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+    background: #fff; border: 1px solid var(--cws-border);
+    border-radius: var(--cws-radius); padding: 10px 14px; margin-bottom: 18px;
+}
+.product-selectors:after { content: none; }
+.product-selectors > div { float: none; display: flex; align-items: center; gap: 8px; margin: 0; }
+.product-selectors .product-sorting { margin-left: auto; }
+.product-selectors span { color: var(--cws-muted); font-size: 13px; }
+.product-selectors select { min-width: 150px; }
+
+/* pager — brand pill buttons, centred under the grid */
+.pager ul { text-align: center; }
+.pager li a, .pager li span {
+    border-radius: var(--cws-radius-sm); border-color: var(--cws-border);
+    background-color: #fff; color: var(--cws-ink);
+    transition: background-color var(--cws-transition), border-color var(--cws-transition), color var(--cws-transition);
+}
+.pager li span { background-color: var(--cws-primary); border-color: var(--cws-primary); color: #fff; }
+.pager li a:hover, .pager li a:focus {
+    background-color: var(--cws-primary-tint); border-color: var(--cws-primary); color: var(--cws-primary);
+}
+
+/* ============================ SIDE BLOCKS =========================== */
+.block { border: 1px solid var(--cws-border); border-radius: var(--cws-radius); overflow: hidden; background: #fff; box-shadow: var(--cws-shadow); }
+.block .title { background: var(--cws-primary-tint); padding: 12px 14px; font-weight: 700; }
+.block .title a, .block .title strong { color: var(--cws-ink); }
+.block .listbox { padding: 6px 14px 14px; }
+.block a:hover { color: var(--cws-primary); }
+
+/* =============================== FORMS ============================== */
+input[type="text"], input[type="email"], input[type="password"],
+input[type="tel"], input[type="number"], select, textarea {
+    border: 1px solid var(--cws-border); border-radius: var(--cws-radius-sm);
+    padding: 10px 12px; transition: border-color var(--cws-transition), box-shadow var(--cws-transition);
+}
+input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--cws-primary);
+    box-shadow: 0 0 0 3px var(--cws-primary-tint);
+}
+
+/* ============================= BREADCRUMB =========================== */
+.breadcrumb { background: transparent; padding: 12px 0; }
+.breadcrumb a { color: var(--cws-muted); }
+.breadcrumb a:hover { color: var(--cws-primary); }
+
+/* ========================== NOTIFICATIONS =========================== */
+.bar-notification { border-radius: var(--cws-radius-sm); }
+.bar-notification.success { background: var(--cws-success); }
+.bar-notification.error { background: var(--cws-danger); }
+.bar-notification.warning { background: var(--cws-warning); }
+.field-validation-error, .message-error { color: var(--cws-danger); }
+
+/* =============================== FOOTER ============================= */
+/* CW.Standard footer (Voyage-style): light column area, dark newsletter band,
+   centered social row, light-gray legal bar. All scoped under .cw-footer. */
+.cw-footer { background: #fff; color: var(--cws-muted); margin-top: 40px; }
+.cw-footer .cw-footer-container { max-width: var(--cws-container); margin: 0 auto; padding: 0 20px; }
+.cw-footer a { color: var(--cws-muted); }
+.cw-footer a:hover { color: var(--cws-primary); text-decoration: none; }
+
+/* --- dark newsletter band --- */
+.cw-footer-newsletter { background: var(--cws-ink); padding: 42px 0; }
+.cw-footer-newsletter .cw-newsletter-inner { text-align: center; }
+.cw-footer-newsletter .newsletter { max-width: 520px; margin: 0 auto; }
+.cw-footer-newsletter .newsletter .title { margin: 0 0 18px; }
+.cw-footer-newsletter .newsletter .title strong { display: block; color: #fff; font-size: 26px; font-weight: 800; line-height: 1.15; }
+.cw-footer-newsletter .newsletter .title span { display: block; color: rgba(255,255,255,.72); font-size: 14px; margin-top: 7px; }
+.cw-footer-newsletter .newsletter-form { display: flex; align-items: stretch; justify-content: center; max-width: 460px; margin: 0 auto; }
+.cw-footer-newsletter .newsletter-subscribe-text {
+    flex: 1 1 auto; height: 46px !important; margin: 0; line-height: normal;
+    border: 1px solid #fff; background: #fff; color: var(--cws-ink); box-sizing: border-box;
+    border-radius: var(--cws-radius-sm) 0 0 var(--cws-radius-sm); padding: 0 14px;
+}
+.cw-footer-newsletter .newsletter-subscribe-button {
+    flex: 0 0 auto; height: 46px !important; margin: 0; padding: 0 22px; box-sizing: border-box;
+    display: inline-flex; align-items: center;
+    border-radius: 0 var(--cws-radius-sm) var(--cws-radius-sm) 0 !important;
+    background: var(--cws-primary) !important; border-color: var(--cws-primary) !important; color: #fff !important;
+}
+.cw-footer-newsletter .newsletter-validation, .cw-footer-newsletter .newsletter-result { color: #fff; margin-top: 8px; }
+
+/* --- middle: link columns --- */
+.cw-footer-middle { padding: 44px 0 24px; }
+.cw-footer-blocks { display: flex; flex-wrap: wrap; gap: 30px; align-items: start; }
+.cw-footer-blocks .footer-navigation { display: contents; } /* footer-menu columns join the flex row */
+.cw-footer-blocks .footer-block, .cw-footer-blocks .footer-menu { flex: 1 1 160px; min-width: 150px; }
+.cw-footer .footer-block .title, .cw-footer .footer-menu__title {
+    color: var(--cws-ink); font-weight: 700; font-size: 15px; margin: 0 0 16px; cursor: default;
+}
+.cw-footer .footer-block .list, .cw-footer .footer-menu__list { list-style: none; margin: 0; padding: 0; }
+.cw-footer .footer-block .list li { margin: 0 0 10px; }
+.cw-footer .footer-block .list a, .cw-footer .footer-menu__list a { display: inline-block; padding: 2px 0; }
+
+/* --- centered social row: inline-SVG icons (SocialButtons view) --- */
+.cw-footer-social { margin-top: 28px; display: flex; justify-content: center; }
+.cw-footer-social .networks { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px; list-style: none; margin: 0; padding: 0; }
+.cw-footer-social .networks li { margin: 0; }
+.cw-footer-social .networks a {
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--cws-ink); transition: color var(--cws-transition), transform var(--cws-transition);
+}
+.cw-footer-social .networks a:hover { color: var(--cws-primary); transform: translateY(-2px); }
+.cw-footer-social .networks a svg { width: 22px; height: 22px; fill: currentColor; display: block; }
+.cw-footer-social .networks .sr-only {
+    position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* --- compact light-gray legal bar --- */
+.cw-footer-lower { background: #f2f3f5; border-top: 1px solid var(--cws-border); padding: 6px 0; margin-top: 24px; }
+.cw-footer-legal { display: flex; align-items: center; justify-content: space-between; gap: 4px 16px; flex-wrap: wrap; font-size: 10px; line-height: 1.4; color: var(--cws-muted); }
+.cw-footer-legal .cw-legal-right { display: flex; align-items: center; gap: 4px 14px; flex-wrap: wrap; }
+.cw-footer-legal .footer-powered-by, .cw-footer-legal .footer-disclaimer, .cw-footer-legal .footer-tax-shipping { font-size: 10px; }
+
+@media (max-width: 1000px) {
+    .cw-footer .footer-block .title, .cw-footer .footer-menu__title { cursor: pointer; }
+    .cw-footer-legal { justify-content: center; text-align: center; }
+}
+
+/* =============================== HOME =============================== */
+.home-page .topic-block, .topic-block { border-radius: var(--cws-radius); }
+
+/* Featured Categories (CW override markup: title, image, name below, "View all") */
+.cw-featured-categories { text-align: center; margin: 36px 0; }
+.cw-featured-categories .cw-section-title {
+    font-size: 30px; font-weight: 800; color: var(--cws-ink); margin: 0 0 28px;
+}
+.cw-featured-categories .item-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 28px !important; list-style: none; margin: 0; padding: 0;
+}
+.cw-featured-categories .item-box {
+    text-align: center;
+    width: auto !important; float: none !important; margin: 0 !important;
+}
+.cw-featured-categories .item-box .picture {
+    display: block; width: 100%;
+    border: 1px solid var(--cws-border); border-radius: var(--cws-radius);
+    overflow: hidden; background: #fff; box-shadow: var(--cws-shadow);
+    transition: box-shadow var(--cws-transition), transform var(--cws-transition);
+    aspect-ratio: 4 / 3;
+}
+.cw-featured-categories .item-box .picture:hover { box-shadow: var(--cws-shadow-hover); transform: translateY(-3px); }
+.cw-featured-categories .item-box .picture a { display: block; width: 100%; height: 100%; }
+.cw-featured-categories .item-box .picture img {
+    display: block; width: 100% !important; height: 100%;
+    max-width: none; object-fit: cover;
+}
+.cw-featured-categories .item-box .title { margin: 16px 0 6px; }
+.cw-featured-categories .item-box .title a { color: var(--cws-ink); font-weight: 700; font-size: 18px; }
+.cw-featured-categories .item-box .title a:hover { color: var(--cws-primary); }
+.cw-featured-categories .cw-view-all a {
+    color: var(--cws-primary); font-weight: 600; text-decoration: none;
+    border-bottom: 1px solid currentColor; padding-bottom: 2px;
+}
+.cw-featured-categories .cw-view-all a:hover { filter: brightness(0.9); }
+
+/* ============================= RESPONSIVE =========================== */
+@media (max-width: 900px) {
+    .header-menu > ul, .top-menu { flex-direction: column; }
+    .header-menu > ul > li > a, .top-menu > li > a { border-radius: 0; }
+}
+
+/* =====================================================================
+   DEEPER PAGE COVERAGE (original CW design layer)
+   Product details · Cart · Checkout · Account. Token-driven, layered over
+   the DefaultClean base. Elevates the storefront toward a modern, premium
+   feel without replacing the base layout.
+   ===================================================================== */
+
+/* ---------- shared elevation ---------- */
+.page:not(.home-page) .page-title h1,
+.product-name h1,
+.entity-title h1 { font-size: 26px; }
+
+/* section header accent used across content blocks */
+.product-collateral .title,
+.cart-collaterals .title,
+.section-title,
+.order-summary-content .title {
+    font-weight: 700; color: var(--cws-ink);
+    border-bottom: 2px solid var(--cws-border); padding-bottom: 8px; margin-bottom: 16px;
+}
+
+/* generic data tables (cart, orders, etc.) */
+.cart, .data-table, table.cart, .order-details-area table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    border: 1px solid var(--cws-border); border-radius: var(--cws-radius); overflow: hidden;
+}
+.cart thead td, .cart thead th, .data-table thead td {
+    background: var(--cws-primary-tint); color: var(--cws-ink);
+    font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: .03em; padding: 12px;
+}
+.cart tbody td, .data-table tbody td { padding: 14px 12px; border-top: 1px solid var(--cws-border); }
+
+/* ---------- PRODUCT DETAILS ---------- */
+.product-details-page { display: block; }
+.product-details-page .gallery,
+.product-details-page .picture {
+    border: 1px solid var(--cws-border); border-radius: var(--cws-radius);
+    overflow: hidden; background: #fff; box-shadow: var(--cws-shadow);
+}
+/* main product image: render at natural aspect (drop the base's square aspect-box +
+   absolute-fit, which combined with width:100% stretched the image). */
+.product-details-page .picture:before { content: none; }
+.product-details-page .picture img {
+    position: static; display: block;
+    width: auto; max-width: 100%; height: auto; margin: 0 auto;
+}
+.product-details-page .picture-thumbs { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.product-details-page .picture-thumbs .thumb-item {
+    border: 1px solid var(--cws-border); border-radius: var(--cws-radius-sm); overflow: hidden;
+    cursor: pointer; transition: border-color var(--cws-transition);
+}
+.product-details-page .picture-thumbs .thumb-item:hover { border-color: var(--cws-primary); }
+
+.product-details-page .overview {
+    background: #fff; border: 1px solid var(--cws-border); border-radius: var(--cws-radius);
+    box-shadow: var(--cws-shadow); padding: 20px;
+}
+.product-details-page .overview .product-name h1 { margin-top: 0; }
+.product-details-page .short-description { color: var(--cws-muted); }
+.product-details-page .prices .product-price span,
+.product-details-page .product-price span { font-size: 30px; font-weight: 800; color: var(--cws-primary); }
+.product-details-page .old-product-price span { color: var(--cws-muted); text-decoration: line-through; }
+
+.product-details-page .attributes dt label { font-weight: 700; }
+.product-details-page .attribute-squares .attribute-square-container,
+.product-details-page .color-squares .color-square-container { border-radius: var(--cws-radius-sm); }
+
+/* ===================== LAYOUT SYSTEM (per-store, per-section) ==========
+   Product details: "one-column" layout (manifest product → one-column → class
+   cw-product--one-col, placed on <html> by CW.ThemeCore). Neutralises the base
+   desktop float (gallery 46% / overview 52%) so the gallery stacks above the
+   details in a single centred column at all widths. The default "two-column"
+   layout needs no class — it's the base look. */
+.cw-product--one-col .product-details-page .gallery,
+.cw-product--one-col .product-details-page .video-gallery,
+.cw-product--one-col .product-details-page .overview {
+    float: none;
+    width: 100%;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Home: "boxed" — narrow + centre the home content (default "standard" is full width). */
+.cw-home--boxed .home-page {
+    max-width: 1140px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Catalog: "compact" — tighter product grid (default "roomy" keeps base spacing). */
+.cw-catalog--compact .category-page .item-box { margin-bottom: 16px; }
+.cw-catalog--compact .category-page .item-box .add-info { padding-bottom: 10px; }
+.cw-catalog--compact .category-page .item-box .product-title { min-height: 0; }
+
+/* Checkout (one page): "centred" — narrower, centred checkout column (default "standard" is full width). */
+.cw-checkout--centered .checkout-page {
+    max-width: 960px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.add-to-cart-panel { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.add-to-cart-panel .qty-input, .qty-input {
+    border: 1px solid var(--cws-border); border-radius: var(--cws-radius-sm);
+    text-align: center; padding: 10px; width: 64px;
+}
+.add-to-cart-button, .product-box-add-to-cart-button {
+    padding: 12px 28px; font-size: 16px; border-radius: var(--cws-radius-sm);
+}
+.overview-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.overview-buttons button {
+    /* background-color so the left sprite icons (wishlist/compare/email) survive; base keeps the
+       left padding + left alignment for the icon */
+    background-color: #fff !important; color: var(--cws-primary) !important;
+    border: 1px solid var(--cws-border) !important; border-radius: var(--cws-radius-sm);
+}
+.overview-buttons button:hover { background-color: var(--cws-primary-tint) !important; border-color: var(--cws-primary) !important; }
+
+/* collateral tabs / sections + reviews + related */
+.product-collateral { margin-top: 28px; }
+.product-collateral .product-review-box .rating div { color: var(--cws-warning); }
+.related-products-grid .title, .also-purchased-products-grid .title,
+.product-collateral .title { font-size: 20px; }
+
+/* product specifications (table already styled via .data-table) */
+.product-specs-box .spec-name { font-weight: 600; color: var(--cws-ink); }
+.product-specs-box .spec-group-name { background: var(--cws-primary-tint); font-weight: 700; }
+
+/* product tags — pills */
+.product-tags-list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 8px 0; }
+.product-tags-list li { margin: 0; }
+.product-tags-list li a {
+    display: inline-block; background: var(--cws-primary-tint); color: var(--cws-primary);
+    padding: 4px 12px; border-radius: 999px; font-size: 13px; text-decoration: none;
+    transition: background var(--cws-transition), color var(--cws-transition);
+}
+.product-tags-list li a:hover { background: var(--cws-primary); color: #fff; }
+
+/* product reviews — each review as a card + write-review form */
+.review-list .review-item {
+    background: #fff; border: 1px solid var(--cws-border); border-radius: var(--cws-radius);
+    box-shadow: var(--cws-shadow); padding: 16px 18px; margin-bottom: 14px;
+}
+.review-item .review-title, .review-item .review-title strong { font-weight: 700; color: var(--cws-ink); }
+.review-item .review-info, .review-item .review-item-info { color: var(--cws-muted); font-size: 13px; }
+.review-helpfulness { color: var(--cws-muted); font-size: 13px; margin-top: 8px; }
+.write-review .review-rating, .write-review > .fieldset {
+    background: #fff; border: 1px solid var(--cws-border); border-radius: var(--cws-radius);
+    box-shadow: var(--cws-shadow); padding: 18px; margin-bottom: 16px;
+}
+
+/* ---------- SEARCH PAGE ---------- */
+.search-input .fieldset {
+    background: #fff; border: 1px solid var(--cws-border); border-radius: var(--cws-radius);
+    box-shadow: var(--cws-shadow); padding: 20px; margin-bottom: 20px;
+}
+.search-input .advanced-search .title { font-weight: 700; margin-bottom: 12px; color: var(--cws-ink); }
+.search-results { margin-top: 8px; }
+.no-result { color: var(--cws-muted); padding: 16px 0; }
+
+/* ---------- CART / ORDER SUMMARY ---------- */
+.shopping-cart-page .cart .product-picture img,
+.order-summary-content .cart .product-picture img {
+    border: 1px solid var(--cws-border); border-radius: var(--cws-radius-sm);
+}
+.cart .product a, .cart .product-name a { color: var(--cws-ink); font-weight: 600; }
+.cart .product a:hover { color: var(--cws-primary); }
+.cart .product-unit-price, .cart .product-subtotal { font-weight: 700; }
+.cart .product-subtotal { color: var(--cws-primary); }
+.cart .remove-btn, .cart .remove-from-cart { color: var(--cws-danger); }
+
+/* buttons on the left; the checkout-attribute selector + its selected text pinned to a fixed
+   right column (dropdown above text) so they stack and don't move when the selection changes */
+.cart-options {
+    margin-top: 16px; display: flex; flex-wrap: wrap; align-items: flex-start;
+    justify-content: space-between; gap: 16px 24px;
+}
+.cart-options .common-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+/* the theme's OrderSummary wraps the selector + its selected text in .cw-cart-attr — so they
+   form one tight gray card on the right (label + dropdown, then "Gift wrapping: …" below),
+   and neither moves when the selection changes */
+.cart-options .cw-cart-attr {
+    display: flex; flex-direction: column; gap: 6px;
+    background: #f4f5f6; border-radius: var(--cws-radius-sm); padding: 12px 16px;
+}
+.cart-options .cw-cart-attr .checkout-attributes,
+.cart-options .cw-cart-attr .selected-checkout-attributes { margin: 0; }
+/* label + control on one line, with the required "*" after the control (the requested rearrangement).
+   dt → display:contents promotes the label + "*" to be flex items of the <dl>, so flex `order` can
+   place the "*" after the select — no need to version the core _CheckoutAttributes partial.
+   NOTE: assumes a single checkout attribute (this cart's "Gift wrapping"). For multiple attributes,
+   version _CheckoutAttributes instead so each label/control/"*" stays grouped. */
+.cart-options .cw-cart-attr .checkout-attributes dl { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; }
+.cart-options .cw-cart-attr .checkout-attributes dt { display: contents; }
+.cart-options .cw-cart-attr .checkout-attributes .text-prompt { order: 1; font-weight: 600; margin: 0; }
+.cart-options .cw-cart-attr .checkout-attributes dd { order: 2; margin: 0; }
+.cart-options .cw-cart-attr .checkout-attributes .required { order: 3; }
+@media (max-width: 600px) {
+    .cart-options .cw-cart-attr { width: 100%; }
+}
+/* a store without checkout attributes still renders the (empty) selected-attributes div — no box then */
+.cart-options .cw-cart-attr:not(:has(.checkout-attributes)) { display: none; }
+
+/* totals blend into the surrounding gray summary card (no hard white box) */
+.totals, .cart-total {
+    background: transparent; border: none; box-shadow: none; padding: 0;
+}
+.totals .cart-total tbody tr td, .cart-total .value-summary { padding: 6px 0; }
+/* let the label shrink so the value column has room — stops "Calculated during checkout"
+   being crammed into the base's fixed 50% column (the source of the ugly wrap) */
+.cart-total td.cart-total-left { width: 1%; white-space: nowrap; padding-right: 16px; }
+.cart-total td.cart-total-right { width: auto; }
+/* refined, harmonious Total row (was 20px/800 → cramped bold block) */
+.totals .order-total, .cart-total .order-total { font-size: 16px; font-weight: 600; line-height: 1.4; }
+.totals .order-total td, .cart-total .order-total td { vertical-align: baseline; }
+.cart-total .order-total .cart-total-left { font-weight: 700; color: var(--cws-ink); }
+.totals .order-total .cart-total-right, .cart-total .order-total .cart-total-right { color: var(--cws-primary); }
+.totals .order-total .value-summary, .cart-total .order-total .value-summary { font-weight: 700; }
+
+.checkout-buttons, .common-buttons .checkout-button { text-align: right; margin-top: 14px; }
+.checkout-button {
+    background: var(--cws-primary) !important; border-color: var(--cws-primary) !important;
+    color: #fff !important; padding: 13px 30px; font-size: 16px; border-radius: var(--cws-radius-sm);
+}
+
+/* cart discount + gift-card coupon boxes (side-by-side cards with an inline input + apply button) */
+.deals { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
+.deals .coupon-box, .deals .giftcard-box {
+    flex: 1 1 280px; background: #fff; border: 1px solid var(--cws-border);
+    border-radius: var(--cws-radius); box-shadow: var(--cws-shadow); padding: 16px;
+}
+.coupon-code, .gift-card-coupon-code { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.coupon-code input[type="text"], .gift-card-coupon-code input[type="text"] { flex: 1 1 auto; min-width: 0; }
+/* brand the "Estimate shipping" button — base ships it in --accent-blue-color, ignoring the CW primary */
+.shopping-cart-page .common-buttons .estimate-shipping-button {
+    background-color: var(--cws-primary) !important; border-radius: var(--cws-radius-sm);
+}
+.shopping-cart-page .common-buttons .estimate-shipping-button:hover,
+.shopping-cart-page .common-buttons .estimate-shipping-button:focus {
+    background-color: var(--cws-primary-dark) !important;
+}
+
+/* ---------- CHECKOUT ---------- */
+.checkout-page .page-title h1, .opc .page-title h1 { text-align: center; }
+
+/* progress steps */
+.order-progress ul { display: flex; justify-content: center; gap: 6px; list-style: none; margin: 0 0 24px; padding: 0; flex-wrap: wrap; }
+.order-progress li { color: var(--cws-muted); font-weight: 600; }
+.order-progress li a, .order-progress li span { display: inline-block; padding: 8px 14px; border-radius: 999px; }
+.order-progress li.active, .order-progress li.active a { color: #fff; }
+.order-progress li.active a, .order-progress li.active span { background: var(--cws-primary); }
+.order-progress li.inactive a, .order-progress li.inactive span { background: var(--cws-primary-tint); color: var(--cws-primary); }
+
+/* one-page checkout sections */
+.opc .section, .checkout-page .section {
+    background: #fff; border: 1px solid var(--cws-border); border-radius: var(--cws-radius);
+    box-shadow: var(--cws-shadow); padding: 18px; margin-bottom: 16px;
+}
+.opc .step-title, .checkout-data .section .title {
+    font-weight: 700; color: var(--cws-ink);
+    border-bottom: 2px solid var(--cws-border); padding-bottom: 10px; margin-bottom: 14px;
+}
+.opc .step-title .number { background: var(--cws-primary); color: #fff; border-radius: 999px; padding: 2px 10px; margin-right: 8px; }
+/* brand the active/allowed step bar — base ships it in --accent-blue-color, ignoring the CW primary */
+.opc .allow .step-title { background-color: var(--cws-primary) !important; }
+.opc .allow .step-title .number { background-color: var(--cws-primary-dark) !important; }
+
+/* remaining base DefaultClean blue-accent (--accent-blue-color) fills CW should own.
+   Everything else blue is already covered: .button-1/.button-2/named buttons (!important),
+   .pager current page, and links via `a{color}`. The base footer (.footer-block/.footer-menu)
+   is unused here — CW.Standard ships its own .cw-footer. */
+.mini-shopping-cart button[type="button"] { background-color: var(--cws-primary) !important; }
+.eu-cookie-bar-notification button { background-color: var(--cws-primary) !important; }
+.menu__toggle { background-color: var(--cws-primary) !important; }
+.mini-shopping-cart button[type="button"]:hover,
+.eu-cookie-bar-notification button:hover { background-color: var(--cws-primary-dark) !important; }
+
+/* NOP Swiper slider (homepage banner + product gallery) — brand its accents to the CW primary.
+   Swiper drives bullets/arrows off --swiper-theme-color; base additionally hardcodes the active
+   bullet to --accent-blue, so that one needs an explicit override. The token theme is CSS-only and
+   does not touch Swiper's JS, so the slider itself works unchanged. */
+.swiper { --swiper-theme-color: var(--cws-primary); }
+.swiper-pagination-bullet-active { background-color: var(--cws-primary) !important; }
+.swiper-button-next, .swiper-button-prev { color: var(--cws-primary); }
+.opc .buttons button, .checkout-page .buttons button {
+    background: var(--cws-primary) !important; border-color: var(--cws-primary) !important;
+    color: #fff !important; border-radius: var(--cws-radius-sm); padding: 12px 26px;
+}
+.order-review-data .title, .cart-footer .cart-total { margin-top: 8px; }
+
+/* checkout address selection (saved-address cards + enter-new-address panel) */
+.address-grid { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+.address-item {
+    flex: 1 1 280px; background: #fff; border: 1px solid var(--cws-border);
+    border-radius: var(--cws-radius); box-shadow: var(--cws-shadow); padding: 16px;
+}
+.enter-address { margin-top: 12px; }
+.enter-address .enter-address-body { margin-top: 10px; }
+/* the step "continue" buttons are .button-1 (already brand-primary via the global rule) */
+
+/* ---------- ACCOUNT / CUSTOMER AREA ---------- */
+.account-page, .master-column-wrapper { display: block; }
+/* drop the gray full-width rule under the page title on account pages (the blue accent bar stays) */
+.account-page .page-title { border-bottom: none; }
+
+/* sidebar navigation as a card */
+.block-account-navigation, .customer-block-account-navigation {
+    background: #fff; border: 1px solid var(--cws-border); border-radius: var(--cws-radius);
+    box-shadow: var(--cws-shadow); overflow: hidden;
+}
+.block-account-navigation .title {
+    background: var(--cws-primary-tint); color: var(--cws-ink);
+    font-weight: 700; padding: 12px 16px;
+}
+.block-account-navigation .listbox { padding: 6px 0; }
+.block-account-navigation .list li a {
+    display: block; padding: 10px 16px; color: var(--cws-ink); border-left: 3px solid transparent;
+    transition: background var(--cws-transition), border-color var(--cws-transition);
+}
+.block-account-navigation .list li a:hover { background: var(--cws-primary-tint); text-decoration: none; }
+.block-account-navigation .list li.active a, .block-account-navigation .list li a.active {
+    color: var(--cws-primary); font-weight: 700; border-left-color: var(--cws-primary);
+    background: var(--cws-primary-tint);
+}
+
+/* account content cards */
+.customer-info-page .fieldset,
+.address-list-page .section.address-item,
+.order-list-page .section.order-item,
+.return-request-list-page .section,
+.reward-points-overview,
+.account-page .section {
+    background: #fff; border: 1px solid var(--cws-border); border-radius: var(--cws-radius);
+    box-shadow: var(--cws-shadow); padding: 18px; margin-bottom: 16px;
+}
+.customer-info-page .fieldset .title,
+.section .title, .fieldset .title {
+    font-weight: 700; color: var(--cws-ink);
+    border-bottom: 1px solid var(--cws-border); padding-bottom: 8px; margin-bottom: 14px;
+}
+.order-list-page .order-item .title strong,
+.order-item .order-number { color: var(--cws-primary); font-weight: 700; }
+/* corner action links on the Addresses (Edit/Delete) and Orders (Details) lists — plain
+   underlined text instead of button chrome (these are the only two lists with top-right buttons) */
+.address-list-page .address-item .buttons,
+.order-list-page .order-item .buttons { display: flex; gap: 8px; }
+.address-list-page .address-item .buttons .edit-address-button,
+.address-list-page .address-item .buttons .delete-address-button,
+.order-list-page .order-item .buttons .order-details-button {
+    background: transparent !important; color: var(--cws-primary) !important;
+    border: none !important; box-shadow: none !important; border-radius: 0;
+    padding: 4px 6px !important; font-weight: 600; line-height: 1.2; text-indent: 0;
+    text-decoration: underline; transition: color var(--cws-transition);
+}
+.address-list-page .address-item .buttons .edit-address-button:hover,
+.address-list-page .address-item .buttons .delete-address-button:hover,
+.order-list-page .order-item .buttons .order-details-button:hover {
+    background: transparent !important; color: var(--cws-primary-dark) !important;
+    text-decoration: underline;
+}
+
+/* order details page */
+.order-details-page .order-overview,
+.order-details-page .repost { background: var(--cws-primary-tint); border-radius: var(--cws-radius); padding: 16px; }
+.order-details-page .total-info .order-total strong { color: var(--cws-primary); }
+
+/* ---------- LOGIN / REGISTER ---------- */
+.login-page .customer-blocks { display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch; margin-bottom: 24px; }
+.login-page .returning-wrapper,
+.login-page .new-wrapper {
+    flex: 1 1 320px; margin: 0;
+    background: #fff; border: 1px solid var(--cws-border);
+    border-radius: var(--cws-radius); box-shadow: var(--cws-shadow); padding: 24px;
+}
+.login-page .title, .registration-page .title {
+    font-size: 18px; font-weight: 700; color: var(--cws-ink);
+    border-bottom: 2px solid var(--cws-border); padding-bottom: 8px; margin-bottom: 16px;
+}
+/* both columns' gray content areas — identical treatment so the boxes align */
+.login-page .new-wrapper .text,
+.login-page .returning-wrapper .form-fields {
+    border-top: none; background: var(--cws-primary-tint) !important;
+    border-radius: var(--cws-radius-sm); padding: 18px; margin: 0 0 16px;
+    line-height: 1.6; overflow: visible;
+}
+/* the title now sits outside the <form> (theme's Login.cshtml), matching the New column exactly;
+   hide the empty validation summary so the blue box starts right under the title in both columns */
+.login-page .returning-wrapper .validation-summary-valid { display: none; }
+.login-page .returning-wrapper .buttons { background: transparent; padding: 0; margin-top: 4px; }
+/* the base colours everything in .inputs.reversed ("... .inputs.reversed *", and its hover), so match its specificity */
+.login-page .returning-wrapper .inputs.reversed .forgot-password a { color: var(--cws-primary); }
+.login-page .returning-wrapper .inputs.reversed .forgot-password a:hover,
+.login-page .returning-wrapper .inputs.reversed .forgot-password a:focus { color: var(--cws-primary-dark); }
+.external-authentication .buttons, .external-auth-association { margin-top: 12px; }
+/* registration form: cards + a comfortable width */
+.registration-page .fieldset { margin-bottom: 20px; }
+.registration-page .fieldset .title {
+    font-size: 16px; font-weight: 700; color: var(--cws-ink);
+    border-bottom: 1px solid var(--cws-border); padding-bottom: 8px; margin-bottom: 14px;
+}

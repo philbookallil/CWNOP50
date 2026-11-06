@@ -1,0 +1,87 @@
+@model SocialModel
+
+@*
+    CW.Standard social buttons — same model/links/conditions as the core component,
+    but each network renders an inline-SVG icon (with a visually-hidden text label for
+    accessibility) instead of a text link. Original SVG markup; no third-party code.
+    Icons inherit colour via `fill: currentColor` (styled in cw-brand.css).
+*@
+
+<ul class="networks cw-social">
+    @if (!string.IsNullOrEmpty(Model.FacebookLink))
+    {
+        <li class="facebook">
+            <a href="@Model.FacebookLink" target="_blank" rel="noopener noreferrer" title="@T("Footer.FollowUs.Facebook")">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M13.5 21v-8h2.69l.4-3.12h-3.09V7.89c0-.9.25-1.52 1.55-1.52h1.66V3.58c-.29-.04-1.28-.12-2.43-.12-2.4 0-4.05 1.47-4.05 4.17v2.33H7.53V13h2.7v8h3.27z"/></svg>
+                <span class="sr-only">@T("Footer.FollowUs.Facebook")</span>
+            </a>
+        </li>
+    }
+    @if (!string.IsNullOrEmpty(Model.XLink))
+    {
+        <li class="x">
+            <a href="@Model.XLink" target="_blank" rel="noopener noreferrer" title="@T("Footer.FollowUs.X")">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.6 3.5h4.7l4.1 5.5 4.8-5.5h2.4l-6.1 7 6.9 9.5h-4.7l-4.4-6-5.3 6H3.6l6.6-7.5z"/></svg>
+                <span class="sr-only">@T("Footer.FollowUs.X")</span>
+            </a>
+        </li>
+    }
+    @if (!string.IsNullOrEmpty(Model.YoutubeLink))
+    {
+        <li class="youtube">
+            <a href="@Model.YoutubeLink" target="_blank" rel="noopener noreferrer" title="@T("Footer.FollowUs.Youtube")">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21.6 7.2a2.6 2.6 0 0 0-1.83-1.84C18.16 5 12 5 12 5s-6.16 0-7.77.36A2.6 2.6 0 0 0 2.4 7.2 27 27 0 0 0 2 12a27 27 0 0 0 .4 4.8 2.6 2.6 0 0 0 1.83 1.84C5.84 19 12 19 12 19s6.16 0 7.77-.36a2.6 2.6 0 0 0 1.83-1.84A27 27 0 0 0 22 12a27 27 0 0 0-.4-4.8zM10 15V9l5.2 3L10 15z"/></svg>
+                <span class="sr-only">@T("Footer.FollowUs.Youtube")</span>
+            </a>
+        </li>
+    }
+    @if (!string.IsNullOrEmpty(Model.InstagramLink))
+    {
+        <li class="instagram">
+            <a href="@Model.InstagramLink" target="_blank" rel="noopener noreferrer" title="@T("Footer.FollowUs.Instagram")">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M12 4.5c2.45 0 2.74.01 3.7.05 1.9.09 2.95 1.14 3.04 3.04.04.96.05 1.25.05 3.7s-.01 2.74-.05 3.7c-.09 1.9-1.14 2.95-3.04 3.04-.96.04-1.25.05-3.7.05s-2.74-.01-3.7-.05c-1.9-.09-2.95-1.14-3.04-3.04-.04-.96-.05-1.25-.05-3.7s.01-2.74.05-3.7c.09-1.9 1.14-2.95 3.04-3.04.96-.04 1.25-.05 3.7-.05zm0-1.65c-2.49 0-2.8.01-3.78.06-2.54.11-3.95 1.52-4.07 4.07C4.11 7.96 4.1 8.27 4.1 12s.01 4.04.06 5.02c.12 2.54 1.53 3.95 4.07 4.07.98.05 1.29.06 3.78.06s2.8-.01 3.78-.06c2.54-.12 3.95-1.53 4.07-4.07.05-.98.06-1.29.06-5.02s-.01-4.04-.06-5.02c-.12-2.54-1.53-3.95-4.07-4.07C14.8 2.86 14.49 2.85 12 2.85z"/>
+                    <path d="M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 7.42a2.92 2.92 0 1 1 0-5.84 2.92 2.92 0 0 1 0 5.84z"/>
+                    <circle cx="16.65" cy="7.35" r="1.05"/>
+                </svg>
+                <span class="sr-only">@T("Footer.FollowUs.Instagram")</span>
+            </a>
+        </li>
+    }
+    @if (!string.IsNullOrEmpty(Model.TikTokLink))
+    {
+        <li class="tiktok">
+            <a href="@Model.TikTokLink" target="_blank" rel="noopener noreferrer" title="@T("Footer.FollowUs.TikTok")">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 3h2.7c.2 1.9 1.6 3.4 3.4 3.6v2.8c-1.3 0-2.5-.4-3.5-1.1v6.4a5.3 5.3 0 1 1-5.3-5.3c.3 0 .6 0 .9.1v2.8a2.5 2.5 0 1 0 1.8 2.4z"/></svg>
+                <span class="sr-only">@T("Footer.FollowUs.TikTok")</span>
+            </a>
+        </li>
+    }
+    @if (!string.IsNullOrEmpty(Model.SnapchatLink))
+    {
+        <li class="snapchat">
+            <a href="@Model.SnapchatLink" target="_blank" rel="noopener noreferrer" title="@T("Footer.FollowUs.Snapchat")">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3c3 0 5 2.2 5 5.2v2.3l1.6-.5c.5 0 .8.6.4.9-.6.4-1.5.7-2 .9.6 1.8 2 3.1 3.6 3.6.3.1.3.6 0 .7-.7.3-1.6.4-2.2.6-.2.5-.3 1-.6 1.1-.6.1-1.4-.2-2.3 0-1 .2-1.8 1.4-3.5 1.4s-2.5-1.2-3.5-1.4c-.9-.2-1.7.1-2.3 0-.3-.1-.4-.6-.6-1.1-.6-.2-1.5-.3-2.2-.6-.3-.1-.3-.6 0-.7 1.6-.5 3-1.8 3.6-3.6-.5-.2-1.4-.5-2-.9-.4-.3-.1-.9.4-.9l1.6.5V8.2C7 5.2 9 3 12 3z"/></svg>
+                <span class="sr-only">@T("Footer.FollowUs.Snapchat")</span>
+            </a>
+        </li>
+    }
+    @if (!string.IsNullOrEmpty(Model.PinterestLink))
+    {
+        <li class="pinterest">
+            <a href="@Model.PinterestLink" target="_blank" rel="noopener noreferrer" title="@T("Footer.FollowUs.Pinterest")">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.5a9.5 9.5 0 0 0-3.5 18.3c-.1-.8-.1-2 0-2.8l1.2-5s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.8 0 1.2.6 1.2 1.4 0 .9-.6 2.2-.9 3.4-.2 1 .5 1.9 1.6 1.9 1.9 0 3.3-2 3.3-4.9 0-2.6-1.8-4.4-4.5-4.4-3 0-4.8 2.3-4.8 4.6 0 .9.4 1.9.8 2.4.1.1.1.2.1.3l-.3 1.2c0 .2-.2.2-.4.1-1.3-.6-2.1-2.5-2.1-4 0-3.3 2.4-6.3 6.9-6.3 3.6 0 6.4 2.6 6.4 6 0 3.6-2.3 6.5-5.4 6.5-1.1 0-2.1-.6-2.4-1.2l-.7 2.5c-.2.9-.9 2.1-1.3 2.8A9.5 9.5 0 1 0 12 2.5z"/></svg>
+                <span class="sr-only">@T("Footer.FollowUs.Pinterest")</span>
+            </a>
+        </li>
+    }
+    @if (!string.IsNullOrEmpty(Model.TumblrLink))
+    {
+        <li class="tumblr">
+            <a href="@Model.TumblrLink" target="_blank" rel="noopener noreferrer" title="@T("Footer.FollowUs.Tumblr")">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.6 21c-2.7 0-4.6-1.4-4.6-4.7v-5.2H7.6V8.3c2.7-.7 3.8-3 3.9-5.3h2.8v4.6h3.3v3.5h-3.3v4.7c0 1.4.7 1.9 1.8 1.9h1.6V21z"/></svg>
+                <span class="sr-only">@T("Footer.FollowUs.Tumblr")</span>
+            </a>
+        </li>
+    }
+</ul>

@@ -1,0 +1,11 @@
+{
+  "Group": "CW",
+  "FriendlyName": "CW Theme Core",
+  "SystemName": "CW.ThemeCore",
+  "Version": "2026_11_02_DATA_1.4",
+  "SupportedVersions": [ "5.00" ],
+  "Author": "Cityweb",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.CW.ThemeCore.dll",
+  "Description": "Central CW theme framework. Provides per-store accent colours (CSS custom properties) shared across CW plugins and themes."
+}

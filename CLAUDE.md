@@ -278,8 +278,7 @@ across wholesale. Port deliberately, into the 5.00 patterns (§10.5).
 | `Nop.Plugin.ExternalAuth.SSO` | Single sign-on with Entra ID (OIDC / SAML 2.0) | **Ported** 2026-10-19; reviewed and extended (plugin version `…_DATA_0.12`); unit tests in `Tests/CW.Tests` (94 cases). OIDC and SAML sign-in pass against Keycloak 26 (2026-10-21); Entra still open (§22 Note C) | `Plugins/Nop.Plugin.ExternalAuth.SSO/References/SSO_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Freight` | Shipping rate computation: flat-rate methods per store, restricted countries; the methods CW.Core's packname checkout offers | **Ported** 2026-10-26 (`2026_10_26_DATA_1.2`); one installation migration, admin fixes. Unit tests in `Tests/CW.Tests` (8 cases); installed on a local site 2026-10-26 and T3–T7 passed (admin pages, cart shipping estimate) | `Plugins/Nop.Plugin.CW.Freight/References/Freight_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Ported** 2026-10-31 — phases 1–5 on the 5.00 beta, then moved to the final 5.00 (M1–M4), phase 6 (outputs) and phase 7 (regression: 173 of 182 pass, none fail) approved, the deferred fixes applied (`2026_10_31_DATA_0.2`). Unit tests in `Tests/CW.Tests/Core` (634 cases). §13–§21 describe its 5.00 code | `CWPlans/CWCore_Port_Reference.md`; the feature references in `CWPlans/` (`subsidy-system.md`, `MultiStore_Management_Reference.md`, `Exchanges_Returns_CreditNotes_Reference.md`, `PackName_Order_Shipments.md`, `BulkOrdering_Design.md`, `Feature_Toggles_Reference.md`) |
-| `Nop.Plugin.CW.Freight` | Shipping / freight | Not started | 4.90 source |
-| `Nop.Plugin.CW.ThemeCore` | Theme framework: accent colours, custom CSS, layout options, logos, Brand Designer with live preview | **Ported** 2026-10-29 (`2026_10_29_DATA_1.3`); installed on a local site with `CW.Standard` active, Configure page and live preview (home, category, product, cart, checkout) pass. Unit tests in `Tests/CW.Tests` (112 cases, 4 ignored: the custom-CSS sanitizer's escape bypasses, open) | `Plugins/Nop.Plugin.CW.ThemeCore/References/ThemeCore_Plugin_Reference.md` |
+| `Nop.Plugin.CW.ThemeCore` | Theme framework: accent colours, custom CSS, layout options, logos, Brand Designer with live preview | **Ported** 2026-10-29 (now `2026_11_02_DATA_1.4`); installed on a local site with `CW.Standard` active, Configure page and live preview (home, category, product, cart, checkout) pass. Unit tests in `Tests/CW.Tests` (137 cases; the custom-CSS sanitizer reads CSS the way the browser does, 2026-10-30) | `Plugins/Nop.Plugin.CW.ThemeCore/References/ThemeCore_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Theme.Standard` | Settings for the `CW.Standard` theme (light nav bar, square corners); the theme's own storefront text | **Ported** 2026-10-29 (`2026_10_29_DATA_1.1`), with ThemeCore (§10.2 framework exception, `DependsOnSystemNames`) | ThemeCore reference doc |
 | `Themes/CW.Standard` | The CW storefront theme | **Ported** 2026-10-29: its views rebased on the 5.00 views, CSS and images on 5.00 `DefaultClean` | ThemeCore reference doc §3 |
 | `Themes/CW.StandardTest` | Placeholder skin built on Voyage | **Deferred** — Voyage is a paid third-party theme and this repository is public (§0.9): decide licence / `.gitignore` before porting. Four of its views have no 5.00 counterpart | 4.90 source |
@@ -1162,7 +1161,7 @@ Most decoupled, but reflection-heavy and brittle to renames.
 
 **Forbidden:** A `<ProjectReference>` from a secondary CW **peer feature plugin** to `Nop.Plugin.CW.Core.csproj` (or another peer plugin). This couples build order and tangles the plugin loader.
 
-**Exception — framework packages (added 2026-07-24):** a plugin that is a *dependent extension* of a CW **framework package** (e.g. a per-theme plugin `Nop.Plugin.CW.Theme.<Name>` that inherits base classes from `Nop.Plugin.CW.ThemeCore`) **may** use a `<ProjectReference>` to that framework's `.csproj`, provided it sets `<Private>false</Private>` + `<ExcludeAssets>runtime</ExcludeAssets>`. Rationale: the two objections above don't apply — (a) build-order coupling is *intended* (the extension genuinely depends on the framework), and (b) the flags keep the framework DLL out of the extension's output, so there's no duplicate assembly / loader tangle, while the compile-time reference (base-class inheritance) and an automatic build-order edge are retained. This applies **only** to a declared framework→extension relationship, not to peer plugins. See the ThemeCore example in `CWPlans/CW_Theme_Build_Plans.md` (Phase 2c).
+**Exception — framework packages (added 2026-07-24):** a plugin that is a *dependent extension* of a CW **framework package** (e.g. a per-theme plugin `Nop.Plugin.CW.Theme.<Name>` that inherits base classes from `Nop.Plugin.CW.ThemeCore`) **may** use a `<ProjectReference>` to that framework's `.csproj`, provided it sets `<Private>false</Private>` + `<ExcludeAssets>runtime</ExcludeAssets>`. Rationale: the two objections above don't apply — (a) build-order coupling is *intended* (the extension genuinely depends on the framework), and (b) the flags keep the framework DLL out of the extension's output, so there's no duplicate assembly / loader tangle, while the compile-time reference (base-class inheritance) and an automatic build-order edge are retained. This applies **only** to a declared framework→extension relationship, not to peer plugins. The ThemeCore example: `Plugins/Nop.Plugin.CW.ThemeCore/References/ThemeCore_Plugin_Reference.md` §1 (how it was decided: `CWPlans/Deprecated/CW_Theme_Build_Plans.md`, Phase 2c).
 
 ### 10.3 Copied nop method bodies — **re-diff these on every nopCommerce upgrade**
 
@@ -1202,15 +1201,15 @@ Everything else in the CW plugins overrides by calling `base` and post-processin
 
 ### 10.4 Themes and view resolution — **read this before enabling a theme**
 
-> **Applies once CW.Core is ported** — the collision set below is CW.Core's 4.9 storefront views. The SSO plugin
+> **The collision set below is CW.Core's storefront views**, checked on 5.00 against `CW.Standard` (2026-11-06). The SSO plugin
 > ships no storefront view that a theme could shadow except its login button (`PublicInfo.cshtml`).
 
 `CW.Core/Infrastructure/ViewLocationExpander.cs` **prepends** the plugin's view paths to the Razor search
 list, ahead of everything — including any theme's `~/Themes/{theme}/Views/…`.
 
 **Consequence, and it is silent.** Where a theme customises a view the plugin also ships, the plugin wins
-and the theme's version **never renders**. No error, no warning, no log line. Today only `DefaultClean` is
-present so nothing collides; the moment a real theme is enabled this becomes live.
+and the theme's version **never renders**. No error, no warning, no log line. `CW.Standard` ships none of the views
+below, so nothing collides today; the check below is for any other theme, and for any view added to `CW.Standard`.
 
 **The collision set — the storefront views CW.Core forks from nop:**
 
@@ -1285,8 +1284,10 @@ what the port changed in the plugin's reference doc (`References/`).
 | `ExternalAuth.SSO` | `Nop.Web` (since 2026-10-20, for `SystemWarningCreatedEvent`, which feeds System → Warnings) |
 | `Payments.NABGateway` | `Nop.Web` only (the 4.9 references to `Nop.Web.Framework`, which `Nop.Web` brings, and to the unused `CW.Common` were dropped in the 5.00 port) |
 | `Integration.Odoo` | `Nop.Web`, and the built `Nop.Plugin.CW.Core.dll` (§10.2 Pattern C; `NopCommerce.sln` builds CW.Core first). The 4.9 reference to `Nop.Web.Framework` was dropped |
-| `CW.Core` *(4.9; when ported)* | `Nop.Web`, `CW.Common` |
+| `CW.Core` | `Nop.Web`, `CW.Common` |
 | `CW.Freight` | `Nop.Web` only. CW.Core reaches it by SystemName through `IShippingPluginManager`, with no assembly reference either way |
+| `CW.ThemeCore` | `Nop.Web` only. No reference to CW.Core in either direction |
+| `CW.Theme.Standard` | `Nop.Web`, and `Nop.Plugin.CW.ThemeCore` as a `<ProjectReference>` with `Private=false` and `ExcludeAssets=runtime` (§10.2 framework exception). `DependsOnSystemNames` names `CW.ThemeCore` |
 | Any new secondary plugin | `Nop.Web`, optionally `CW.Common`. Coupling to `CW.Core` per §10.2 — ask first. |
 
 `Nop.Web` transitively brings in `Nop.Core`, `Nop.Data`, `Nop.Services`, and `Nop.Web.Framework` — do not add those as separate references.
@@ -2108,7 +2109,7 @@ These are intentionally deferred and should be resolved before they block real w
   First suite: `ExternalAuth.SSO` (66 cases, 2026-10-20). Still open: service tests over SQLite (they need nop's
   test bootstrap) and the SSO sign-in flows against a real IdP (Note C). Second suite: `Payments.NABGateway` (43 cases, 2026-10-23). Run: `dotnet test Tests/CW.Tests -p:SolutionDir=<repo root>` (137 cases, 2026-10-23) — the plugin's `.csproj` paths use `$(SolutionDir)`, so the project needs it when built on its own; from Visual Studio or `dotnet test NopCommerce.sln` it is set.
   The 4.9 CW.Core suite is in the 4.90 source's `Tests/CW.Tests` (§3.1) and is migrated with CW.Core.
-- **Note B — Default theme. CLOSED 2026-08-27.** Only `DefaultClean` is deployed today, so nothing collides and there is no decision outstanding. The underlying hazard is real but is now written down where it will be found: **§10.4** records that `ViewLocationExpander` puts plugin views ahead of theme views, lists the five storefront views CW.Core forks, and gives the four-step check to run when a theme is enabled. `Voyage` and `Pavilion` remain `.gitignore`d; if either is enabled, run §10.4 step 2 first. (Theme plugins are not ported to 5.00 yet.)
+- **Note B — Default theme. CLOSED 2026-08-27.** `CW.Standard` is the CW theme on 5.00 and ships none of CW.Core's forked views, so nothing collides and there is no decision outstanding. The underlying hazard is real but is now written down where it will be found: **§10.4** records that `ViewLocationExpander` puts plugin views ahead of theme views, lists the five storefront views CW.Core forks, and gives the four-step check to run when a theme is enabled. `Voyage` and `Pavilion` remain `.gitignore`d; if either is enabled, run §10.4 step 2 first.
 - **Note C — SSO sign-in against a real IdP. Keycloak DONE 2026-10-21; Entra still open.** OIDC and SAML sign-in and
   sign-out pass end to end against Keycloak 26 (SSO reference §12.1); the run found seven defects, all fixed
   (D10, admin lockout, fixed the same day). Microsoft Entra itself is the remaining confirmation; the cases still to run are in

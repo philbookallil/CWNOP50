@@ -1,0 +1,19 @@
+@model Nop.Plugin.CW.ThemeCore.Components.CwSecondLogoModel
+
+@*
+    Optional second (co-brand) header logo. Rendered only when a store has one configured
+    (the view component returns empty content otherwise). Links out when a URL is set.
+*@
+
+<div class="cw-second-logo">
+    @if (!string.IsNullOrEmpty(Model.LinkUrl))
+    {
+        <a href="@Model.LinkUrl" title="@Model.AltText" target="_blank" rel="noopener">
+            <img alt="@Model.AltText" src="@Model.ImageUrl" />
+        </a>
+    }
+    else
+    {
+        <img alt="@Model.AltText" src="@Model.ImageUrl" />
+    }
+</div>

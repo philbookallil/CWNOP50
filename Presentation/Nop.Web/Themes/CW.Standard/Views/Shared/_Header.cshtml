@@ -1,0 +1,53 @@
+@*
+    CW.Standard header frame — based on the nopCommerce core _Header. Width-constrained
+    two-tier layout emulating a Voyage-style header:
+      header-upper = slim utility bar (region selectors left · account/cart links right)
+      header-lower = main row (logo · prominent search)
+    The main menu stays below the header (rendered by _Root) — matching the approved
+    light nav bar — and the flyout cart stays in the upper bar so its hover script keeps
+    working. AdminHeaderLinks is already rendered by _Root, so it's not repeated here.
+    Original markup; no third-party code.
+*@
+@inject Nop.Core.IStoreContext storeContext
+@inject Nop.Services.Configuration.ISettingService settingService
+@{
+    //read by setting KEY so the theme stays decoupled from the plugin's types (same pattern as Head.cshtml)
+    var cwStoreId = (await storeContext.GetCurrentStoreAsync()).Id;
+    var reverseLogos = await settingService.GetSettingByKeyAsync<bool>("cwthemesettings.reverselogos", false, cwStoreId, true);
+}
+
+<header class="header cw-header@(reverseLogos ? " cw-header--logos-reversed" : "")">
+    <a class="skip" href="#main">@T("Header.SkipNavigation.Text")</a>
+    @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.HeaderBefore })
+
+    <div class="header-upper" data-cw-style="tint">
+        <div class="cw-header-container header-upper-inner">
+            <div class="header-selectors-wrapper">
+                @await Component.InvokeAsync(typeof(TaxTypeSelectorViewComponent))
+                @await Component.InvokeAsync(typeof(CurrencySelectorViewComponent))
+                @await Component.InvokeAsync(typeof(LanguageSelectorViewComponent))
+                @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.HeaderSelectors })
+            </div>
+            <div class="header-links-wrapper">
+                @await Component.InvokeAsync(typeof(HeaderLinksViewComponent))
+                @await Component.InvokeAsync(typeof(FlyoutShoppingCartViewComponent))
+            </div>
+        </div>
+    </div>
+
+    @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.HeaderMiddle })
+
+    <div class="header-lower">
+        <div class="cw-header-container header-lower-inner">
+            <div class="header-logo">
+                @await Component.InvokeAsync(typeof(LogoViewComponent))
+            </div>
+            <div role="search" class="search-box store-search-box">
+                @await Component.InvokeAsync(typeof(SearchBoxViewComponent))
+            </div>
+            @await Component.InvokeAsync("CwSecondLogo")
+        </div>
+    </div>
+
+    @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.HeaderAfter })
+</header>

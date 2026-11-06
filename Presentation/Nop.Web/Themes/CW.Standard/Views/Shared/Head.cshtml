@@ -1,0 +1,48 @@
+@using Nop.Core
+@using Nop.Core.Domain.Catalog
+@using Nop.Services.Configuration
+@using Nop.Services.Themes
+@inject CatalogSettings catalogSettings
+@inject IThemeContext themeContext
+@inject IStoreContext storeContext
+@inject ISettingService settingService
+
+@{
+    Layout = "";
+    var themeName = await themeContext.GetWorkingThemeNameAsync();
+    var supportRtl = await Html.ShouldUseRtlThemeAsync();
+
+    //AppendCssFileParts inserts at the FRONT of the list, so these are registered in reverse of the order the
+    //page loads them: the libraries, then the base layout stylesheet (nop OSS DefaultClean base), then the CW
+    //brand layer last, so that a brand rule wins over a base rule of the same specificity
+    NopHtml.AppendCssFileParts($"~/Themes/{themeName}/Content/css/cw-brand.css");
+    NopHtml.AppendCssFileParts($"~/Themes/{themeName}/Content/css/styles{(supportRtl ? ".rtl" : "")}.css");
+
+    if (catalogSettings.DisplayAllPicturesOnCatalogPages)
+    {
+        NopHtml.AppendCssFileParts("~/lib_npm/swiper/swiper-bundle.min.css");
+    }
+
+    //jQuery UI (datepicker, dialogs) used across the storefront
+    NopHtml.AppendCssFileParts("~/lib_npm/jquery-ui-dist/jquery-ui.min.css");
+
+    //Theme-specific options from the CW.Theme.Standard plugin (read by setting key, so the theme
+    //doesn't depend on the plugin's types; falls back to defaults when the plugin isn't installed).
+    var storeId = (await storeContext.GetCurrentStoreAsync()).Id;
+    var lightNavBar = await settingService.GetSettingByKeyAsync("standardthemesettings.lightnavbar", false, storeId, true);
+    var squareCorners = await settingService.GetSettingByKeyAsync("standardthemesettings.squarecorners", false, storeId, true);
+
+    var themeOverrides = string.Empty;
+    if (squareCorners)
+    {
+        themeOverrides += "--cws-radius:0 !important;--cws-radius-sm:0 !important;";
+    }
+    if (lightNavBar)
+    {
+        themeOverrides += "--cws-nav-bg:#ffffff !important;--cws-nav-fg:var(--cws-ink) !important;--cws-nav-hover-bg:var(--cws-primary-tint) !important;--cws-nav-hover-fg:var(--cws-primary) !important;";
+    }
+}
+@if (!string.IsNullOrEmpty(themeOverrides))
+{
+    <style>:root{@Html.Raw(themeOverrides)}</style>
+}

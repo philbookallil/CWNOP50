@@ -1,0 +1,30 @@
+@model Nop.Plugin.CW.ThemeCore.Components.CwThemeHeadModel
+@using System.Text.Encodings.Web
+@*
+    Inline accent-colour tokens, then a link to the sanitized Custom CSS file.
+    IMPORTANT: the <link> is emitted via Html.Raw. A literal <link rel="stylesheet"> here is
+    intercepted by nop/WebOptimizer's link tag helper and routed into NopHtml's CSS collection,
+    which _Root.Head already rendered (GenerateCssFiles) BEFORE this HeadHtmlTag widget zone runs —
+    so the tag would be dropped. Html.Raw writes it literally and bypasses tag-helper processing.
+*@
+@if (!string.IsNullOrEmpty(Model.RootCss))
+{
+    <style>@Html.Raw(Model.RootCss)</style>
+}
+@if (!string.IsNullOrEmpty(Model.CustomCssVirtualPath))
+{
+    @Html.Raw($"<link rel=\"stylesheet\" href=\"{Url.Content(Model.CustomCssVirtualPath)}?v={Model.CustomCssVersion}\" />")
+}
+@*
+    Live-preview bridge: emitted ONLY when the framing middleware validated a preview token for this request.
+    The inline config must precede the bridge (defines the allowed admin origin it pins to). Both are written
+    via Html.Raw to bypass the script/link tag-helper processing (same reason as the Custom CSS link above).
+*@
+@if (!string.IsNullOrEmpty(Model.PreviewAdminOrigin))
+{
+    @* Html.Raw (not a literal <script>) is REQUIRED: NopScriptTagHelper relocates an inline <script> to the
+       footer bundle when JS bundling is on, which would let the bridge below run before __cwPreview is set —
+       the bridge would then bail at `if (!adminOrigin) return;` and never post ready / register its listener. *@
+    @Html.Raw($"<script>window.__cwPreview = {{ adminOrigin: \"{JavaScriptEncoder.Default.Encode(Model.PreviewAdminOrigin)}\", regionMap: {(string.IsNullOrEmpty(Model.PreviewRegionMapJson) ? "[]" : Model.PreviewRegionMapJson)} }};</script>")
+    @Html.Raw($"<script src=\"{Url.Content("~/Plugins/CW.ThemeCore/Content/BrandPreview/cw-preview-bridge.js")}?v={Model.PreviewBridgeVersion}\"></script>")
+}

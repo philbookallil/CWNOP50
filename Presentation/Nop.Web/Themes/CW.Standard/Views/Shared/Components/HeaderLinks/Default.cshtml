@@ -1,0 +1,112 @@
+@model Nop.Web.Models.Common.HeaderLinksModel
+@using Nop.Core
+@using Nop.Services.Helpers
+@using Nop.Services.Localization
+@inject IWebHelper webHelper
+@inject IWorkContext workContext
+@inject ILocalizationService localizationService
+
+@*
+    CW.Standard override of the header links. Same behaviour as nop's core component,
+    but the shopping-cart link is presented as a prominent "Go to cart" button (its text is a
+    CW.Theme.Standard resource).
+    id="topcartlink" and the .cart-qty span are preserved so the flyout cart / AjaxCart JS still works.
+*@
+@{
+    //the button text belongs to CW.Theme.Standard; without the plugin, nop's own cart label
+    var language = await workContext.GetWorkingLanguageAsync();
+    var cartLabel = await localizationService.GetResourceAsync("Plugins.CW.Theme.Standard.HeaderLinks.GoToCart", language.Id,
+        logIfNotFound: false, returnEmptyIfNotFound: true);
+    if (string.IsNullOrEmpty(cartLabel))
+        cartLabel = T(NopRouteNames.General.CART).Text;
+}
+
+<div class="header-links">
+    <ul>
+        @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.HeaderLinksBefore, additionalData = Model })
+        @if (Model.IsAuthenticated)
+        {
+            <li><a href="@Url.RouteUrl(NopRouteNames.General.CUSTOMER_INFO)" class="ico-account">@T("Account.MyAccount")</a></li>
+            <li><a href="@Url.RouteUrl(NopRouteNames.Standard.LOGOUT)" class="ico-logout">@T("Account.Logout")</a></li>
+        }
+        else
+        {
+            var returnUrl = Context.Request.Query.TryGetValue("returnUrl", out var url) && !StringValues.IsNullOrEmpty(url)
+                ? url.ToString()
+                : webHelper.GetRawUrl(Context.Request);
+
+            @if (Model.RegistrationType != UserRegistrationType.Disabled)
+            {
+                <li><a href="@Url.RouteUrl(NopRouteNames.Standard.REGISTER, new { returnUrl })" class="ico-register">@T("Account.Register")</a></li>
+            }
+            <li><a href="@Url.RouteUrl(NopRouteNames.General.LOGIN, new { returnUrl })" class="ico-login">@T("Account.Login")</a></li>
+        }
+        @if (Model.AllowPrivateMessages)
+        {
+            <li>
+                <a href="@Url.RouteUrl(NopRouteNames.Standard.PRIVATE_MESSAGES, new { tab = "" })" class="ico-inbox">
+                    <span class="inbox-label">@T("PrivateMessages.Inbox")</span>
+                    <span class="inbox-unread">@Model.UnreadPrivateMessages</span>
+                </a>
+            </li>
+        }
+        @if (Model.WishlistEnabled)
+        {
+            <li>
+                <a href="@Url.RouteUrl(NopRouteNames.General.WISHLIST)" class="ico-wishlist">
+                    <span class="wishlist-label">@T("Wishlist")</span>
+                    <span class="wishlist-qty">@T("Wishlist.HeaderQuantity", Model.WishlistItems)</span>
+                </a>
+            </li>
+        }
+        @if (Model.ShoppingCartEnabled)
+        {
+            <li id="topcartlink" class="cw-cart-item">
+                <a href="@Url.RouteUrl(NopRouteNames.General.CART)" class="ico-cart cw-cart-button">
+                    <span class="cart-label">@cartLabel</span>
+                    <span class="cart-qty">@T("ShoppingCart.HeaderQuantity", Model.ShoppingCartItems)</span>
+                </a>
+            </li>
+        }
+        @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.HeaderLinksAfter, additionalData = Model })
+    </ul>
+    @if (Model.AllowPrivateMessages && !string.IsNullOrEmpty(Model.AlertMessage))
+    {
+        <script asp-location="Footer">
+            $(function() {
+                displayPopupNotification('@Html.Raw(JavaScriptEncoder.Default.Encode(Model.AlertMessage))', 'success', false);
+            });
+        </script>
+    }
+    @if (Model.ShoppingCartEnabled)
+    {
+        <script asp-location="Footer">
+            $(function() {
+                $('.header-upper').on({
+                    focus: function(){
+                        $('#flyout-cart').addClass('active');
+                    },
+                    focusout: function() {
+                        setTimeout(function() {
+                            if (!$('#topcartlink, #flyout-cart').find(':focus').length) {
+                                $('#flyout-cart').removeClass('active');
+                            }
+                        }, 0)
+                    },
+                    mouseenter: function() {
+                        $('#flyout-cart').addClass('active');
+                    },
+                    mouseleave: function() {
+                        $('#flyout-cart').removeClass('active');
+                    }
+                }, '#topcartlink, #flyout-cart');
+
+                var localized_data = {
+                    AjaxCartFailure: "@T("AjaxCart.Failure")"
+                };
+
+                AjaxCart.init(@Model.UsePopupNotifications.ToString().ToLowerInvariant(), '.header-links .cart-qty', '.header-links .wishlist-qty', '#flyout-cart', localized_data);
+            });
+        </script>
+    }
+</div>

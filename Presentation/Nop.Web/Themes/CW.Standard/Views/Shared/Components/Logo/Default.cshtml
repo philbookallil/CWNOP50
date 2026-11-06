@@ -1,0 +1,33 @@
+@using Nop.Core
+@using Nop.Services.Configuration
+@using Nop.Services.Media
+@model LogoModel
+
+@inject IStoreContext storeContext
+@inject ISettingService settingService
+@inject IPictureService pictureService
+
+@*
+    CW.Standard logo — based on the core Logo component. Prefers the per-store
+    CW.ThemeCore logo (CwThemeSettings.LogoPictureId) when defined, read by setting
+    KEY so the theme stays decoupled from the plugin's types (same pattern as Head.cshtml)
+    and degrades gracefully if ThemeCore isn't installed. Falls back to the default
+    Model.LogoPath. Original markup; no third-party code.
+*@
+
+@{
+    var storeId = (await storeContext.GetCurrentStoreAsync()).Id;
+    var logoPictureId = await settingService.GetSettingByKeyAsync("cwthemesettings.logopictureid", 0, storeId, true);
+
+    var logoUrl = Model.LogoPath;
+    if (logoPictureId > 0)
+    {
+        var pictureUrl = await pictureService.GetPictureUrlAsync(logoPictureId, showDefaultPicture: false);
+        if (!string.IsNullOrEmpty(pictureUrl))
+            logoUrl = pictureUrl;
+    }
+}
+
+<a class="logo" href="@Url.RouteUrl(NopRouteNames.General.HOMEPAGE)" title="@Model.StoreName">
+    <img alt="@Model.StoreName" src="@logoUrl">
+</a>

@@ -1,0 +1,58 @@
+{
+  "themeSystemName": "CW.Standard",
+  "brandPreview": {
+    "css": "brand-preview/preview.css",
+    "views": [
+      { "key": "home", "title": "Home page", "file": "brand-preview/home.html" },
+      { "key": "categories", "title": "Category listing", "file": "brand-preview/category.html" },
+      { "key": "product", "title": "Product page", "file": "brand-preview/product.html" },
+      { "key": "cart", "title": "Shopping cart", "file": "brand-preview/cart.html" },
+      { "key": "checkout", "title": "Checkout (one page)", "file": "brand-preview/checkout.html" }
+    ]
+  },
+  "regionMap": [
+    { "selector": ".discount-percentage, .save-percentage", "region": "danger" },
+    { "selector": ".product-review-box .rating, .rating", "region": "warning" },
+    { "selector": ".button-1, .button-2, .search-box-button, .newsletter-subscribe-button, .write-product-review-button, .estimate-shipping-button, .checkout-button", "region": "button" },
+    { "selector": ".header-menu, .top-menu, .menu__link", "region": "nav" },
+    { "selector": "a", "region": "link" }
+  ],
+  "sections": [
+    {
+      "key": "home",
+      "title": "Home screen",
+      "default": "standard",
+      "layouts": [
+        { "key": "standard", "title": "Standard (full width)", "type": "css-class", "cssClass": "", "wireframe": "full" },
+        { "key": "boxed", "title": "Boxed (narrower, centred)", "type": "css-class", "cssClass": "cw-home--boxed", "wireframe": "boxed" }
+      ]
+    },
+    {
+      "key": "catalog",
+      "title": "Catalog screen",
+      "default": "roomy",
+      "layouts": [
+        { "key": "roomy", "title": "Roomy grid", "type": "css-class", "cssClass": "", "wireframe": "grid-2" },
+        { "key": "compact", "title": "Compact grid", "type": "css-class", "cssClass": "cw-catalog--compact", "wireframe": "grid-3" }
+      ]
+    },
+    {
+      "key": "product",
+      "title": "Product details screen",
+      "default": "two-column",
+      "layouts": [
+        { "key": "two-column", "title": "Two Column (gallery beside details)", "type": "css-class", "cssClass": "", "wireframe": "split" },
+        { "key": "one-column", "title": "One Column (gallery above details)", "type": "css-class", "cssClass": "cw-product--one-col", "wireframe": "stack" }
+      ]
+    },
+    {
+      "key": "checkout",
+      "title": "Checkout screen (one page)",
+      "default": "standard",
+      "layouts": [
+        { "key": "standard", "title": "Standard (full width)", "type": "css-class", "cssClass": "", "wireframe": "full" },
+        { "key": "centered", "title": "Centred (narrower column)", "type": "css-class", "cssClass": "cw-checkout--centered", "wireframe": "narrow" }
+      ]
+    }
+  ]
+}

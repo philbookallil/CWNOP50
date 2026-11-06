@@ -1,0 +1,1025 @@
+@model CwThemeSettingsModel
+@using System.Text.Json
+@{
+    Layout = "_ConfigurePlugin";
+}
+@functions {
+    // Mini page-diagram for a layout picker card, chosen by the manifest's wireframe token (neutral admin SVG).
+    static string LayoutWireframe(string token)
+    {
+        const string open = "<svg viewBox='0 0 120 84' class='cw-wf-svg' aria-hidden='true'><rect class='wf-page' x='1' y='1' width='118' height='82' rx='5'/>";
+        const string close = "</svg>";
+        var inner = token switch
+        {
+            "boxed" =>
+                "<rect class='wf-bar' x='24' y='8' width='72' height='12' rx='2'/>" +
+                "<rect class='wf-block' x='24' y='26' width='72' height='20' rx='2'/>" +
+                "<rect class='wf-line' x='24' y='52' width='72' height='6' rx='2'/>" +
+                "<rect class='wf-line' x='24' y='64' width='52' height='6' rx='2'/>",
+            "grid-2" =>
+                "<rect class='wf-bar' x='8' y='8' width='104' height='10' rx='2'/>" +
+                "<rect class='wf-card' x='8' y='26' width='48' height='50' rx='2'/>" +
+                "<rect class='wf-card' x='64' y='26' width='48' height='50' rx='2'/>",
+            "grid-3" =>
+                "<rect class='wf-bar' x='8' y='8' width='104' height='10' rx='2'/>" +
+                "<rect class='wf-card' x='8' y='26' width='30' height='50' rx='2'/>" +
+                "<rect class='wf-card' x='45' y='26' width='30' height='50' rx='2'/>" +
+                "<rect class='wf-card' x='82' y='26' width='30' height='50' rx='2'/>",
+            "split" =>
+                "<rect class='wf-bar' x='8' y='8' width='104' height='10' rx='2'/>" +
+                "<rect class='wf-img' x='8' y='26' width='50' height='50' rx='2'/>" +
+                "<rect class='wf-line' x='66' y='28' width='46' height='8' rx='2'/>" +
+                "<rect class='wf-line' x='66' y='42' width='46' height='6' rx='2'/>" +
+                "<rect class='wf-line' x='66' y='54' width='34' height='6' rx='2'/>" +
+                "<rect class='wf-btn' x='66' y='66' width='30' height='10' rx='2'/>",
+            "stack" =>
+                "<rect class='wf-bar' x='8' y='8' width='104' height='10' rx='2'/>" +
+                "<rect class='wf-img' x='8' y='26' width='104' height='30' rx='2'/>" +
+                "<rect class='wf-line' x='8' y='60' width='104' height='6' rx='2'/>" +
+                "<rect class='wf-line' x='8' y='70' width='70' height='6' rx='2'/>",
+            "narrow" =>
+                "<rect class='wf-bar' x='8' y='8' width='104' height='10' rx='2'/>" +
+                "<rect class='wf-field' x='36' y='26' width='48' height='8' rx='2'/>" +
+                "<rect class='wf-field' x='36' y='40' width='48' height='8' rx='2'/>" +
+                "<rect class='wf-field' x='36' y='54' width='48' height='8' rx='2'/>" +
+                "<rect class='wf-btn' x='36' y='68' width='48' height='8' rx='2'/>",
+            "full" =>
+                "<rect class='wf-bar' x='8' y='8' width='104' height='12' rx='2'/>" +
+                "<rect class='wf-block' x='8' y='26' width='104' height='20' rx='2'/>" +
+                "<rect class='wf-line' x='8' y='52' width='104' height='6' rx='2'/>" +
+                "<rect class='wf-line' x='8' y='64' width='80' height='6' rx='2'/>",
+            _ =>
+                "<rect class='wf-bar' x='8' y='8' width='104' height='10' rx='2'/>" +
+                "<rect class='wf-block' x='8' y='26' width='104' height='50' rx='2'/>",
+        };
+        return open + inner + close;
+    }
+}
+
+<form asp-controller="CwThemeCore" asp-action="Configure" method="post">
+    <div class="cards-group">
+        @await Component.InvokeAsync("StoreScopeConfiguration")
+        <div class="card card-default">
+            <div class="card-header">
+                @T("Plugins.CW.ThemeCore.Configure.BrandDesigner")
+                <button type="submit" name="save" class="btn btn-primary float-right">
+                    <i class="far fa-save"></i>
+                    @T("Admin.Common.Save")
+                </button>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">@T("Plugins.CW.ThemeCore.Configure.BrandDesigner.Hint")</p>
+
+                <div class="row cw-designer-row">
+                    <div class="col-lg-5 cw-controls-col">
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <div class="cw-brand-chips">
+                                    @foreach (var preset in Model.BrandPresets)
+                                    {
+                                        <button type="button" class="btn btn-sm cw-brand-chip" data-prompt="@preset.Name"
+                                                style="background-color: #@preset.PrimaryColor; border-color: #@preset.PrimaryColor;">@preset.Name</button>
+                                    }
+                                    <button type="button" id="cw-brand-surprise" class="btn btn-outline-primary btn-sm">🎲 Surprise me</button>
+                                    <button type="button" id="cw-brand-reset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-muted">@T("Plugins.CW.ThemeCore.Configure.AccentColours.Hint")</p>
+                        <div id="cw-theme-settings">
+                        <div class="form-group row">
+                            <div class="col-md-6">
+                                <nop-override-store-checkbox asp-for="DisableAccentColors_OverrideForStore" asp-input="DisableAccentColors" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="DisableAccentColors" />
+                            </div>
+                            <div class="col-md-6">
+                                <nop-editor asp-for="DisableAccentColors" />
+                                <span asp-validation-for="DisableAccentColors"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-6">
+                                <nop-override-store-checkbox asp-for="PrimaryColor_OverrideForStore" asp-input="PrimaryColor" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="PrimaryColor" />
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group" style="max-width: 200px;">
+                                    <input type="color" class="cw-color-picker form-control" style="max-width: 60px;" data-target="PrimaryColor" />
+                                    <nop-editor asp-for="PrimaryColor" />
+                                </div>
+                                <span asp-validation-for="PrimaryColor"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-6">
+                                <nop-override-store-checkbox asp-for="PrimaryTintColor_OverrideForStore" asp-input="PrimaryTintColor" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="PrimaryTintColor" />
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group" style="max-width: 200px;">
+                                    <input type="color" class="cw-color-picker form-control" style="max-width: 60px;" data-target="PrimaryTintColor" />
+                                    <nop-editor asp-for="PrimaryTintColor" />
+                                </div>
+                                <span asp-validation-for="PrimaryTintColor"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-6">
+                                <nop-override-store-checkbox asp-for="SuccessColor_OverrideForStore" asp-input="SuccessColor" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="SuccessColor" />
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group" style="max-width: 200px;">
+                                    <input type="color" class="cw-color-picker form-control" style="max-width: 60px;" data-target="SuccessColor" />
+                                    <nop-editor asp-for="SuccessColor" />
+                                </div>
+                                <span asp-validation-for="SuccessColor"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-6">
+                                <nop-override-store-checkbox asp-for="DangerColor_OverrideForStore" asp-input="DangerColor" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="DangerColor" />
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group" style="max-width: 200px;">
+                                    <input type="color" class="cw-color-picker form-control" style="max-width: 60px;" data-target="DangerColor" />
+                                    <nop-editor asp-for="DangerColor" />
+                                </div>
+                                <span asp-validation-for="DangerColor"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-6">
+                                <nop-override-store-checkbox asp-for="WarningColor_OverrideForStore" asp-input="WarningColor" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="WarningColor" />
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group" style="max-width: 200px;">
+                                    <input type="color" class="cw-color-picker form-control" style="max-width: 60px;" data-target="WarningColor" />
+                                    <nop-editor asp-for="WarningColor" />
+                                </div>
+                                <span asp-validation-for="WarningColor"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-6">
+                                <nop-override-store-checkbox asp-for="DarkColor_OverrideForStore" asp-input="DarkColor" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="DarkColor" />
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group" style="max-width: 200px;">
+                                    <input type="color" class="cw-color-picker form-control" style="max-width: 60px;" data-target="DarkColor" />
+                                    <nop-editor asp-for="DarkColor" />
+                                </div>
+                                <span asp-validation-for="DarkColor"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-6">
+                                <nop-override-store-checkbox asp-for="ButtonRadius_OverrideForStore" asp-input="ButtonRadius" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                <nop-label asp-for="ButtonRadius" />
+                            </div>
+                            <div class="col-md-6">
+                                <div class="cw-radius-row">
+                                    <input type="range" id="ButtonRadius_range" min="0" max="24" step="1" />
+                                    <nop-editor asp-for="ButtonRadius" />
+                                </div>
+                                <span asp-validation-for="ButtonRadius"></span>
+                            </div>
+                        </div>
+
+                    @if (Model.LayoutSections.Any())
+                    {
+                        <p class="text-muted">@T("Plugins.CW.ThemeCore.Configure.Layouts.Hint")</p>
+                        @for (var i = 0; i < Model.LayoutSections.Count; i++)
+                        {
+                            <input type="hidden" asp-for="LayoutSections[i].SectionKey" />
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-override-store-checkbox asp-for="LayoutSections[i].OverrideForStore" asp-input="LayoutSections[i].SelectedLayoutKey" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                                    <label class="col-form-label">@Model.LayoutSections[i].Title</label>
+                                </div>
+                                <div class="col-md-9">
+                                    @* Hidden native <select> stays the source of truth (model binding + the per-store
+                                       override enable/disable target); the wireframe cards below are the visible UI. *@
+                                    <select class="cw-layout-select cw-sr-only" data-cw-section="@Model.LayoutSections[i].SectionKey" asp-for="LayoutSections[i].SelectedLayoutKey">
+                                        @foreach (var opt in Model.LayoutSections[i].Options)
+                                        {
+                                            <option value="@opt.Key">@opt.Title</option>
+                                        }
+                                    </select>
+                                    <div class="cw-wf-cards" data-cw-section="@Model.LayoutSections[i].SectionKey">
+                                        @foreach (var opt in Model.LayoutSections[i].Options)
+                                        {
+                                            <button type="button" class="cw-wf-card@(opt.Key == Model.LayoutSections[i].SelectedLayoutKey ? " active" : "")" data-cw-key="@opt.Key" title="@opt.Title" aria-label="@opt.Title">
+                                                <span class="cw-wf-frame">@Html.Raw(LayoutWireframe(opt.Wireframe))</span>
+                                                <span class="cw-wf-label">@opt.Title</span>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+
+                </div>
+                    <div class="form-group row">
+                        <div class="col-md-12">
+                            <label class="cw-ai-label">Ask the AI assistant</label>
+                            <p class="cw-ai-hint text-muted">Describe the look you want and click Generate — it fills in the colours and settings for you. You can also ask it to tweak what you have now.</p>
+                            <textarea id="cw-brand-prompt" class="form-control" rows="3" style="max-width: 1200px; resize: vertical;"
+                                      placeholder="Describe the look, pick a vibe above, or ask for a tweak — e.g. “corporate blue with pill buttons”, “a more intense red”, “softer and warmer”, “square buttons”."></textarea>
+                            <button type="button" id="cw-brand-generate" class="btn btn-primary mt-2">
+                                <i class="fas fa-magic"></i> Generate
+                            </button>
+                            <small class="text-muted ml-2">Tip: press Ctrl+Enter to generate.</small>
+                        </div>
+                    </div>
+                </div>
+                    <div class="col-lg-7 cw-preview-col">
+                        @if (Model.HasThemePreview)
+                        {
+                            <div class="cw-preview-toolbar">
+                                <label class="cw-view-label" for="cw-view-select">Preview</label>
+                                <select id="cw-view-select" class="form-control form-control-sm cw-view-select">
+                                    @foreach (var pv in Model.PreviewViews)
+                                    {
+                                        <option value="@pv.Key">@pv.Title</option>
+                                    }
+                                </select>
+                                <button type="button" id="cw-edit-toggle" class="btn btn-outline-secondary btn-sm" aria-pressed="false">
+                                    <i class="fas fa-mouse-pointer"></i> Edit elements
+                                </button>
+                                <small class="text-muted cw-edit-hint" style="display: none;">Click a highlighted part of the preview to style it.</small>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(Model.PreviewCss))
+                            {
+                                <style>@Html.Raw(Model.PreviewCss)</style>
+                            }
+                            <div id="cw-theme-preview" class="cw-store-preview">
+                                @{ var cwFirstView = true; }
+                                @foreach (var pv in Model.PreviewViews)
+                                {
+                                    <div class="cw-pv @(cwFirstView ? "active" : "")" data-view="@pv.Key">@Html.Raw(pv.Html)</div>
+                                    cwFirstView = false;
+                                }
+                            </div>
+                            @if (Model.LivePreviewEnabled)
+                            {
+                                <div id="cw-live-stage" class="cw-live-stage" style="display: none;">
+                                    <iframe id="cw-live-frame" class="cw-live-frame" title="Live storefront preview"></iframe>
+                                </div>
+                                <div id="cw-live-fallback" class="cw-live-fallback" style="display: none;">Couldn't load the live preview — showing a representative mock.</div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="cw-preview-toolbar">
+                                <label class="cw-view-label">Preview</label>
+                                <span class="cw-preview-generic-note">
+                                    Element editing is available for CW themes. The active theme
+                                    <strong>@(string.IsNullOrWhiteSpace(Model.PreviewThemeName) ? "(none)" : Model.PreviewThemeName)</strong>
+                                    isn't a CW theme — showing a generic preview. Colour dials apply only to themes that use the CW tokens; Custom CSS still applies.
+                                </span>
+                            </div>
+                            <div id="cw-theme-preview" class="cw-store-preview cw-generic-preview">
+                                <div class="cw-gp-header"><span class="cw-gp-logo">STORE</span><span class="cw-gp-search"></span></div>
+                                <div class="cw-gp-grid"><div class="cw-gp-card"></div><div class="cw-gp-card"></div><div class="cw-gp-card"></div></div>
+                                <div class="cw-gp-footer"></div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card card-default">
+            <div class="card-header">
+                @T("Plugins.CW.ThemeCore.Configure.CustomCss")
+            </div>
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="CustomCssUrlPolicy_OverrideForStore" asp-input="CustomCssUrlPolicy" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="CustomCssUrlPolicy" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-select asp-for="CustomCssUrlPolicy" asp-items="@Html.GetEnumSelectList<CustomCssUrlPolicy>()" />
+                        <span asp-validation-for="CustomCssUrlPolicy"></span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="CustomCss_OverrideForStore" asp-input="CustomCss" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="CustomCss" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-textarea asp-for="CustomCss" style="height: 320px; font-family: monospace;" />
+                        <span asp-validation-for="CustomCss"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card card-default">
+            <div class="card-header">
+                @T("Plugins.CW.ThemeCore.Configure.Title")
+            </div>
+            <div class="card-body">
+
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="LogoPictureId_OverrideForStore" asp-input="LogoPictureId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="LogoPictureId" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="LogoPictureId" />
+                        <span asp-validation-for="LogoPictureId"></span>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="SecondLogoPictureId_OverrideForStore" asp-input="SecondLogoPictureId" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="SecondLogoPictureId" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="SecondLogoPictureId" />
+                        <span asp-validation-for="SecondLogoPictureId"></span>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="SecondLogoLinkUrl_OverrideForStore" asp-input="SecondLogoLinkUrl" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="SecondLogoLinkUrl" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="SecondLogoLinkUrl" />
+                        <span asp-validation-for="SecondLogoLinkUrl"></span>
+                    </div>
+                </div>
+
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="ReverseLogos_OverrideForStore" asp-input="ReverseLogos" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="ReverseLogos" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="ReverseLogos" />
+                        <span asp-validation-for="ReverseLogos"></span>
+                    </div>
+                </div>
+
+
+        </div>
+    </div>
+
+    </div>
+</form>
+
+<style>
+    .cw-brand-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    /* vibe chips are filled with each preset's own primary colour (inline bg) so the user sees the style at a glance */
+    .cw-brand-chip { color: #fff; font-weight: 600; }
+    .cw-brand-chip:hover, .cw-brand-chip:focus { color: #fff; filter: brightness(1.08); }
+    .cw-brand-swatches { display: flex; flex-wrap: wrap; gap: 14px; }
+    .cw-brand-swatches .cw-sw { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; }
+    .cw-brand-swatches .cw-sw-dot { width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0,0,0,.12); background: #ccc; }
+    /* two-column designer row: brand/layout controls LEFT, preview RIGHT (wide, sticky, tall); stacks below lg.
+       Source order is controls-then-preview, which is also the visual order, so no flex reordering is needed. */
+    /* button-radius row: slider + number box, vertically centred (Bootstrap .input-group doesn't align a range input) */
+    .cw-radius-row { display: flex; align-items: center; gap: 12px; max-width: 200px; }
+    .cw-radius-row input[type="range"] { flex: 1 1 auto; min-width: 0; padding: 0; margin: 0; }
+    .cw-radius-row .form-control { flex: 0 0 72px; width: 72px; }
+    .cw-ai-label { display: block; font-weight: 600; margin-bottom: 2px; color: #22262e; }
+    .cw-ai-hint { margin-bottom: 8px; font-size: 13px; }
+    .cw-designer-row { margin-top: 18px; }
+    /* keep the intro paragraph clean: no rule after it (designer-row border removed) and none before it
+       (hide the brand-designer card's header separator only — scoped so other cards keep theirs) */
+    .card:has(.cw-designer-row) > .card-header { border-bottom: 0; }
+    .cw-designer-row .cw-controls-col { margin-bottom: 16px; }
+    @@media (min-width: 992px) {
+        .cw-designer-row .cw-controls-col { margin-bottom: 0; }
+        .cw-designer-row .cw-preview-col { position: sticky; top: 12px; align-self: flex-start; }
+    }
+    /* mini-storefront live preview — recolours from the --cw-* vars the preview JS sets on #cw-theme-preview */
+    .cw-store-preview { border: 1px solid #e6e8ec; border-radius: 10px; overflow: hidden; background: #fff;
+        font-family: "Segoe UI", Roboto, Arial, sans-serif; color: #22262e; max-width: 100%; }
+    /* live preview (Phase 1): the iframe renders the storefront at a DESKTOP width (set in JS) and is scaled
+       down to fit the column, so the theme's desktop breakpoints apply — a column-width iframe would otherwise
+       trigger the tablet/phone layout. The stage clips to the scaled size; its height is set in JS. */
+    .cw-live-stage { position: relative; width: 100%; overflow: hidden; border: 1px solid #e6e8ec; border-radius: 10px; background: #fff; }
+    .cw-live-frame { display: block; border: 0; background: #fff; transform-origin: 0 0; }
+    .cw-live-fallback { max-width: 100%; margin-top: 10px; font-size: 12px; color: #a4661a; }
+
+    /* wireframe layout pickers (replace the plain <select>; the real <select> stays sr-only for binding) */
+    .cw-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    .cw-wf-cards { display: flex; flex-wrap: wrap; gap: 12px; }
+    .cw-wf-cards.cw-disabled { opacity: .5; pointer-events: none; }
+    .cw-wf-card { display: flex; flex-direction: column; gap: 6px; width: 130px; padding: 8px; background: #fff; border: 2px solid #e6e8ec; border-radius: 10px; cursor: pointer; text-align: center; transition: border-color .12s, box-shadow .12s; }
+    .cw-wf-card:hover { border-color: #c3c9d2; }
+    .cw-wf-card.active { border-color: #2f6fed; box-shadow: 0 0 0 3px rgba(47,111,237,.12); }
+    .cw-wf-frame { display: block; }
+    .cw-wf-svg { width: 100%; height: auto; display: block; }
+    .cw-wf-svg .wf-page { fill: #fff; stroke: #d9dde3; stroke-width: 1.5; }
+    .cw-wf-svg .wf-bar { fill: #b7c0cc; }
+    .cw-wf-svg .wf-block, .cw-wf-svg .wf-card, .cw-wf-svg .wf-img { fill: #eef0f3; stroke: #e2e6ec; stroke-width: 1; }
+    .cw-wf-svg .wf-img { fill: #e2e6ec; }
+    .cw-wf-svg .wf-line { fill: #d7dbe1; }
+    .cw-wf-svg .wf-field { fill: #eef0f3; stroke: #dfe3e8; stroke-width: 1; }
+    .cw-wf-svg .wf-btn { fill: #9aa4b2; }
+    .cw-wf-label { font-size: 12px; font-weight: 600; color: #4b5563; line-height: 1.2; }
+    .cw-wf-card.active .cw-wf-label { color: #1f4fbf; }
+
+    /* ---- multi-view preview (framework chrome; per-view content styling ships with the theme) ---- */
+    .cw-preview-toolbar .cw-view-label { margin: 0; font-weight: 600; color: #6b7280; }
+    .cw-preview-toolbar .cw-view-select { width: auto; min-width: 150px; }
+    .cw-preview-generic-note { font-size: 12px; color: #6b7280; }
+    .cw-pv { display: none; }
+    .cw-pv.active { display: block; }
+
+    /* generic fallback preview (non-CW theme): neutral, non-editable */
+    .cw-generic-preview .cw-gp-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #f3f4f6; border-bottom: 1px solid #e6e8ec; }
+    .cw-generic-preview .cw-gp-logo { font-weight: 800; color: #9aa0a8; letter-spacing: .05em; }
+    .cw-generic-preview .cw-gp-search { flex: 1; height: 22px; max-width: 320px; background: #e6e8ec; border-radius: 4px; }
+    .cw-generic-preview .cw-gp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 16px; }
+    .cw-generic-preview .cw-gp-card { height: 120px; background: #eef0f3; border: 1px solid #e6e8ec; border-radius: 8px; }
+    .cw-generic-preview .cw-gp-footer { height: 34px; background: #e9ebee; }
+
+    /* point-and-click element editor (scoped to the preview sandbox) */
+    .cw-preview-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    #cw-edit-toggle.active { background: var(--cw-primary, #4a4a4a); border-color: var(--cw-primary, #4a4a4a); color: #fff; }
+    #cw-theme-preview.cw-edit-mode [data-cw-style] { cursor: pointer; }
+    #cw-theme-preview.cw-edit-mode [data-cw-style]:hover { outline: 2px dashed var(--cw-primary, #4a4a4a); outline-offset: 2px; }
+    #cw-theme-preview [data-cw-style].cw-selected { outline: 2px solid var(--cw-primary, #4a4a4a); outline-offset: 2px; }
+    .cw-style-popover { position: fixed; z-index: 1080; width: 250px; background: #fff; border: 1px solid #d9dde3;
+        border-radius: 8px; box-shadow: 0 8px 24px rgba(20,23,28,.18); padding: 12px 14px; font-size: 13px; }
+    .cw-style-popover h4 { font-size: 13px; font-weight: 700; margin: 0 0 10px; padding-right: 16px; }
+    .cw-style-popover .cw-pop-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .cw-style-popover .cw-pop-row:last-child { margin-bottom: 0; }
+    .cw-style-popover label { margin: 0; flex: 0 0 74px; color: #6b7280; }
+    .cw-style-popover input[type="color"] { width: 40px; height: 30px; padding: 0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
+    .cw-style-popover input[type="range"] { flex: 1 1 auto; padding: 0; min-width: 0; }
+    .cw-style-popover input[type="text"], .cw-style-popover input[type="number"] { flex: 1; height: 30px; min-width: 0; }
+    /* radius number input: fixed narrow width so the slider shrinks instead of squishing it (and its spin arrows).
+       Selector must outscore `.cw-style-popover input[type="number"]` (0,2,1) → include input[type=number] here too. */
+    .cw-style-popover input[type="number"].cw-pop-num { flex: 0 0 56px; width: 56px; }
+    .cw-style-popover .cw-pop-close { position: absolute; top: 6px; right: 8px; border: none; background: none;
+        color: #9aa0a8; font-size: 18px; line-height: 1; cursor: pointer; }
+    .cw-style-popover .cw-pop-close:hover { color: #22262e; }
+    .cw-style-popover .cw-pop-ai-label { margin: 10px 0 6px; padding-top: 10px; border-top: 1px solid #eceef1; color: #6b7280; }
+    .cw-style-popover .cw-pop-ai { gap: 6px; margin-bottom: 0; }
+    .cw-style-popover .cw-pop-ai input[type="text"] { flex: 1; height: 30px; }
+    .cw-style-popover .cw-pop-ai .btn { flex: 0 0 auto; }
+</style>
+
+@* Server values for the script below (CLAUDE.md §9.14): attribute values encode/decode symmetrically, so nothing
+   is interpolated into JavaScript. JSON-valued attributes are parsed by jQuery's .data(). *@
+<div id="cw-themecore-config"
+     data-generate-url="@Url.Action("GenerateBrand", "CwThemeCore")"
+     data-random-url="@Url.Action("RandomBrand", "CwThemeCore")"
+     data-refresh-token-url="@Url.Action("RefreshPreviewToken", "CwThemeCore")"
+     data-live-enabled="@(Model.LivePreviewEnabled ? "true" : "false")"
+     data-preview-store-id="@Model.PreviewStoreId"
+     data-preview-store-origin="@Model.PreviewStoreOrigin"
+     data-preview-urls="@JsonSerializer.Serialize(Model.PreviewUrls)"
+     data-preview-layout-classes="@JsonSerializer.Serialize(Model.PreviewLayoutClasses)"
+     data-preview-token="@Model.PreviewToken"
+     data-preview-token-key="@Nop.Plugin.CW.ThemeCore.Infrastructure.CwPreviewFramingMiddleware.QueryKey"
+     data-preview-token-refresh-after="@Model.PreviewTokenRefreshAfterSeconds"
+     data-preview-primary-logo="@Model.PreviewPrimaryLogoUrl"
+     data-preview-second-logo="@Model.PreviewSecondLogoUrl"
+     data-preview-reverse-logos="@(Model.ReverseLogos ? "true" : "false")"
+     style="display: none;"></div>
+
+<script asp-location="Footer">
+    $(function () {
+        var $cfg = $('#cw-themecore-config');
+        var generateUrl = $cfg.data('generateUrl');
+        var randomUrl = $cfg.data('randomUrl');
+
+        var map = {
+            'PrimaryColor': '--cw-primary',
+            'PrimaryTintColor': '--cw-primary-tint',
+            'SuccessColor': '--cw-success',
+            'DangerColor': '--cw-danger',
+            'WarningColor': '--cw-warning',
+            'DarkColor': '--cw-dark'
+        };
+        var preview = document.getElementById('cw-theme-preview');
+        var hexRe = /^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+        var radiusInput = document.getElementById('ButtonRadius');
+        var radiusRange = document.getElementById('ButtonRadius_range');
+
+        function normalize(v) { return (v || '').trim().replace(/^#/, ''); }
+
+        function currentRadius() {
+            var n = parseInt(radiusInput && radiusInput.value, 10);
+            if (isNaN(n) || n < 0) n = 0;
+            if (n > 999) n = 999;
+            return n;
+        }
+        function applyRadiusToPreview() {
+            var n = currentRadius();
+            preview.style.setProperty('--cw-btn-radius', n + 'px');
+            if (radiusRange) radiusRange.value = Math.min(n, parseInt(radiusRange.max, 10) || 24);
+        }
+
+        function updateSwatches() {
+            document.querySelectorAll('#cw-brand-swatches .cw-sw').forEach(function (sw) {
+                var input = document.getElementById(sw.getAttribute('data-field'));
+                var dot = sw.querySelector('.cw-sw-dot');
+                if (!input || !dot) return;
+                var v = normalize(input.value);
+                if (/^[0-9a-fA-F]{3,8}$/.test(v)) { dot.style.background = '#' + v; }
+            });
+        }
+
+        function refresh() {
+            Object.keys(map).forEach(function (id) {
+                var input = document.getElementById(id);
+                if (!input) return;
+                var val = normalize(input.value);
+                if (hexRe.test(val)) {
+                    preview.style.setProperty(map[id], '#' + val);
+                }
+            });
+            applyRadiusToPreview();
+            updateSwatches();
+            postDraftToFrame();
+        }
+
+        // wire native colour pickers to their text inputs
+        document.querySelectorAll('.cw-color-picker').forEach(function (picker) {
+            var input = document.getElementById(picker.getAttribute('data-target'));
+            if (!input) return;
+
+            var initial = normalize(input.value);
+            if (/^[0-9a-fA-F]{6}$/.test(initial)) {
+                picker.value = '#' + initial;
+            }
+
+            picker.addEventListener('input', function () {
+                input.value = normalize(picker.value);
+                refresh();
+            });
+            input.addEventListener('change', function () {
+                var v = normalize(input.value);
+                if (/^[0-9a-fA-F]{6}$/.test(v)) { picker.value = '#' + v; }
+                refresh();
+            });
+        });
+
+        // ---- Guided Brand Designer (MVP) ----
+        var brandFields = ['PrimaryColor', 'PrimaryTintColor', 'SuccessColor', 'DangerColor', 'WarningColor', 'DarkColor'];
+        var initialBrand = {};
+        brandFields.forEach(function (id) { var el = document.getElementById(id); initialBrand[id] = el ? el.value : ''; });
+        initialBrand.ButtonRadius = radiusInput ? radiusInput.value : 8;
+
+        function applyPalette(data) {
+            if (!data) return;
+            brandFields.forEach(function (id) {
+                var camel = id.charAt(0).toLowerCase() + id.slice(1);
+                var val = (data[id] !== undefined && data[id] !== null) ? data[id] : data[camel];
+                if (val === undefined || val === null) return;
+                var input = document.getElementById(id);
+                if (!input) return;
+                input.value = normalize(val);
+                var nv = normalize(val);
+                var picker = document.querySelector('.cw-color-picker[data-target="' + id + '"]');
+                if (picker && /^[0-9a-fA-F]{6}$/.test(nv)) { picker.value = '#' + nv; }
+            });
+            // button-radius knob (accepts camelCase or PascalCase)
+            var r = (data.buttonRadius !== undefined && data.buttonRadius !== null) ? data.buttonRadius
+                  : (data.ButtonRadius !== undefined ? data.ButtonRadius : undefined);
+            if (r !== undefined && r !== null && radiusInput) { radiusInput.value = r; }
+            refresh();
+        }
+
+        // the style currently in the form — sent as the modifier base so tweak prompts adjust what's there
+        function currentStyleData(prompt) {
+            var d = { prompt: prompt };
+            brandFields.forEach(function (id) {
+                var el = document.getElementById(id);
+                d['Current.' + id] = el ? normalize(el.value) : '';
+            });
+            d['Current.ButtonRadius'] = currentRadius();
+            return d;
+        }
+
+        var token = $('input[name="__RequestVerificationToken"]').val();
+        function postBrand(url, data) {
+            data = data || {};
+            data.__RequestVerificationToken = token;
+            $.ajax({ url: url, type: 'POST', data: data, success: applyPalette });
+        }
+
+        $('#cw-brand-generate').on('click', function () {
+            postBrand(generateUrl, currentStyleData($('#cw-brand-prompt').val()));
+        });
+        $('.cw-brand-chip').on('click', function () {
+            postBrand(generateUrl, currentStyleData($(this).data('prompt')));
+        });
+        $('#cw-brand-surprise').on('click', function () {
+            postBrand(randomUrl, {});
+        });
+        $('#cw-brand-reset').on('click', function () { applyPalette(initialBrand); });
+        $('#cw-brand-prompt').on('keydown', function (e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('#cw-brand-generate').click(); }
+        });
+
+        // button-radius: slider <-> number field, both drive the preview live
+        if (radiusRange && radiusInput) {
+            radiusRange.value = Math.min(currentRadius(), parseInt(radiusRange.max, 10) || 24);
+            radiusRange.addEventListener('input', function () { radiusInput.value = radiusRange.value; refresh(); });
+            radiusInput.addEventListener('input', refresh);
+            radiusInput.addEventListener('change', refresh);
+        }
+
+        // ---- Point-and-click element editor (scoped to the preview sandbox) ----
+        // Each styleable preview element carries data-cw-style="<region>"; clicking it (in Edit mode) opens an
+        // inline popover whose controls write to the SAME curated fields/tokens — never an arbitrary selector.
+        var editToggle = document.getElementById('cw-edit-toggle');
+        var editHint = document.querySelector('.cw-edit-hint');
+        var popover = null;
+        var selectedEl = null;
+        var selectedRect = null; // when the selection is inside the live iframe: its target rect in admin viewport coords
+        var popoverSync = []; // callbacks that re-read the fields into the open popover's controls after an AI tweak
+
+        var regionConfig = {
+            header:  { label: 'Header',             controls: [{ kind: 'color', target: 'PrimaryColor', label: 'Colour' }] },
+            nav:     { label: 'Navigation',         controls: [{ kind: 'color', target: 'PrimaryColor', label: 'Colour' }] },
+            link:    { label: 'Links',              controls: [{ kind: 'color', target: 'PrimaryColor', label: 'Colour' }] },
+            button:  { label: 'Buttons',            controls: [{ kind: 'color', target: 'PrimaryColor', label: 'Colour' }, { kind: 'radius', label: 'Corners' }] },
+            tint:    { label: 'Tinted areas',       controls: [{ kind: 'color', target: 'PrimaryTintColor', label: 'Background' }] },
+            hero:    { label: 'Tinted areas',       controls: [{ kind: 'color', target: 'PrimaryTintColor', label: 'Background' }] },
+            danger:  { label: 'Sale / danger',      controls: [{ kind: 'color', target: 'DangerColor', label: 'Colour' }] },
+            success: { label: 'In-stock / success', controls: [{ kind: 'color', target: 'SuccessColor', label: 'Colour' }] },
+            warning: { label: 'Ratings / warning',  controls: [{ kind: 'color', target: 'WarningColor', label: 'Colour' }] },
+            dark:    { label: 'Footer / dark',      controls: [{ kind: 'color', target: 'DarkColor', label: 'Colour' }] }
+        };
+
+        function positionPopover() {
+            if (!popover) return;
+            var r = selectedRect || (selectedEl ? selectedEl.getBoundingClientRect() : null);
+            if (!r) return;
+            var pw = popover.offsetWidth, ph = popover.offsetHeight;
+            var left = Math.min(r.left, window.innerWidth - pw - 8);
+            if (left < 8) left = 8;
+            var top = r.bottom + 8;
+            if (top + ph > window.innerHeight - 8) top = r.top - ph - 8; // flip above if no room below
+            if (top < 8) top = 8;
+            popover.style.left = left + 'px';
+            popover.style.top = top + 'px';
+        }
+
+        function closePopover() {
+            if (popover) { popover.remove(); popover = null; }
+            if (selectedEl) { selectedEl.classList.remove('cw-selected'); selectedEl = null; }
+            selectedRect = null;
+            popoverSync = [];
+            window.removeEventListener('scroll', positionPopover, true);
+            window.removeEventListener('resize', positionPopover);
+        }
+
+        function buildColorRow(cfg) {
+            var field = document.getElementById(cfg.target);
+            var cur = normalize(field ? field.value : '');
+            var row = document.createElement('div'); row.className = 'cw-pop-row';
+            var lab = document.createElement('label'); lab.textContent = cfg.label; row.appendChild(lab);
+            var color = document.createElement('input'); color.type = 'color';
+            if (/^[0-9a-fA-F]{6}$/.test(cur)) color.value = '#' + cur;
+            var text = document.createElement('input'); text.type = 'text'; text.className = 'form-control form-control-sm'; text.value = cur;
+            function apply(v) {
+                var nv = normalize(v);
+                if (field) field.value = nv;
+                var picker = document.querySelector('.cw-color-picker[data-target="' + cfg.target + '"]');
+                if (/^[0-9a-fA-F]{6}$/.test(nv)) { if (picker) picker.value = '#' + nv; color.value = '#' + nv; }
+                refresh();
+            }
+            color.addEventListener('input', function () { text.value = normalize(color.value); apply(color.value); });
+            text.addEventListener('input', function () { apply(text.value); });
+            popoverSync.push(function () {
+                var v = normalize(field ? field.value : '');
+                text.value = v;
+                if (/^[0-9a-fA-F]{6}$/.test(v)) color.value = '#' + v;
+            });
+            row.appendChild(color); row.appendChild(text);
+            return row;
+        }
+
+        function buildRadiusRow(cfg) {
+            var row = document.createElement('div'); row.className = 'cw-pop-row';
+            var lab = document.createElement('label'); lab.textContent = cfg.label; row.appendChild(lab);
+            var range = document.createElement('input'); range.type = 'range'; range.min = 0; range.max = 24; range.step = 1;
+            range.value = Math.min(currentRadius(), 24);
+            var num = document.createElement('input'); num.type = 'number'; num.className = 'form-control form-control-sm cw-pop-num';
+            num.min = 0; num.max = 999; num.value = currentRadius();
+            function apply(v) {
+                var n = parseInt(v, 10); if (isNaN(n) || n < 0) n = 0; if (n > 999) n = 999;
+                if (radiusInput) radiusInput.value = n;
+                range.value = Math.min(n, 24); num.value = n;
+                refresh();
+            }
+            range.addEventListener('input', function () { apply(range.value); });
+            num.addEventListener('input', function () { apply(num.value); });
+            popoverSync.push(function () { var n = currentRadius(); range.value = Math.min(n, 24); num.value = n; });
+            row.appendChild(range); row.appendChild(num);
+            return row;
+        }
+
+        // an inline "ask AI to tweak THIS element" row — sends the selected region so the tweak is scoped to its token
+        function buildAiRow(region) {
+            var row = document.createElement('div'); row.className = 'cw-pop-row cw-pop-ai';
+            var input = document.createElement('input'); input.type = 'text'; input.className = 'form-control form-control-sm';
+            input.placeholder = 'Tweak with AI…';
+            var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-primary btn-sm'; btn.title = 'Apply tweak';
+            btn.innerHTML = '<i class="fas fa-magic"></i>';
+            function run() {
+                var p = (input.value || '').trim();
+                if (!p) return;
+                var data = currentStyleData(p);
+                data.region = region;
+                data.__RequestVerificationToken = token;
+                btn.disabled = true;
+                $.ajax({
+                    url: generateUrl, type: 'POST', data: data,
+                    success: function (res) { applyPalette(res); popoverSync.forEach(function (fn) { fn(); }); },
+                    complete: function () { btn.disabled = false; }
+                });
+            }
+            btn.addEventListener('click', run);
+            input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); run(); } });
+            row.appendChild(input); row.appendChild(btn);
+            return row;
+        }
+
+        function buildPopover(region) {
+            popoverSync = [];
+            var cfg = regionConfig[region];
+            popover = document.createElement('div'); popover.className = 'cw-style-popover';
+            var close = document.createElement('button'); close.type = 'button'; close.className = 'cw-pop-close'; close.innerHTML = '&times;';
+            close.addEventListener('click', closePopover); popover.appendChild(close);
+            var h = document.createElement('h4'); h.textContent = cfg.label; popover.appendChild(h);
+            cfg.controls.forEach(function (c) { popover.appendChild(c.kind === 'radius' ? buildRadiusRow(c) : buildColorRow(c)); });
+            var aiLabel = document.createElement('div'); aiLabel.className = 'cw-pop-ai-label'; aiLabel.textContent = 'Or ask AI to tweak this:';
+            popover.appendChild(aiLabel);
+            popover.appendChild(buildAiRow(region));
+            document.body.appendChild(popover);
+            positionPopover();
+            window.addEventListener('scroll', positionPopover, true);
+            window.addEventListener('resize', positionPopover);
+        }
+        // mock picker: a real element in #cw-theme-preview
+        function openPopoverFor(el, region) {
+            closePopover();
+            selectedEl = el; el.classList.add('cw-selected');
+            buildPopover(region);
+        }
+        // live picker: no local element — position from the frame's rect, transformed to admin coords
+        function openPopoverForRegion(region, rect) {
+            closePopover();
+            selectedRect = rect;
+            buildPopover(region);
+        }
+
+        if (editToggle) {
+            editToggle.addEventListener('click', function () {
+                var on = !editToggle.classList.contains('active');
+                editToggle.classList.toggle('active', on);
+                editToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+                if (editHint) editHint.style.display = on ? '' : 'none';
+                preview.classList.toggle('cw-edit-mode', on); // arm the mock picker (used for cart/checkout & non-CW)
+                sendEditMode(on);                             // arm the live-frame picker (Home/Category/Product)
+                if (!on) closePopover();
+            });
+
+            preview.addEventListener('click', function (e) {
+                if (!preview.classList.contains('cw-edit-mode')) return;
+                var el = e.target.closest('[data-cw-style]');
+                if (!el || !preview.contains(el)) return;
+                e.preventDefault(); e.stopPropagation();
+                var region = el.getAttribute('data-cw-style');
+                if (!regionConfig[region]) return;
+                if (selectedEl === el) { closePopover(); return; } // click again to deselect
+                openPopoverFor(el, region);
+            });
+
+            document.addEventListener('mousedown', function (e) {
+                if (!popover) return;
+                if (popover.contains(e.target)) return;
+                if (e.target.closest('#cw-theme-preview [data-cw-style]')) return;
+                closePopover();
+            });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePopover(); });
+        }
+
+        // ---- preview view selector + live frame (every view with a URL = real storefront; Cart/Checkout as the preview customer) ----
+        var viewSelect = document.getElementById('cw-view-select');
+        var views = preview.querySelectorAll('.cw-pv');
+
+        var liveEnabled = $cfg.data('liveEnabled') === true;
+        var previewUrls = $cfg.data('previewUrls');                 // { home, categories, product, cart, checkout: url } — token-free; a missing key falls back to the mock
+        var layoutClassMap = $cfg.data('previewLayoutClasses');     // { section: { layoutKey: cssClass } }
+        var storeOrigin = $cfg.data('previewStoreOrigin') || '';
+        var viewToSection = { home: 'home', categories: 'catalog', product: 'product', checkout: 'checkout' };
+
+        // The signed preview token is appended when a view loads. It expires (server-side lifetime), and an admin can
+        // keep this page open for hours, so past the refresh point a fresh one is fetched before the next load.
+        var previewStoreId = $cfg.data('previewStoreId');
+        var previewToken = String($cfg.data('previewToken') || '');
+        var previewTokenKey = $cfg.data('previewTokenKey');
+        var previewTokenRefreshAfterMs = (parseInt($cfg.data('previewTokenRefreshAfter'), 10) || 0) * 1000;
+        var previewTokenIssuedAt = Date.now();
+        var refreshTokenUrl = $cfg.data('refreshTokenUrl');
+
+        // Preview header logos (mirror the live store): primary = core store logo, second = CW co-brand logo.
+        var previewPrimaryLogo = $cfg.data('previewPrimaryLogo') || '';
+        var previewSecondLogo = $cfg.data('previewSecondLogo') || '';
+        var previewReverseLogos = $cfg.data('previewReverseLogos') === true;
+        function setPreviewLogo(slot, url) {
+            if (!slot || !url) return;           // not configured → keep the placeholder text
+            var img = document.createElement('img');
+            img.className = 'cw-hp-logo-img'; img.src = url; img.alt = 'Logo';
+            slot.textContent = ''; slot.appendChild(img);
+        }
+        function applyPreviewLogos() {
+            if (!preview) return;
+            // ReverseLogos swaps the two header positions (second on the left, primary on the right)
+            setPreviewLogo(preview.querySelector('[data-cw-logo="primary"]'), previewReverseLogos ? previewSecondLogo : previewPrimaryLogo);
+            setPreviewLogo(preview.querySelector('[data-cw-logo="second"]'), previewReverseLogos ? previewPrimaryLogo : previewSecondLogo);
+        }
+        var liveFrame = document.getElementById('cw-live-frame');
+        var liveStage = document.getElementById('cw-live-stage');
+        var liveFallback = document.getElementById('cw-live-fallback');
+        var liveReady = false, liveLoadedView = null, liveTimer = null;
+
+        // Render the storefront at a desktop viewport width, then scale the frame down to fit the column, so the
+        // DESKTOP layout is what's previewed. A column-width iframe would trip the theme's tablet/phone breakpoints.
+        var CW_DESKTOP_W = 1280, CW_FRAME_H = 1600;
+        if (liveFrame) { liveFrame.style.width = CW_DESKTOP_W + 'px'; liveFrame.style.height = CW_FRAME_H + 'px'; }
+        function scaleLiveFrame() {
+            if (!liveStage || !liveFrame) return;
+            var w = liveStage.clientWidth;
+            if (!w) return; // stage hidden → recomputed when it is next shown
+            var scale = w / CW_DESKTOP_W;
+            liveFrame.style.transform = 'scale(' + scale + ')';
+            liveStage.style.height = Math.round(CW_FRAME_H * scale) + 'px';
+        }
+        window.addEventListener('resize', scaleLiveFrame);
+
+        function liveUrlFor(name) { return (liveEnabled && liveFrame && previewUrls && previewUrls[name]) ? previewUrls[name] : null; }
+
+        function withPreviewToken(url) {
+            return url + (url.indexOf('?') < 0 ? '?' : '&') + previewTokenKey + '=' + encodeURIComponent(previewToken);
+        }
+
+        // calls done() once the token is fresh enough to load a view; a failed refresh keeps the current token (an
+        // expired one then just lands on the mock fallback, as before)
+        function withFreshPreviewToken(done) {
+            if (Date.now() - previewTokenIssuedAt < previewTokenRefreshAfterMs) { done(); return; }
+            $.ajax({
+                url: refreshTokenUrl, type: 'POST',
+                data: { storeId: previewStoreId, __RequestVerificationToken: token },
+                success: function (res) {
+                    if (res && res.token) { previewToken = res.token; previewTokenIssuedAt = Date.now(); }
+                },
+                complete: done
+            });
+        }
+
+        function buildTokens() {
+            var t = {};
+            Object.keys(map).forEach(function (id) {
+                var el = document.getElementById(id); if (!el) return;
+                var v = normalize(el.value); if (hexRe.test(v)) t[map[id]] = '#' + v;
+            });
+            t['--cw-btn-radius'] = currentRadius() + 'px';
+            return t;
+        }
+        function buildLayout(name) {
+            var section = viewToSection[name];
+            var classes = section && layoutClassMap ? layoutClassMap[section] : null;
+            if (!classes) return { allClasses: [], selected: '' };
+            var all = Object.keys(classes).map(function (k) { return classes[k]; }).filter(function (c) { return !!c; });
+            var sel = document.querySelector('.cw-layout-select[data-cw-section="' + section + '"]');
+            var key = sel ? sel.value : null;
+            return { allClasses: all, selected: (key != null && classes[key] != null) ? classes[key] : '' };
+        }
+        function postDraftToFrame() {
+            if (!liveReady || !liveFrame || !liveFrame.contentWindow || !storeOrigin) return;
+            var name = viewSelect ? viewSelect.value : 'home';
+            try { liveFrame.contentWindow.postMessage({ type: 'cw-preview:apply', tokens: buildTokens(), layout: buildLayout(name) }, storeOrigin); } catch (e) { }
+        }
+        function editModeOn() { return editToggle && editToggle.classList.contains('active'); }
+        function sendEditMode(on) {
+            if (!liveReady || !liveFrame || !liveFrame.contentWindow || !storeOrigin) return;
+            try { liveFrame.contentWindow.postMessage({ type: on ? 'cw-preview:edit-on' : 'cw-preview:edit-off' }, storeOrigin); } catch (e) { }
+        }
+        // a rect from the framed page (frame-viewport coords) → admin viewport coords, undoing the iframe's scale + offset
+        function transformFrameRect(fr) {
+            if (!fr) return null;
+            var stage = liveStage ? liveStage.getBoundingClientRect() : { left: 0, top: 0 };
+            var scale = (liveStage && liveStage.clientWidth) ? (liveStage.clientWidth / CW_DESKTOP_W) : 1;
+            var left = stage.left + fr.x * scale, top = stage.top + fr.y * scale;
+            var w = fr.width * scale, h = fr.height * scale;
+            return { left: left, top: top, right: left + w, bottom: top + h, width: w, height: h };
+        }
+        window.addEventListener('message', function (e) {
+            if (!storeOrigin || e.origin !== storeOrigin || !e.data) return;
+            if (e.data.type === 'cw-preview:ready') {
+                liveReady = true;
+                if (liveTimer) { clearTimeout(liveTimer); liveTimer = null; }
+                if (liveFallback) liveFallback.style.display = 'none';
+                postDraftToFrame();
+                if (editModeOn()) sendEditMode(true); // re-arm edit mode after a (re)load
+            } else if (e.data.type === 'cw-preview:selected') {
+                if (!regionConfig[e.data.region]) return;
+                openPopoverForRegion(e.data.region, transformFrameRect(e.data.rect));
+            }
+        });
+
+        function showView(name) {
+            views.forEach(function (v) { v.classList.toggle('active', v.getAttribute('data-view') === name); });
+            closePopover(); // selection may live in a now-hidden view
+        }
+
+        function selectView(name) {
+            closePopover(); // a selection may belong to the view we're leaving
+            var url = liveUrlFor(name);
+            if (url) {
+                if (preview) preview.style.display = 'none';
+                if (liveStage) liveStage.style.display = '';
+                scaleLiveFrame();
+                if (liveLoadedView !== name) {
+                    liveReady = false; liveLoadedView = name;
+                    if (liveFallback) liveFallback.style.display = 'none';
+                    if (liveTimer) { clearTimeout(liveTimer); liveTimer = null; }
+                    withFreshPreviewToken(function () {
+                        if (liveLoadedView !== name) return; // the admin moved on while the token was refreshing
+                        liveFrame.src = withPreviewToken(url);
+                        liveTimer = setTimeout(function () {
+                            if (!liveReady) { // couldn't load / no bridge → fall back to the mock
+                                if (liveStage) liveStage.style.display = 'none';
+                                if (preview) preview.style.display = '';
+                                showView(name);
+                                if (liveFallback) liveFallback.style.display = '';
+                            }
+                        }, 6000);
+                    });
+                } else {
+                    postDraftToFrame();
+                }
+            } else { // no live URL for this view (e.g. a store without categories), or live disabled → the mock
+                if (liveStage) liveStage.style.display = 'none';
+                if (liveFallback) liveFallback.style.display = 'none';
+                if (preview) preview.style.display = '';
+                showView(name);
+            }
+        }
+
+        if (viewSelect) {
+            selectView(viewSelect.value);
+            viewSelect.addEventListener('change', function () { selectView(viewSelect.value); });
+        } else if (views.length) {
+            views[0].classList.add('active');
+        }
+
+        // wireframe layout pickers: the cards write to the (hidden) <select>, which stays the source of truth for
+        // model binding + the per-store override enable/disable; the select's change then drives the live preview.
+        function syncLayoutCards(sel) {
+            var wrap = document.querySelector('.cw-wf-cards[data-cw-section="' + sel.getAttribute('data-cw-section') + '"]');
+            if (!wrap) return;
+            wrap.classList.toggle('cw-disabled', sel.disabled);
+            wrap.querySelectorAll('.cw-wf-card').forEach(function (c) {
+                c.classList.toggle('active', c.getAttribute('data-cw-key') === sel.value);
+            });
+        }
+        document.querySelectorAll('.cw-layout-select').forEach(function (sel) {
+            sel.addEventListener('change', function () { postDraftToFrame(); syncLayoutCards(sel); });
+            // the override checkbox toggles the select's disabled attr → mirror that onto the cards
+            new MutationObserver(function () { syncLayoutCards(sel); }).observe(sel, { attributes: true, attributeFilter: ['disabled'] });
+            syncLayoutCards(sel);
+        });
+        document.querySelectorAll('.cw-wf-card').forEach(function (card) {
+            card.addEventListener('click', function () {
+                var wrap = card.closest('.cw-wf-cards');
+                var sel = wrap && document.querySelector('.cw-layout-select[data-cw-section="' + wrap.getAttribute('data-cw-section') + '"]');
+                if (!sel || sel.disabled || sel.value === card.getAttribute('data-cw-key')) return;
+                sel.value = card.getAttribute('data-cw-key');
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
+
+        applyPreviewLogos();
+        refresh();
+    });
+</script>

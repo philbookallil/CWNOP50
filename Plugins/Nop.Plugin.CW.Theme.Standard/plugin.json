@@ -1,0 +1,12 @@
+{
+  "Group": "CW",
+  "FriendlyName": "CW Standard Theme",
+  "SystemName": "CW.Theme.Standard",
+  "Version": "2026_10_29_DATA_1.1",
+  "SupportedVersions": [ "5.00" ],
+  "DependsOnSystemNames": [ "CW.ThemeCore" ],
+  "Author": "Cityweb",
+  "DisplayOrder": 5,
+  "FileName": "Nop.Plugin.CW.Theme.Standard.dll",
+  "Description": "Theme-specific settings for the CW.Standard theme (nav bar style, corner style). Depends on CW.ThemeCore (Pattern C)."
+}

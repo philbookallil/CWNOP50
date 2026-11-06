@@ -1,0 +1,90 @@
+@model FooterModel
+
+@using Nop.Core
+@using Nop.Core.Domain.Tax
+@using static Nop.Services.Common.NopLinksDefaults
+
+@inject IWorkContext workContext
+
+@*
+    CW.Standard footer — original markup, based on the nopCommerce core Footer
+    component, arranged into a modern three-tier layout (emulating a Voyage-style
+    footer, no third-party code):
+      band   = dark newsletter band
+      middle = menu blocks + "Selected offers" column, then a centered social row
+      lower  = light legal bar (powered-by · copyright · theme selector)
+    Styling is token-driven and lives in cw-brand.css.
+*@
+
+<footer class="footer cw-footer">
+
+    @* ── Newsletter band (dark) ─────────────────────────────── *@
+    <section class="cw-footer-newsletter" data-cw-style="dark">
+        <div class="cw-footer-container cw-newsletter-inner">
+            @await Component.InvokeAsync(typeof(NewsLetterBoxViewComponent))
+        </div>
+    </section>
+
+    @* ── Middle: link columns + centered social row ──────────── *@
+    <section class="cw-footer-middle">
+        <div class="cw-footer-container">
+            <div class="cw-footer-blocks">
+                @await Component.InvokeAsync(typeof(FooterMenuViewComponent))
+
+                <div class="footer-block cw-footer-links">
+                    <div class="title"><strong>Selected offers</strong></div>
+                    <ul class="list">
+                        <li><a href="@Url.RouteUrl(NopRouteNames.General.NEW_PRODUCTS)">@T("Products.NewProducts")</a></li>
+                        <li><a href="@Url.RouteUrl(NopRouteNames.General.RECENTLY_VIEWED_PRODUCTS)">@T("Products.RecentlyViewedProducts")</a></li>
+                        <li><a href="@Url.RouteUrl(NopRouteNames.General.COMPARE_PRODUCTS)">@T("Products.Compare.List")</a></li>
+                        <li><a href="@Url.RouteUrl(NopRouteNames.General.SEARCH)">@T("Search")</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="cw-footer-social">
+                @await Component.InvokeAsync(typeof(SocialButtonsViewComponent))
+            </div>
+        </div>
+    </section>
+
+    @* ── Lower: light legal bar ──────────────────────────────── *@
+    <section class="cw-footer-lower">
+        <div class="cw-footer-container cw-footer-legal">
+            <div class="cw-legal-left">
+                @if (!Model.HidePoweredByNopCommerce)
+                {
+                    <span class="footer-powered-by">
+                        Powered by <a href="@(OfficialSite.Main)" target="_blank" @(Model.IsHomePage ? string.Empty : "rel=nofollow")>nopCommerce</a>
+                    </span>
+                }
+            </div>
+
+            <div class="cw-legal-right">
+                @if (Model.DisplayTaxShippingInfoFooter)
+                {
+                    var inclTax = await workContext.GetTaxDisplayTypeAsync() == TaxDisplayType.IncludingTax;
+                    <span class="footer-tax-shipping">
+                        @T(inclTax ? "Footer.TaxShipping.InclTax" : "Footer.TaxShipping.ExclTax", await NopUrl.RouteTopicUrlAsync("shippinginfo"))
+                    </span>
+                }
+                <span class="footer-disclaimer">@T("Content.CopyrightNotice", DateTime.Now.Year, Model.StoreName)</span>
+                @await Component.InvokeAsync(typeof(StoreThemeSelectorViewComponent))
+            </div>
+        </div>
+    </section>
+
+    @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.Footer, additionalData = Model })
+</footer>
+
+<script asp-location="Footer">
+    $(function () {
+        // mobile (<1001px): tap a footer block heading to expand/collapse its list
+        $('.cw-footer .footer-block .title, .cw-footer .footer-menu__title').on('click', function () {
+            if (window.innerWidth < 1001) {
+                $(this).toggleClass('open')
+                    .siblings('.listbox, .list, .footer-menu__list').slideToggle('slow');
+            }
+        });
+    });
+</script>
