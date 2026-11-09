@@ -22,6 +22,11 @@ public static class CwThemeCoreDefaults
     /// </summary>
     public static string AdminMenuSystemName => "CW.ThemeCore.AdminMenu";
 
+    /// <summary>
+    /// Activity log keyword of one AI generation
+    /// </summary>
+    public const string AiGenerateActivityType = "CW.ThemeCore.AiGenerate";
+
     #region CSS custom property (token) names — provisional, pending design palette
 
     public const string CssVarPrimary = "--cw-primary";

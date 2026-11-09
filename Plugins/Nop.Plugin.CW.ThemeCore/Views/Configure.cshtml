@@ -235,12 +235,18 @@
                         <div class="col-md-12">
                             <label class="cw-ai-label">Ask the AI assistant</label>
                             <p class="cw-ai-hint text-muted">Describe the look you want and click Generate — it fills in the colours and settings for you. You can also ask it to tweak what you have now.</p>
+                            <p class="cw-ai-hint text-muted">@T("Plugins.CW.ThemeCore.Configure.AiAssistant.PromptHint")</p>
+                            @if (Model.AiCard.IsFreeCloud)
+                            {
+                                <p class="cw-ai-hint text-warning">@T("Plugins.CW.ThemeCore.Configure.AiAssistant.FreeCloudNotice")</p>
+                            }
                             <textarea id="cw-brand-prompt" class="form-control" rows="3" style="max-width: 1200px; resize: vertical;"
                                       placeholder="Describe the look, pick a vibe above, or ask for a tweak — e.g. “corporate blue with pill buttons”, “a more intense red”, “softer and warmer”, “square buttons”."></textarea>
                             <button type="button" id="cw-brand-generate" class="btn btn-primary mt-2">
                                 <i class="fas fa-magic"></i> Generate
                             </button>
                             <small class="text-muted ml-2">Tip: press Ctrl+Enter to generate.</small>
+                            <div id="cw-ai-status" class="cw-ai-status" role="status"></div>
                         </div>
                     </div>
                 </div>
@@ -385,7 +391,127 @@
     </div>
 </form>
 
+@* Outside the page's form: the key is saved by its own action and is never posted with the other settings *@
+<div class="cards-group cw-ai-card">
+    <div class="card card-default">
+        <div class="card-header">
+            <i class="fas fa-robot"></i>
+            @T("Plugins.CW.ThemeCore.Configure.AiAssistant")
+        </div>
+        <div class="card-body">
+            <p class="text-muted">@T("Plugins.CW.ThemeCore.Configure.AiAssistant.Hint")</p>
+
+            @if (Model.AiCard.IsStoreScope)
+            {
+                <div class="form-group row">
+                    <div class="col-md-9 offset-md-3">
+                        <div class="form-check">
+                            <input type="checkbox" id="cw-ai-override" class="form-check-input" checked="@Model.AiCard.OverrideForStore" />
+                            <label class="form-check-label" for="cw-ai-override">@T("Plugins.CW.ThemeCore.Configure.AiAssistant.OverrideForStore")</label>
+                        </div>
+                        <small id="cw-ai-using-global" class="form-text text-muted">@T("Plugins.CW.ThemeCore.Configure.AiAssistant.UsingGlobal")</small>
+                    </div>
+                </div>
+            }
+
+            <div class="form-group row">
+                <label class="col-md-3 col-form-label" for="cw-ai-provider" title="@T("Plugins.CW.ThemeCore.Fields.AiProvider.Hint")">@T("Plugins.CW.ThemeCore.Fields.AiProvider")</label>
+                <div class="col-md-9">
+                    <select id="cw-ai-provider" class="form-control cw-ai-connection" style="max-width: 400px;">
+                        <option value="">@T("Plugins.CW.ThemeCore.Configure.AiAssistant.NoProvider")</option>
+                        @foreach (var provider in Model.AiCard.Providers)
+                        {
+                            <option value="@provider.Name" selected="@string.Equals(provider.Name, Model.AiCard.Provider, StringComparison.OrdinalIgnoreCase)">@provider.Name</option>
+                        }
+                    </select>
+                    <small id="cw-ai-free-notice" class="form-text text-warning" style="display: none;">@T("Plugins.CW.ThemeCore.Configure.AiAssistant.FreeCloudNotice")</small>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label class="col-md-3 col-form-label" for="cw-ai-baseurl" title="@T("Plugins.CW.ThemeCore.Fields.AiBaseUrl.Hint")">@T("Plugins.CW.ThemeCore.Fields.AiBaseUrl")</label>
+                <div class="col-md-9">
+                    <input type="url" id="cw-ai-baseurl" class="form-control cw-ai-connection" value="@Model.AiCard.BaseUrl" autocomplete="off" />
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label class="col-md-3 col-form-label" for="cw-ai-model" title="@T("Plugins.CW.ThemeCore.Fields.AiModel.Hint")">@T("Plugins.CW.ThemeCore.Fields.AiModel")</label>
+                <div class="col-md-9">
+                    <input type="text" id="cw-ai-model" class="form-control cw-ai-connection" style="max-width: 400px;" value="@Model.AiCard.Model" autocomplete="off" />
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label class="col-md-3 col-form-label" for="cw-ai-apikey" title="@T("Plugins.CW.ThemeCore.Fields.AiApiKey.Hint")">@T("Plugins.CW.ThemeCore.Fields.AiApiKey")</label>
+                <div class="col-md-9">
+                    <input type="password" id="cw-ai-apikey" class="form-control cw-ai-connection" style="max-width: 400px;" autocomplete="new-password" />
+                    @if (!string.IsNullOrEmpty(Model.AiCard.KeyLastFour))
+                    {
+                        <small class="form-text text-muted">@string.Format(T("Plugins.CW.ThemeCore.Configure.AiAssistant.KeySaved").Text, Model.AiCard.KeyLastFour)</small>
+                        <div class="form-check">
+                            <input type="checkbox" id="cw-ai-removekey" class="form-check-input cw-ai-connection" />
+                            <label class="form-check-label" for="cw-ai-removekey">@T("Plugins.CW.ThemeCore.Configure.AiAssistant.RemoveKey")</label>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label class="col-md-3 col-form-label" for="cw-ai-timeout" title="@T("Plugins.CW.ThemeCore.Fields.AiTimeoutSeconds.Hint")">@T("Plugins.CW.ThemeCore.Fields.AiTimeoutSeconds")</label>
+                <div class="col-md-9">
+                    <input type="number" id="cw-ai-timeout" class="form-control cw-ai-connection" style="max-width: 120px;" min="5" max="300" value="@Model.AiCard.TimeoutSeconds" />
+                </div>
+            </div>
+
+            <div class="form-group row" id="cw-ai-effort-row">
+                <label class="col-md-3 col-form-label" for="cw-ai-effort" title="@T("Plugins.CW.ThemeCore.Fields.AiEffort.Hint")">@T("Plugins.CW.ThemeCore.Fields.AiEffort")</label>
+                <div class="col-md-9">
+                    <select id="cw-ai-effort" class="form-control" style="max-width: 200px;" disabled="@Model.AiCard.IsStoreScope">
+                        <option value="low" selected="@(Model.AiCard.Effort == "low")">low</option>
+                        <option value="medium" selected="@(Model.AiCard.Effort == "medium")">medium</option>
+                        <option value="high" selected="@(Model.AiCard.Effort == "high")">high</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label class="col-md-3 col-form-label" for="cw-ai-dailylimit" title="@T("Plugins.CW.ThemeCore.Fields.AiDailyLimit.Hint")">@T("Plugins.CW.ThemeCore.Fields.AiDailyLimit")</label>
+                <div class="col-md-9">
+                    <input type="number" id="cw-ai-dailylimit" class="form-control" style="max-width: 120px;" min="0" value="@Model.AiCard.DailyLimit" disabled="@Model.AiCard.IsStoreScope" />
+                    @if (Model.AiCard.IsStoreScope)
+                    {
+                        <small class="form-text text-muted">@T("Plugins.CW.ThemeCore.Configure.AiAssistant.SetAtAllStores")</small>
+                    }
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-9 offset-md-3">
+                    <button type="button" id="cw-ai-save" class="btn btn-primary">
+                        <i class="far fa-save"></i> @T("Plugins.CW.ThemeCore.Configure.AiAssistant.Save")
+                    </button>
+                    <button type="button" id="cw-ai-test" class="btn btn-outline-secondary">
+                        <i class="fas fa-plug"></i> @T("Plugins.CW.ThemeCore.Configure.AiAssistant.Test")
+                    </button>
+                    <div id="cw-ai-card-status" class="cw-ai-status" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
+    .cw-ai-status { margin-top: 8px; font-size: 13px; }
+    .cw-ai-status[data-kind="error"] { color: #c62828; }
+    .cw-ai-status[data-kind="ok"] { color: #2e7d32; }
+    .cw-ai-status[data-kind="offline"], .cw-ai-status[data-kind="working"] { color: #6b7280; }
+    /* the field a generated style just changed */
+    .cw-changed { animation: cw-changed-pulse 2s ease-out; }
+    @@keyframes cw-changed-pulse {
+        0%, 40% { box-shadow: 0 0 0 3px rgba(40, 167, 69, .55); }
+        100% { box-shadow: 0 0 0 3px rgba(40, 167, 69, 0); }
+    }
     .cw-brand-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     /* vibe chips are filled with each preset's own primary colour (inline bg) so the user sees the style at a glance */
     .cw-brand-chip { color: #fff; font-weight: 600; }
@@ -486,6 +612,14 @@
 <div id="cw-themecore-config"
      data-generate-url="@Url.Action("GenerateBrand", "CwThemeCore")"
      data-random-url="@Url.Action("RandomBrand", "CwThemeCore")"
+     data-ai-save-url="@Url.Action("SaveAiSettings", "CwThemeCore")"
+     data-ai-test-url="@Url.Action("TestAiConnection", "CwThemeCore")"
+     data-ai-providers="@Newtonsoft.Json.JsonConvert.SerializeObject(Model.AiCard.Providers)"
+     data-ai-offline="@T("Plugins.CW.ThemeCore.Configure.AiAssistant.Offline")"
+     data-ai-working="@T("Plugins.CW.ThemeCore.Configure.AiAssistant.Working")"
+     data-ai-failed="@T("Plugins.CW.ThemeCore.Configure.AiAssistant.Failed")"
+     data-ai-saved="@T("Plugins.CW.ThemeCore.Configure.AiAssistant.Saved")"
+     data-ai-test-ok="@T("Plugins.CW.ThemeCore.Configure.AiAssistant.TestOk")"
      data-refresh-token-url="@Url.Action("RefreshPreviewToken", "CwThemeCore")"
      data-live-enabled="@(Model.LivePreviewEnabled ? "true" : "false")"
      data-preview-store-id="@Model.PreviewStoreId"
@@ -584,6 +718,16 @@
         brandFields.forEach(function (id) { var el = document.getElementById(id); initialBrand[id] = el ? el.value : ''; });
         initialBrand.ButtonRadius = radiusInput ? radiusInput.value : 8;
 
+        // a brief pulse on a field whose value just changed, so it is clear where a generated style landed
+        function markChanged(el) {
+            if (!el) return;
+            el.classList.remove('cw-changed');
+            void el.offsetWidth; // restart the animation when a field changes twice in a row
+            el.classList.add('cw-changed');
+            clearTimeout(el.cwChangedTimer);
+            el.cwChangedTimer = setTimeout(function () { el.classList.remove('cw-changed'); }, 2000);
+        }
+
         function applyPalette(data) {
             if (!data) return;
             brandFields.forEach(function (id) {
@@ -592,15 +736,21 @@
                 if (val === undefined || val === null) return;
                 var input = document.getElementById(id);
                 if (!input) return;
+                var before = normalize(input.value).toLowerCase();
                 input.value = normalize(val);
                 var nv = normalize(val);
                 var picker = document.querySelector('.cw-color-picker[data-target="' + id + '"]');
                 if (picker && /^[0-9a-fA-F]{6}$/.test(nv)) { picker.value = '#' + nv; }
+                if (before !== nv.toLowerCase()) { markChanged(input); markChanged(picker); }
             });
             // button-radius knob (accepts camelCase or PascalCase)
             var r = (data.buttonRadius !== undefined && data.buttonRadius !== null) ? data.buttonRadius
                   : (data.ButtonRadius !== undefined ? data.ButtonRadius : undefined);
-            if (r !== undefined && r !== null && radiusInput) { radiusInput.value = r; }
+            if (r !== undefined && r !== null && radiusInput) {
+                var radiusChanged = String(r) !== String(radiusInput.value);
+                radiusInput.value = r;
+                if (radiusChanged) { markChanged(radiusInput); markChanged(radiusRange); }
+            }
             refresh();
         }
 
@@ -622,11 +772,127 @@
             $.ajax({ url: url, type: 'POST', data: data, success: applyPalette });
         }
 
+        // AI assistant: what one Generate answered, shown beside the prompt box
+        var $status = $('#cw-ai-status');
+        var labels = {
+            offline: $cfg.data('aiOffline'),
+            working: $cfg.data('aiWorking'),
+            failed: $cfg.data('aiFailed'),
+            saved: $cfg.data('aiSaved'),
+            testOk: $cfg.data('aiTestOk')
+        };
+
+        function setStatus($el, text, kind) {
+            $el.text(text || '').attr('data-kind', kind || '');
+        }
+
+        function handleGenerate(res) {
+            if (!res) return;
+            if (res.Error) { setStatus($status, res.Error, 'error'); return; }
+            applyPalette(res.Style);
+
+            var parts = [];
+            if (res.IsOffline) parts.push(labels.offline + '.');
+            if (res.Provider) parts.push(res.Provider + ':');
+            if (res.Summary) parts.push(res.Summary);
+            (res.Notes || []).forEach(function (note) { parts.push(note); });
+            setStatus($status, parts.join(' '), res.IsOffline ? 'offline' : 'ok');
+        }
+
+        function generate(prompt) {
+            var $btn = $('#cw-brand-generate');
+            var started = Date.now();
+            $btn.prop('disabled', true);
+            setStatus($status, labels.working, 'working');
+            var ticker = setInterval(function () {
+                var seconds = Math.round((Date.now() - started) / 1000);
+                if (seconds >= 10) setStatus($status, labels.working + ' ' + seconds + ' s', 'working');
+            }, 1000);
+
+            var data = currentStyleData(prompt);
+            data.__RequestVerificationToken = token;
+            $.ajax({
+                url: generateUrl, type: 'POST', data: data,
+                success: handleGenerate,
+                error: function () { setStatus($status, labels.failed, 'error'); },
+                complete: function () { clearInterval(ticker); $btn.prop('disabled', false); }
+            });
+        }
+
+        // AI assistant card
+        var aiProviders = $cfg.data('aiProviders') || [];
+        var $providerSelect = $('#cw-ai-provider');
+        var $cardStatus = $('#cw-ai-card-status');
+        var $override = $('#cw-ai-override');
+
+        function selectedProvider() {
+            var name = $providerSelect.val();
+            return aiProviders.filter(function (p) { return p.Name === name; })[0] || null;
+        }
+
+        function syncAiCard() {
+            var provider = selectedProvider();
+            $('#cw-ai-free-notice').toggle(!!provider && provider.Kind === 1);
+            $('#cw-ai-effort-row').toggle(!!provider && provider.ClientKind === 0);
+
+            var editable = !$override.length || $override.prop('checked');
+            $('.cw-ai-connection').prop('disabled', !editable);
+            $('#cw-ai-using-global').toggle(!editable);
+        }
+
+        $providerSelect.on('change', function () {
+            var provider = selectedProvider();
+            if (provider) {
+                $('#cw-ai-baseurl').val(provider.BaseUrl || '');
+                $('#cw-ai-model').val(provider.Model || '');
+                $('#cw-ai-timeout').val(provider.TimeoutSeconds);
+            }
+            syncAiCard();
+        });
+        $override.on('change', syncAiCard);
+        syncAiCard();
+
+        function postAi(url, data, onSuccess) {
+            data.__RequestVerificationToken = token;
+            setStatus($cardStatus, labels.working, 'working');
+            $.ajax({
+                url: url, type: 'POST', data: data, dataType: 'json',
+                success: function (res) {
+                    if (res.success) { onSuccess(); return; }
+                    setStatus($cardStatus, res.message, 'error');
+                },
+                error: function () { setStatus($cardStatus, labels.failed, 'error'); }
+            });
+        }
+
+        $('#cw-ai-save').on('click', function () {
+            postAi($cfg.data('aiSaveUrl'), {
+                Provider: $providerSelect.val(),
+                BaseUrl: $('#cw-ai-baseurl').val(),
+                Model: $('#cw-ai-model').val(),
+                ApiKey: $('#cw-ai-apikey').val(),
+                RemoveKey: $('#cw-ai-removekey').prop('checked') === true,
+                TimeoutSeconds: $('#cw-ai-timeout').val(),
+                Effort: $('#cw-ai-effort').val(),
+                DailyLimit: $('#cw-ai-dailylimit').val(),
+                OverrideForStore: $override.prop('checked') === true
+            }, function () {
+                $('#cw-ai-apikey').val('');
+                setStatus($cardStatus, labels.saved, 'ok');
+                window.location.reload();
+            });
+        });
+
+        $('#cw-ai-test').on('click', function () {
+            postAi($cfg.data('aiTestUrl'), {}, function () { setStatus($cardStatus, labels.testOk, 'ok'); });
+        });
+
+
         $('#cw-brand-generate').on('click', function () {
-            postBrand(generateUrl, currentStyleData($('#cw-brand-prompt').val()));
+            generate($('#cw-brand-prompt').val());
         });
         $('.cw-brand-chip').on('click', function () {
-            postBrand(generateUrl, currentStyleData($(this).data('prompt')));
+            generate($(this).data('prompt'));
         });
         $('#cw-brand-surprise').on('click', function () {
             postBrand(randomUrl, {});
@@ -752,7 +1018,7 @@
                 btn.disabled = true;
                 $.ajax({
                     url: generateUrl, type: 'POST', data: data,
-                    success: function (res) { applyPalette(res); popoverSync.forEach(function (fn) { fn(); }); },
+                    success: function (res) { handleGenerate(res); popoverSync.forEach(function (fn) { fn(); }); },
                     complete: function () { btn.disabled = false; }
                 });
             }

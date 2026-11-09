@@ -76,7 +76,7 @@ public class StandardThemePlugin : BasePlugin, IMiscPlugin, IConsumer<AdminMenuC
     {
         await _settingService.SaveSettingAsync(new StandardThemeSettings
         {
-            LightNavBar = false,
+            DarkNavBar = false,
             SquareCorners = false
         });
 
@@ -88,7 +88,16 @@ public class StandardThemePlugin : BasePlugin, IMiscPlugin, IConsumer<AdminMenuC
     public override async Task UpdateAsync(string currentVersion, string targetVersion)
     {
         if (targetVersion.Contains("DATA"))
+        {
             await AddOrUpdateLocaleResourceAsync();
+
+            //LightNavBar became DarkNavBar: the opposite meaning, so its value does not carry over
+            var renamed = (await _settingService.GetAllSettingsAsync())
+                .Where(setting => setting.Name.Equals("standardthemesettings.lightnavbar", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            await _settingService.DeleteSettingsAsync(renamed);
+            await _localizationService.DeleteLocaleResourcesAsync("Plugins.CW.Theme.Standard.Fields.LightNavBar");
+        }
 
         await base.UpdateAsync(currentVersion, targetVersion);
     }
@@ -103,8 +112,8 @@ public class StandardThemePlugin : BasePlugin, IMiscPlugin, IConsumer<AdminMenuC
         {
             ["Plugins.CW.Theme.Standard.Admin.Menu"] = "CW Standard theme",
             ["Plugins.CW.Theme.Standard.Configure.Title"] = "CW Standard theme settings",
-            ["Plugins.CW.Theme.Standard.Fields.LightNavBar"] = "Light navigation bar",
-            ["Plugins.CW.Theme.Standard.Fields.LightNavBar.Hint"] = "Use a light navigation bar instead of the dark default.",
+            ["Plugins.CW.Theme.Standard.Fields.DarkNavBar"] = "Dark navigation bar",
+            ["Plugins.CW.Theme.Standard.Fields.DarkNavBar.Hint"] = "On a desktop screen, show the navigation bar in the store's dark colour with white text, instead of the light default. Per store.",
             ["Plugins.CW.Theme.Standard.Fields.SquareCorners"] = "Square corners",
             ["Plugins.CW.Theme.Standard.Fields.SquareCorners.Hint"] = "Use square corners instead of the rounded default.",
             ["Plugins.CW.Theme.Standard.HeaderLinks.GoToCart"] = "Go to cart"

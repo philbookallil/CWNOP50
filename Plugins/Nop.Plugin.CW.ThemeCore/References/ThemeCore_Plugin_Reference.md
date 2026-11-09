@@ -2,8 +2,8 @@
 
 | Piece | What it is | SystemName / folder | Version |
 |---|---|---|---|
-| `Nop.Plugin.CW.ThemeCore` | The theme framework: per-store accent colours (CSS custom properties), custom CSS, layout options per storefront section, logos, the Brand Designer and its live preview | `CW.ThemeCore` | `2026_11_02_DATA_1.4` |
-| `Nop.Plugin.CW.Theme.Standard` | Settings of the `CW.Standard` theme (light nav bar, square corners) and the theme's own storefront text | `CW.Theme.Standard`, depends on `CW.ThemeCore` | `2026_10_29_DATA_1.1` |
+| `Nop.Plugin.CW.ThemeCore` | The theme framework: per-store accent colours (CSS custom properties), custom CSS, layout options per storefront section, logos, the Brand Designer and its live preview | `CW.ThemeCore` | `2026_11_06_DATA_1.6` |
+| `Nop.Plugin.CW.Theme.Standard` | Settings of the `CW.Standard` theme (dark nav bar, square corners) and the theme's own storefront text | `CW.Theme.Standard`, depends on `CW.ThemeCore` | `2026_11_06_DATA_1.2` |
 | `Themes/CW.Standard` | The storefront theme | `Presentation/Nop.Web/Themes/CW.Standard` | — |
 
 Ported from 4.90 on 2026-10-29 (`CWPlans/Deprecated/ThemeCore_Port_Spec.md`). Two companion documents sit beside this one:
@@ -88,7 +88,7 @@ default settings over the values left from the earlier run in the shared databas
 
 ## 4a. Unit tests
 
-`Tests/CW.Tests/CW.ThemeCore/` — 137 cases, no database or nop engine:
+`Tests/CW.Tests/CW.ThemeCore/` — 231 cases, no database or nop engine:
 
 | File | Covers |
 |---|---|
@@ -97,7 +97,11 @@ default settings over the values left from the earlier run in the shared databas
 | `CwPreviewTokenServiceTests` | round trip, other store, expired, tampered, foreign key ring, other purpose, garbage |
 | `CwPreviewFramingMiddlewareTests` | `IsSafeOrigin` (no header or CSP injection) and `IsCartOrCheckout` (both `internal` for the tests) |
 | `ThemeLayoutServiceTests` | selection with default and stale-value fallback, page classes, saving per store / all stores, overrides |
-| `CwBrandDesignerServiceTests` | presets, base style, shape / intensity / lightness / warmth tweaks, region scoping, valid hex always |
+| `MockBrandGeneratorTests` | presets, base style, shape / intensity / lightness / warmth tweaks, region scoping, valid hex always |
+| `BrandRegionsTests` | which fields each preview region may change; every region the Configure page offers is mapped |
+| `BrandAiClientTests` | both clients against a fake handler: request shape, key headers, answer parsing, error mapping, the single retry, size cap |
+| `CwBrandDesignerServiceTests` | who answers (preset, offline, AI), failures never fall back to the mock, colour validation, region filter, audit |
+| `CwBrandAiSettingsServiceTests` | allowed addresses, when a connection counts as set, a key never following a changed provider or address |
 
 ## 4b. Custom CSS sanitizer — how it reads the CSS (fixed 2026-10-30)
 
@@ -128,6 +132,12 @@ URL policies, the four layouts, square corners, and a per-store override. All ap
 | `CW.Standard/Views/Shared/Head.cshtml` registered `styles.css` then `cw-brand.css` with `AppendCssFileParts`, which inserts at the **front** of the list, so the bundle loaded the brand layer **before** nop's base and every base rule of equal specificity won: body text, content links, the success / error / warning bars, error text and side-block titles kept nop's colours (in 4.90 too) | Registered in reverse, with a comment: the page now loads jQuery UI, swiper, `styles.css`, then `cw-brand.css` |
 | That new order then let every brand rule beat the base, including ones never seen working. On a desktop width `.header-menu { margin: 6px 0; }` dropped the base's `margin: 0 auto` and the menu sat at the left edge of the page; `a { color }` turned the *Administration* link blue on the dark bar. The first check missed both | `.header-menu` takes `margin: 6px auto`; `.admin-header-links a` inherits the bar's colour. Old and new orders compared by computed style at 1500 px on home, category, product, login, register, contact, search and cart: nothing else moves a page block off centre, the other differences are the brand's own cards, buttons and fields
 | Two more from the same order, found on the checkout. Every `select` kept the base's fixed `height: 32px` under the brand's `padding: 10px 12px`, leaving 10 px for the text, so the selected option was cut off (billing address, sort and page size). The base's padding and `min-height` on the step number no longer applied, so its digit sat at the top of the circle, with the base's white right border showing | `select { height: auto; }` in the forms block; `.opc .step-title .number` is a 40 px flex circle with no border. The earlier comparison listed the select padding as brand styling because it compared properties, not whether the text still fit |
+| Base blue left on the storefront: the *order details* link after checkout and the order total stayed nop's light blue, because `--accent-blue-color` was overridden rule by rule | `cw-brand.css` maps nop's two accent tokens to `--cws-primary` and `--cws-primary-dark`, so all of the base's accent follows the brand |
+| Found on a phone and in the account pages: the header links wrapped over two lines and the cart button touched the edge; a blank band sat above the first cart item, with stray lines around the quantity; dots floated beside the account menu; the footer's *Selected offers* links were centred under a left-aligned title | A rule set for 480 px and below; cart rows reset to the base's stacked layout at 1000 px and below; the account menu's base bullet removed (its left border marks the item); footer blocks left-aligned |
+| *Light navigation bar* changed nothing, because the bar is already light; dropdown text and the bar's grey items were not tokens | Replaced by *Dark navigation bar* (`DarkNavBar`, desktop screens only, the `2026_11_06_DATA_1.2` update removes the old setting and resources); `--cws-nav-item-bg` and `--cws-nav-divider` added, and the bar's text colour stops at the dropdowns |
+| Brand Designer tweaks "darker" and "warmer" replaced the colours with a preset | `MockBrandGenerator` matches preset keywords as whole words; a changed field now pulses briefly (`cw-changed` in `Configure.cshtml`) |
+| Saving the AI card stored every field empty, which turned the connection off: the action's parameter was named `model` and the card posts a field named `Model`, so MVC took it as the parameter's prefix and bound nothing. Unit tests call the service directly and could not see it | Parameter renamed `aiSettings`, with a comment. Groq then saved, tested and generated on the local site (2026-11-09) |
+
 | The login page's *Forgot password?* link kept nop's grey: nop's `.login-page .returning-wrapper .inputs.reversed *` is more specific than the brand rule (in 4.90 too) | `cw-brand.css` targets `.inputs.reversed .forgot-password a`, with its hover |
 | An invalid save showed the raw key `admin.common.formerrors`: both admin controllers asked for `Admin.Common.FormErrors`, which nop does not have | `Plugins.CW.ThemeCore.Configure.FormErrors`, installed by the `2026_11_02_DATA_1.4` update |
 
@@ -136,19 +146,13 @@ By design, not faults: the product-box *Add to cart* button also carries `button
 
 ## 5. Open
 
-- **CW Standard Theme's *Light navigation bar* changes nothing visible.** The theme's default nav bar is already light
-  (`--cws-nav-bg: transparent`), no rule reads `--cws-nav-hover-bg`, and the hint still says "instead of the dark
-  default". Decide whether to remove the setting or turn it into a dark nav bar.
 
-- **Brand Designer keywords match inside words:** "darker" hits Dark luxe's `dark`, "warmer" hits Warm boutique's `warm`,
-  so those tweak prompts replace the current colours with a preset first. Recorded by a test; a whole-word match would
-  fix it.
 - `IsCartOrCheckout` matches `cart` / `checkout` as any path segment (e.g. `/category/cart`); preview requests only.
 
 - `Themes/CW.StandardTest` is not ported (Voyage-based; `CLAUDE.md` §3.2).
-- **Brand Designer AI assistant** — never built; the draft spec is `CWPlans/CW_Theme_AI_Assistant_Spec.md` (its transport
-  choice predates .NET 10, see its 5.00 note). The Configure page's suggestions come from the rule-based
-  `CwBrandDesignerService`.
+- **Brand Designer AI assistant** — Phase A is built (`Services/BrandDesigner/Ai/`) and passed its tests against Groq on the local site (2026-11-09, spec §8); Claude, Gemini and Ollama are not yet run, and Phase B (AI-written CSS) is not started. The spec is `CWPlans/CW_Theme_AI_Assistant_Spec.md` (Claude, other providers
+  and free options). The Configure page's suggestions come from the rule-based
+  `MockBrandGenerator`.
 - **Carried from the 4.90 build plan** (`CWPlans/Deprecated/CW_Theme_Build_Plans.md`, *Deferred / next steps* and the
   backlogs): whether `CwThemeSettings.LogoPictureId` should give way to nop's own store logo; the CW.Standard
   view-override backlog (waves 1–5, parity with Voyage); the token audit that moves CW.Core's storefront CSS onto

@@ -4,9 +4,11 @@ using Nop.Core.Domain;
 using Nop.Core.Domain.Seo;
 using Nop.Core.Domain.Stores;
 using Nop.Plugin.CW.ThemeCore.Areas.Admin.Models;
+using Nop.Plugin.CW.ThemeCore.Domain.BrandDesigner;
 using Nop.Plugin.CW.ThemeCore.Domain.Layout;
 using Nop.Plugin.CW.ThemeCore.Services;
 using Nop.Plugin.CW.ThemeCore.Services.BrandDesigner;
+using Nop.Plugin.CW.ThemeCore.Services.BrandDesigner.Ai;
 using Nop.Plugin.CW.ThemeCore.Services.Layout;
 using Nop.Plugin.CW.ThemeCore.Services.Preview;
 using Nop.Plugin.CW.ThemeCore.Services.Security;
@@ -51,6 +53,7 @@ public class CwThemeCoreController : BasePluginController
     protected readonly IThemeLayoutService _layoutService;
     protected readonly IThemeLayoutManifestService _manifestService;
     protected readonly ICwBrandDesignerService _brandDesigner;
+    protected readonly ICwBrandAiSettingsService _aiSettingsService;
     protected readonly IThemeBrandPreviewService _brandPreview;
     protected readonly ICwPreviewTokenService _previewTokenService;
     protected readonly IStoreService _storeService;
@@ -73,6 +76,7 @@ public class CwThemeCoreController : BasePluginController
         IThemeLayoutService layoutService,
         IThemeLayoutManifestService manifestService,
         ICwBrandDesignerService brandDesigner,
+        ICwBrandAiSettingsService aiSettingsService,
         IThemeBrandPreviewService brandPreview,
         ICwPreviewTokenService previewTokenService,
         IStoreService storeService,
@@ -90,6 +94,7 @@ public class CwThemeCoreController : BasePluginController
         _layoutService = layoutService;
         _manifestService = manifestService;
         _brandDesigner = brandDesigner;
+        _aiSettingsService = aiSettingsService;
         _brandPreview = brandPreview;
         _previewTokenService = previewTokenService;
         _storeService = storeService;
@@ -154,6 +159,8 @@ public class CwThemeCoreController : BasePluginController
         var manifest = previewTheme is null ? null : await _manifestService.GetManifestAsync(previewTheme);
 
         await PrepareLayoutSectionsAsync(model, previewTheme, manifest, storeScope);
+
+        model.AiCard = await PrepareAiCardAsync(storeScope);
 
         model.BrandPresets = _brandDesigner.GetPresets()
             .Select(p => new BrandPresetChipModel { Name = p.Name, PrimaryColor = p.Palette?.PrimaryColor })
@@ -245,14 +252,13 @@ public class CwThemeCoreController : BasePluginController
 
     /// <summary>
     /// Generate a brand style from a plain-English prompt (or a preset name), using the style currently
-    /// in the form as the base for tweak-only prompts. Returns the 6 hex tokens + button radius.
+    /// in the form as the base for tweak-only prompts. Returns a BrandGenerateResult.
     /// </summary>
     [HttpPost]
     [CheckPermission(CwThemeCorePermissionConfigManager.MANAGE)]
     public async Task<IActionResult> GenerateBrand(BrandGenerateRequest request)
     {
-        var style = await _brandDesigner.GenerateAsync(request?.Prompt, request?.Current, request?.Region);
-        return Json(style);
+        return Json(await _brandDesigner.GenerateAsync(request?.Prompt, request?.Current, request?.Region));
     }
 
     /// <summary>A fresh random style ("Surprise me").</summary>
@@ -261,6 +267,46 @@ public class CwThemeCoreController : BasePluginController
     public IActionResult RandomBrand()
     {
         return Json(_brandDesigner.Random());
+    }
+
+    /// <summary>
+    /// Save the AI assistant card. The key carries billing, so this needs more than the rest of the page: an admin who
+    /// can use the designer cannot change where its key goes.
+    /// </summary>
+    [HttpPost]
+    [CheckPermission(CwThemeCorePermissionConfigManager.MANAGE)]
+    [CheckPermission(StandardPermission.Configuration.MANAGE_PLUGINS)]
+    //the parameter must not be called "model": the form has a field named Model, and MVC would read that as the
+    //parameter's prefix and bind nothing
+    public async Task<IActionResult> SaveAiSettings(BrandAiSettingsModel aiSettings)
+    {
+        var storeScope = await _storeContext.GetActiveStoreScopeConfigurationAsync();
+        var refused = await _aiSettingsService.SaveAsync(new BrandAiSettingsInput
+        {
+            Provider = aiSettings.Provider,
+            BaseUrl = aiSettings.BaseUrl,
+            Model = aiSettings.Model,
+            ApiKey = aiSettings.ApiKey,
+            RemoveKey = aiSettings.RemoveKey,
+            TimeoutSeconds = aiSettings.TimeoutSeconds,
+            Effort = aiSettings.Effort,
+            DailyLimit = aiSettings.DailyLimit,
+            OverrideForStore = aiSettings.OverrideForStore
+        }, storeScope);
+
+        return refused is null
+            ? Json(new { success = true })
+            : Json(new { success = false, message = await _localizationService.GetResourceAsync(refused) });
+    }
+
+    /// <summary>One minimal request with the connection in effect for the admin's store scope.</summary>
+    [HttpPost]
+    [CheckPermission(CwThemeCorePermissionConfigManager.MANAGE)]
+    public async Task<IActionResult> TestAiConnection()
+    {
+        var failure = await _brandDesigner.TestConnectionAsync();
+
+        return Json(new { success = failure is null, message = failure });
     }
 
     #endregion
@@ -289,6 +335,26 @@ public class CwThemeCoreController : BasePluginController
     #endregion
 
     #region Utilities
+
+    private async Task<BrandAiCardModel> PrepareAiCardAsync(int storeScope)
+    {
+        var view = await _aiSettingsService.GetViewAsync(storeScope);
+
+        return new BrandAiCardModel
+        {
+            Provider = view.Provider,
+            BaseUrl = view.BaseUrl,
+            Model = view.Model,
+            KeyLastFour = view.KeyLastFour,
+            TimeoutSeconds = view.TimeoutSeconds,
+            Effort = view.Effort,
+            DailyLimit = view.DailyLimit,
+            OverrideForStore = view.OverrideForStore,
+            IsStoreScope = storeScope > 0,
+            IsFreeCloud = BrandAiProviders.Find(view.Provider)?.Kind == BrandAiProviderKind.FreeCloud,
+            Providers = BrandAiProviders.All
+        };
+    }
 
     /// <summary>
     /// Strip a leading '#' and whitespace so colours are stored consistently as bare hex.

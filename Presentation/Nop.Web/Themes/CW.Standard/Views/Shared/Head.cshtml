@@ -29,7 +29,7 @@
     //Theme-specific options from the CW.Theme.Standard plugin (read by setting key, so the theme
     //doesn't depend on the plugin's types; falls back to defaults when the plugin isn't installed).
     var storeId = (await storeContext.GetCurrentStoreAsync()).Id;
-    var lightNavBar = await settingService.GetSettingByKeyAsync("standardthemesettings.lightnavbar", false, storeId, true);
+    var darkNavBar = await settingService.GetSettingByKeyAsync("standardthemesettings.darknavbar", false, storeId, true);
     var squareCorners = await settingService.GetSettingByKeyAsync("standardthemesettings.squarecorners", false, storeId, true);
 
     var themeOverrides = string.Empty;
@@ -37,10 +37,11 @@
     {
         themeOverrides += "--cws-radius:0 !important;--cws-radius-sm:0 !important;";
     }
-    if (lightNavBar)
-    {
-        themeOverrides += "--cws-nav-bg:#ffffff !important;--cws-nav-fg:var(--cws-ink) !important;--cws-nav-hover-bg:var(--cws-primary-tint) !important;--cws-nav-hover-fg:var(--cws-primary) !important;";
-    }
+}
+@if (darkNavBar)
+{
+    //desktop only: below this width the menu is a drawer on a white page, not a bar
+    <style>@@media (min-width:1001px){:root{--cws-nav-bg:var(--cws-ink) !important;--cws-nav-fg:#fff !important;--cws-nav-hover-bg:var(--cws-primary) !important;--cws-nav-hover-fg:#fff !important;--cws-nav-item-bg:transparent !important;--cws-nav-divider:rgba(255,255,255,.2) !important;}}</style>
 }
 @if (!string.IsNullOrEmpty(themeOverrides))
 {

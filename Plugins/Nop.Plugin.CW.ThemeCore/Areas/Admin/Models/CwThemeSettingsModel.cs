@@ -78,6 +78,9 @@ public record CwThemeSettingsModel : BaseNopModel
     public IList<BrandPresetChipModel> BrandPresets { get; set; } = new List<BrandPresetChipModel>();
 
     /// <summary>The store's active storefront theme (informational; used for the "not a CW theme" note).</summary>
+    /// <summary>The AI assistant card, which saves through its own action.</summary>
+    public BrandAiCardModel AiCard { get; set; } = new();
+
     public string PreviewThemeName { get; set; }
 
     /// <summary>True when the active theme ships a Brand-Designer preview → accurate preview + picker enabled.</summary>

@@ -9,8 +9,8 @@ namespace Nop.Plugin.CW.Theme.Standard.Settings;
 /// </summary>
 public class StandardThemeSettings : BaseCwThemeSettings
 {
-    /// <summary>Use a light navigation bar instead of the dark default.</summary>
-    public bool LightNavBar { get; set; }
+    /// <summary>Use a dark navigation bar on desktop screens instead of the light default.</summary>
+    public bool DarkNavBar { get; set; }
 
     /// <summary>Use square corners instead of rounded.</summary>
     public bool SquareCorners { get; set; }

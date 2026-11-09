@@ -9,9 +9,9 @@ namespace Nop.Plugin.CW.Theme.Standard.Areas.Admin.Models;
 /// </summary>
 public record StandardThemeSettingsModel : BaseCwThemeSettingsModel
 {
-    [NopResourceDisplayName("Plugins.CW.Theme.Standard.Fields.LightNavBar")]
-    public bool LightNavBar { get; set; }
-    public bool LightNavBar_OverrideForStore { get; set; }
+    [NopResourceDisplayName("Plugins.CW.Theme.Standard.Fields.DarkNavBar")]
+    public bool DarkNavBar { get; set; }
+    public bool DarkNavBar_OverrideForStore { get; set; }
 
     [NopResourceDisplayName("Plugins.CW.Theme.Standard.Fields.SquareCorners")]
     public bool SquareCorners { get; set; }

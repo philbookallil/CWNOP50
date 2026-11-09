@@ -15,6 +15,9 @@
     --cws-primary: var(--cw-primary, #4a4a4a);
     --cws-primary-tint: var(--cw-primary-tint, #f5f5f5);
     --cws-primary-dark: color-mix(in srgb, var(--cws-primary) 82%, #000);
+    /* the base layout's own accent, so everything it paints blue follows the brand */
+    --accent-blue-color: var(--cws-primary);
+    --accent-blue-active-color: var(--cws-primary-dark);
     --cws-success: var(--cw-success, #2e7d32);
     --cws-danger: var(--cw-danger, #c62828);
     --cws-warning: var(--cw-warning, #ef6c00);
@@ -25,6 +28,8 @@
     --cws-nav-fg: var(--cws-ink);
     --cws-nav-hover-bg: transparent;
     --cws-nav-hover-fg: var(--cws-primary);
+    --cws-nav-item-bg: #f5f5f5;
+    --cws-nav-divider: #ddd;
 
     --cws-bg: #ffffff;
     --cws-muted: #6b7280;
@@ -112,6 +117,10 @@ a:hover { color: var(--cws-primary-dark); }
 .cw-header .header-upper #topcartlink { display: contents; }
 .header-links a { color: var(--cws-muted); font-size: 13px; transition: color var(--cws-transition); }
 .header-links a:hover { color: var(--cws-primary); }
+@media (max-width: 480px) { /* the links stay on one line each, and the cart button drops below them when the row is too narrow */
+    .cw-header .header-upper .header-links ul { flex-wrap: wrap; justify-content: center; gap: 4px 12px; }
+    .cw-header .header-upper .header-links a { font-size: 11px; white-space: nowrap; }
+}
 
 /* search */
 .search-box .search-box-text,
@@ -186,7 +195,14 @@ a:hover { color: var(--cws-primary-dark); }
 }
 .header-menu .menu__link:hover,
 .header-menu .menu__item.active > .menu__link {
-    color: var(--cws-nav-hover-fg) !important; text-decoration: none;
+    color: var(--cws-nav-hover-fg) !important; background: var(--cws-nav-hover-bg); text-decoration: none;
+}
+/* the bar's text colour stops at the dropdowns, which stay white whatever the bar is */
+.header-menu .menu__list-view .menu__link, .header-menu .menu__grid-view .menu__link { color: var(--cws-ink) !important; }
+.header-menu .menu__item-toggle { color: var(--cws-nav-fg); }
+@media all and (min-width: 1001px) {
+    .header-menu .menu > .menu__item { background-color: var(--cws-nav-item-bg); }
+    .header-menu .menu > .menu__item:not(:last-child) { border-right-color: var(--cws-nav-divider); }
 }
 /* dropdown sublists */
 .top-menu .sublist, .header-menu .sublist {
@@ -417,6 +433,7 @@ input:focus, select:focus, textarea:focus {
     color: var(--cws-ink); font-weight: 700; font-size: 15px; margin: 0 0 16px; cursor: default;
 }
 .cw-footer .footer-block .list, .cw-footer .footer-menu__list { list-style: none; margin: 0; padding: 0; }
+.cw-footer .cw-footer-blocks .footer-block { text-align: left; }
 .cw-footer .footer-block .list li { margin: 0 0 10px; }
 .cw-footer .footer-block .list a, .cw-footer .footer-menu__list a { display: inline-block; padding: 2px 0; }
 
@@ -522,6 +539,10 @@ input:focus, select:focus, textarea:focus {
     font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: .03em; padding: 12px;
 }
 .cart tbody td, .data-table tbody td { padding: 14px 12px; border-top: 1px solid var(--cws-border); }
+@media (max-width: 1000px) { /* the rows stack into cards here, and the base draws their spacing and borders */
+    .cart tbody tr:first-child { margin-top: 0; }
+    .cart tbody td { border-top: 0; padding: 10px; }
+}
 
 /* ---------- PRODUCT DETAILS ---------- */
 .product-details-page { display: block; }
@@ -812,6 +833,8 @@ input:focus, select:focus, textarea:focus {
     font-weight: 700; padding: 12px 16px;
 }
 .block-account-navigation .listbox { padding: 6px 0; }
+.block-account-navigation .list li { padding: 0; }
+.block-account-navigation .list a::before { display: none; } /* the left border marks the item here, not the base bullet */
 .block-account-navigation .list li a {
     display: block; padding: 10px 16px; color: var(--cws-ink); border-left: 3px solid transparent;
     transition: background var(--cws-transition), border-color var(--cws-transition);

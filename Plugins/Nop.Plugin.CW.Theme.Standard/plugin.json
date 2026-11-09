@@ -2,7 +2,7 @@
   "Group": "CW",
   "FriendlyName": "CW Standard Theme",
   "SystemName": "CW.Theme.Standard",
-  "Version": "2026_10_29_DATA_1.1",
+  "Version": "2026_11_06_DATA_1.2",
   "SupportedVersions": [ "5.00" ],
   "DependsOnSystemNames": [ "CW.ThemeCore" ],
   "Author": "Cityweb",

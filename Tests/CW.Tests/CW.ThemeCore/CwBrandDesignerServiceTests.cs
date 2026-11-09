@@ -1,22 +1,31 @@
 using AwesomeAssertions;
+using Moq;
+using Nop.Core;
+using Nop.Core.Domain.Customers;
+using Nop.Core.Domain.Logging;
 using Nop.Plugin.CW.ThemeCore.Domain.BrandDesigner;
 using Nop.Plugin.CW.ThemeCore.Services.BrandDesigner;
+using Nop.Plugin.CW.ThemeCore.Services.BrandDesigner.Ai;
+using Nop.Services.Localization;
+using Nop.Services.Logging;
 using NUnit.Framework;
 
 namespace CW.Tests.CW.ThemeCore;
 
 /// <summary>
-/// The Brand Designer's generator turns a plain-English prompt into a style: a preset chip by name, else the preset whose
-/// keywords match best, else the current style or a colour derived from the prompt, then the prompt's tweaks (shape,
-/// intensity, lightness, warmth), optionally scoped to the preview region the admin selected. Whatever the prompt, every
-/// colour it returns is a six-digit hex the settings page and <c>:root</c> block accept.
+/// Who answers a Generate, and what the admin sees. The rule that matters: mock output is never presented as AI output,
+/// so an AI failure is an error with the form left alone, never a quiet fallback.
 /// </summary>
 [TestFixture]
 public class CwBrandDesignerServiceTests
 {
     #region Utilities
 
-    private readonly CwBrandDesignerService _service = new();
+    private Mock<ICustomerActivityService> _activity = null!;
+    private Mock<ICwBrandAiClient> _client = null!;
+    private Mock<ICwBrandAiLimiter> _limiter = null!;
+    private Mock<ICwBrandAiSettingsService> _settings = null!;
+    private CwBrandDesignerService _service = null!;
 
     private static BrandStyle Current() => new()
     {
@@ -29,214 +38,257 @@ public class CwBrandDesignerServiceTests
         ButtonRadius = 8
     };
 
-    private static IEnumerable<string> Colours(BrandStyle s) =>
-        [s.PrimaryColor, s.PrimaryTintColor, s.SuccessColor, s.DangerColor, s.WarningColor, s.DarkColor];
-
-    private static (double H, double S, double L) Hsl(string hex)
+    private static BrandStyle Answer() => new()
     {
-        var r = Convert.ToInt32(hex[..2], 16) / 255.0;
-        var g = Convert.ToInt32(hex[2..4], 16) / 255.0;
-        var b = Convert.ToInt32(hex[4..6], 16) / 255.0;
-        var max = Math.Max(r, Math.Max(g, b));
-        var min = Math.Min(r, Math.Min(g, b));
-        var l = (max + min) / 2;
-        var d = max - min;
-        if (d < 1e-9)
-            return (0, 0, l);
+        PrimaryColor = "112233",
+        PrimaryTintColor = "eeeeee",
+        SuccessColor = "00aa00",
+        DangerColor = "aa0000",
+        WarningColor = "aaaa00",
+        DarkColor = "111111",
+        ButtonRadius = 999
+    };
 
-        var s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        var h = max == r ? (g - b) / d + (g < b ? 6 : 0) : max == g ? (b - r) / d + 2 : (r - g) / d + 4;
-        return (h * 60, s, l);
-    }
-
-    private static double HueDistance(double a, double b)
+    private static BrandAiConnection Connection() => new()
     {
-        var d = Math.Abs(a - b) % 360;
-        return d > 180 ? 360 - d : d;
-    }
+        Provider = BrandAiProviders.Find("Claude"),
+        BaseUrl = "https://api.anthropic.com",
+        Model = "claude-sonnet-5-5",
+        ApiKey = "secret",
+        TimeoutSeconds = 5,
+        DailyLimit = 300
+    };
 
-    private Task<BrandStyle> GenerateAsync(string prompt, BrandStyle? current = null, string? region = null)
-        => _service.GenerateAsync(prompt, current ?? Current(), region!);
+    private void AiAnswers(BrandStyle style) => _client
+        .Setup(x => x.GenerateAsync(It.IsAny<BrandAiConnection>(), It.IsAny<BrandAiRequest>(), It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new BrandAiAnswer { Style = style, Summary = "Done." });
 
-    #endregion
+    private void Connected() => _settings.Setup(x => x.GetConnectionAsync(It.IsAny<int>())).ReturnsAsync(Connection());
 
-    #region Presets
-
-    [Test]
-    public void Every_preset_has_a_name_keywords_and_six_hex_colours()
+    [SetUp]
+    public void SetUp()
     {
-        foreach (var preset in _service.GetPresets())
-        {
-            preset.Name.Should().NotBeNullOrWhiteSpace();
-            preset.Keywords.Should().NotBeEmpty();
-            Colours(BrandStyle.FromPalette(preset.Palette)).Should().AllSatisfy(c => c.Should().MatchRegex("^[0-9a-f]{6}$"));
-        }
-    }
+        _activity = new Mock<ICustomerActivityService>();
+        _client = new Mock<ICwBrandAiClient>();
+        _limiter = new Mock<ICwBrandAiLimiter>();
+        _settings = new Mock<ICwBrandAiSettingsService>();
 
-    [Test]
-    public async Task A_preset_name_returns_that_preset_unchanged_by_modifier_words_in_it()
-    {
-        var preset = _service.GetPresets().Single(p => p.Name == "Bold & techy");
+        var resolver = new Mock<ICwBrandAiClientResolver>();
+        resolver.Setup(x => x.Get(It.IsAny<BrandAiClientKind>())).Returns(_client.Object);
 
-        var style = await GenerateAsync("BOLD & TECHY");
+        var localization = new Mock<ILocalizationService>();
+        localization.Setup(x => x.GetResourceAsync(It.IsAny<string>())).ReturnsAsync((string key) => key.EndsWith("InvalidColours") ? "Bad: {0}" : key);
 
-        style.PrimaryColor.Should().Be(preset.Palette.PrimaryColor);
-        style.ButtonRadius.Should().Be(preset.ButtonRadius);
-    }
+        var workContext = new Mock<IWorkContext>();
+        workContext.Setup(x => x.GetCurrentCustomerAsync()).ReturnsAsync(new Customer { Id = 7 });
 
-    [Test]
-    public async Task Keywords_pick_the_best_matching_preset()
-    {
-        var preset = _service.GetPresets().Single(p => p.Name == "Earthy organic");
-
-        var style = await GenerateAsync("an eco shop for organic, sustainable plant care");
-
-        style.PrimaryColor.Should().Be(preset.Palette.PrimaryColor);
+        _service = new CwBrandDesignerService(_activity.Object, resolver.Object, _limiter.Object, _settings.Object,
+            localization.Object, new Mock<ILogger>().Object, new Mock<IStoreContext>().Object, workContext.Object);
     }
 
     #endregion
 
-    #region Base style
+    #region Routing
 
     [Test]
-    public async Task Without_a_preset_match_the_current_style_is_the_base_and_is_not_changed_in_place()
+    public async Task A_preset_name_never_calls_the_ai()
     {
-        var current = Current();
+        Connected();
 
-        var style = await GenerateAsync("something unrelated", current);
+        var result = await _service.GenerateAsync("Dark luxe", Current());
 
-        style.Should().NotBeSameAs(current);
-        style.PrimaryColor.Should().Be("3366cc");
-        current.PrimaryColor.Should().Be("3366cc");
+        result.Source.Should().Be(BrandResultSource.Preset);
+        result.Style.PrimaryColor.Should().Be(BrandPresets.All.Single(p => p.Name == "Dark luxe").Palette.PrimaryColor);
+        _client.VerifyNoOtherCalls();
     }
 
     [Test]
-    public async Task Without_usable_current_colours_the_same_prompt_always_gives_the_same_style()
+    public async Task No_connection_is_offline_and_labelled()
     {
-        var empty = new BrandStyle();
+        var result = await _service.GenerateAsync("a bit darker", Current());
 
-        var first = await GenerateAsync("zzqx", empty);
-        var second = await GenerateAsync("zzqx", empty);
-
-        first.PrimaryColor.Should().Be(second.PrimaryColor);
-        Colours(first).Should().AllSatisfy(c => c.Should().MatchRegex("^[0-9a-f]{6}$"));
+        result.IsOffline.Should().BeTrue();
+        result.Style.Should().NotBeNull();
+        result.Provider.Should().BeNull();
+        _client.VerifyNoOtherCalls();
     }
 
     [Test]
-    public void Random_always_gives_valid_colours()
+    public async Task A_connection_sends_the_prompt_to_the_ai()
     {
-        for (var i = 0; i < 50; i++)
-            Colours(_service.Random()).Should().AllSatisfy(c => c.Should().MatchRegex("^[0-9a-f]{6}$"));
+        Connected();
+        AiAnswers(Answer());
+
+        var result = await _service.GenerateAsync("  premium boutique  ", Current());
+
+        result.Source.Should().Be(BrandResultSource.Ai);
+        result.IsOffline.Should().BeFalse();
+        result.Provider.Should().Be("Claude");
+        result.Summary.Should().Be("Done.");
+        result.Style.PrimaryColor.Should().Be("112233");
+        _client.Verify(x => x.GenerateAsync(It.IsAny<BrandAiConnection>(),
+            It.Is<BrandAiRequest>(r => r.Prompt == "premium boutique"), It.IsAny<CancellationToken>()));
+    }
+
+    [Test]
+    public async Task A_failed_ai_call_is_an_error_and_the_mock_does_not_step_in()
+    {
+        Connected();
+        _client.Setup(x => x.GenerateAsync(It.IsAny<BrandAiConnection>(), It.IsAny<BrandAiRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new BrandAiException(BrandAiMessages.Unavailable, "status 503"));
+
+        var result = await _service.GenerateAsync("premium boutique", Current());
+
+        result.Style.Should().BeNull();
+        result.Error.Should().Be(BrandAiMessages.Unavailable);
+        result.IsOffline.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task A_reached_limit_stops_the_call()
+    {
+        Connected();
+        _limiter.Setup(x => x.TryCountAsync(It.IsAny<BrandAiConnection>(), 7)).ReturnsAsync(BrandAiMessages.DailyLimit);
+
+        var result = await _service.GenerateAsync("premium boutique", Current());
+
+        result.Error.Should().Be(BrandAiMessages.DailyLimit);
+        result.Style.Should().BeNull();
+        _client.VerifyNoOtherCalls();
+    }
+
+    [Test]
+    public async Task An_empty_prompt_with_a_connection_spends_nothing()
+    {
+        Connected();
+
+        var result = await _service.GenerateAsync("   ", Current());
+
+        result.Error.Should().Be(BrandAiMessages.EmptyPrompt);
+        _client.VerifyNoOtherCalls();
     }
 
     #endregion
 
-    #region Tweaks
-
-    [TestCase("pill buttons please", 999)]
-    [TestCase("make it square", 2)]
-    [TestCase("softly rounded corners", 12)]
-    public async Task Shape_words_set_the_button_radius(string prompt, int radius)
-    {
-        (await GenerateAsync(prompt)).ButtonRadius.Should().Be(radius);
-    }
-
-    //the tweak prompts below avoid preset keywords: a keyword anywhere in the prompt switches the base to that preset
-    //first (see Preset_keywords_match_inside_longer_words)
+    #region Validation
 
     [Test]
-    public async Task Deeper_lowers_the_primary_lightness_and_keeps_the_tint_in_its_hue()
+    public async Task A_bad_colour_keeps_its_current_value_with_a_note()
     {
-        var style = await GenerateAsync("a bit deeper");
+        Connected();
+        var answer = Answer();
+        answer.DangerColor = "javascript:alert(1)";
+        AiAnswers(answer);
 
-        Hsl(style.PrimaryColor).L.Should().BeLessThan(Hsl("3366cc").L);
-        HueDistance(Hsl(style.PrimaryTintColor).H, Hsl(style.PrimaryColor).H).Should().BeLessThan(6);
+        var result = await _service.GenerateAsync("premium boutique", Current());
+
+        result.Style.DangerColor.Should().Be("c62828");
+        result.Style.PrimaryColor.Should().Be("112233");
+        result.Notes.Should().ContainSingle().Which.Should().Contain(nameof(BrandField.DangerColor));
     }
 
     [Test]
-    public async Task Muted_lowers_the_saturation()
+    public async Task A_hash_is_stripped()
     {
-        var style = await GenerateAsync("more muted");
+        Connected();
+        var answer = Answer();
+        answer.PrimaryColor = "#ABCDEF";
+        AiAnswers(answer);
 
-        Hsl(style.PrimaryColor).S.Should().BeLessThan(Hsl("3366cc").S);
+        (await _service.GenerateAsync("premium boutique", Current())).Style.PrimaryColor.Should().Be("abcdef");
     }
 
     [Test]
-    public async Task A_colour_word_targets_that_token_only()
+    public async Task No_usable_colour_is_an_error()
     {
-        var style = await GenerateAsync("deeper red");
+        Connected();
+        AiAnswers(new BrandStyle { PrimaryColor = "blue", ButtonRadius = 8 });
 
-        style.DangerColor.Should().NotBe("c62828");
-        style.PrimaryColor.Should().Be("3366cc");
+        var result = await _service.GenerateAsync("premium boutique", Current());
+
+        result.Style.Should().BeNull();
+        result.Error.Should().Be(BrandAiMessages.InvalidOutput);
     }
 
-    [Test]
-    public async Task Cosier_moves_the_brand_hue_toward_orange_and_takes_the_tint_and_dark_along()
+    [TestCase(-5, 0)]
+    [TestCase(5000, 999)]
+    [TestCase(12, 12)]
+    public async Task The_radius_is_clamped(int radius, int expected)
     {
-        var style = await GenerateAsync("cosier please");
+        Connected();
+        var answer = Answer();
+        answer.ButtonRadius = radius;
+        AiAnswers(answer);
 
-        var hue = Hsl(style.PrimaryColor).H;
-        HueDistance(hue, 32).Should().BeLessThan(HueDistance(Hsl("3366cc").H, 32));
-        HueDistance(Hsl(style.PrimaryTintColor).H, hue).Should().BeLessThan(6);
-        HueDistance(Hsl(style.DarkColor).H, hue).Should().BeLessThan(6);
-    }
-
-    [TestCase("a bit darker", "Dark luxe")]
-    [TestCase("make it warmer", "Warm boutique")]
-    public async Task Preset_keywords_match_inside_longer_words(string prompt, string presetName)
-    {
-        //documents current behaviour: "darker" contains the keyword "dark", "warmer" contains "warm", so these tweak
-        //prompts replace the admin's current colours with a preset before the tweak is applied
-        var preset = _service.GetPresets().Single(p => p.Name == presetName);
-
-        var style = await GenerateAsync(prompt);
-
-        style.SuccessColor.Should().Be(preset.Palette.SuccessColor);
-        style.PrimaryColor.Should().NotBe("3366cc");
-    }
-
-    [Test]
-    public async Task Extreme_tweaks_still_give_valid_colours()
-    {
-        var style = await GenerateAsync("darker darker deeper moodier muted pastel lighter warmer intense", Current());
-
-        Colours(style).Should().AllSatisfy(c => c.Should().MatchRegex("^[0-9a-f]{6}$"));
+        (await _service.GenerateAsync("premium boutique", Current())).Style.ButtonRadius.Should().Be(expected);
     }
 
     #endregion
 
-    #region Scoped to a region
+    #region Region filter
 
     [Test]
-    public async Task A_scoped_tweak_changes_only_the_selected_token()
+    public async Task A_region_takes_only_its_own_field_whatever_the_model_changed()
     {
-        var style = await GenerateAsync("darker", region: "footer");
+        Connected();
+        AiAnswers(Answer());
 
-        style.DarkColor.Should().NotBe("1a2333");
+        var style = (await _service.GenerateAsync("make everything green", Current(), "danger")).Style;
+
+        style.DangerColor.Should().Be("aa0000");
         style.PrimaryColor.Should().Be("3366cc");
+        style.PrimaryTintColor.Should().Be("eef2fa");
+        style.SuccessColor.Should().Be("2e7d32");
+        style.WarningColor.Should().Be("ef6c00");
+        style.DarkColor.Should().Be("1a2333");
+        style.ButtonRadius.Should().Be(8);
     }
 
     [Test]
-    public async Task A_scoped_tweak_never_switches_to_a_preset()
+    public async Task The_button_region_takes_the_primary_colour_and_the_radius()
     {
-        var style = await GenerateAsync("tech", region: "header");
+        Connected();
+        AiAnswers(Answer());
 
-        style.PrimaryColor.Should().Be("3366cc");
+        var style = (await _service.GenerateAsync("pill shaped", Current(), "button")).Style;
+
+        style.PrimaryColor.Should().Be("112233");
+        style.ButtonRadius.Should().Be(999);
+        style.DangerColor.Should().Be("c62828");
+    }
+
+    #endregion
+
+    #region Audit and test
+
+    [Test]
+    public async Task A_generation_is_audited_without_the_key_and_with_a_short_prompt()
+    {
+        Connected();
+        AiAnswers(Answer());
+        string comment = null!;
+        _activity.Setup(x => x.InsertActivityAsync(It.IsAny<string>(), It.IsAny<string>(), null))
+            .Callback((string _, string text, Nop.Core.BaseEntity _) => comment = text)
+            .ReturnsAsync(new ActivityLog());
+
+        await _service.GenerateAsync(new string('p', 500), Current());
+
+        comment.Should().Contain("Claude").And.Contain("ok").And.NotContain("secret");
+        comment.Count(c => c == 'p').Should().BeLessThan(220);
     }
 
     [Test]
-    public async Task Shape_words_reshape_buttons_only_when_no_other_region_is_selected()
+    public async Task Testing_with_no_connection_says_so()
     {
-        (await GenerateAsync("square", region: "footer")).ButtonRadius.Should().Be(8);
-        (await GenerateAsync("square", region: "button")).ButtonRadius.Should().Be(2);
+        (await _service.TestConnectionAsync()).Should().Be(BrandAiMessages.NoConnection);
     }
 
     [Test]
-    public async Task An_unknown_region_behaves_as_no_region()
+    public async Task A_working_connection_tests_clean()
     {
-        var style = await GenerateAsync("tech", region: "sidebar");
+        Connected();
 
-        style.PrimaryColor.Should().Be(_service.GetPresets().Single(p => p.Name == "Bold & techy").Palette.PrimaryColor);
+        (await _service.TestConnectionAsync()).Should().BeNull();
     }
 
     #endregion
