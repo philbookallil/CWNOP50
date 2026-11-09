@@ -24,6 +24,7 @@
     <None Remove="Content\Admin\MultiStore\admin.packname.bulk.js" />
     <None Remove="Content\Admin\MultiStore\admin.store.navigation.js" />
     <None Remove="Content\Admin\Orders\admin.order.badges.js" />
+    <None Remove="Content\Admin\Reminders\admin.subsidy.reminders.js" />
     <None Remove="Content\Common\cw-cart-events.js" />
     <None Remove="Content\PackName\packname-import.js" />
     <None Remove="logo.png" />
@@ -37,6 +38,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Content\Admin\Orders\admin.order.badges.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Admin\Reminders\admin.subsidy.reminders.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Content\Common\cw-cart-events.js">
@@ -262,6 +266,9 @@
     <None Update="Areas\Admin\Views\Product\_CreateOrUpdate.Info.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Areas\Admin\Views\Reminder\Index.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Areas\Admin\Views\ReturnRequest\Edit.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -329,6 +336,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Areas\Admin\Views\Shared\Components\PackNameSubsidies\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\SubsidyExpiryReminders\Default.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Areas\Admin\Views\Shared\_FeeConceptRow.cshtml">

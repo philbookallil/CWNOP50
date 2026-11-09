@@ -699,7 +699,8 @@ A change to any of these between the beta and the final can break CW.Core withou
 - **Forked views** (§5.2, *View overrides*): storefront `Order/Details`, `ReturnRequest/ReturnRequest`,
   `ReturnRequest/CustomerReturnRequests`, the `FlyoutShoppingCart` and `OrderTotals` components; admin `Customer/Create`,
   `Edit`, `List`, `_CreateOrUpdate`, `_CreateOrUpdate.Addresses`, `_CreateOrUpdate.Info`, `Product/_CreateOrUpdate.Info`,
-  `Category/` and `Manufacturer/_CreateOrUpdate.Mappings`, `Order/Edit`, `ReturnRequest/Edit`; the renamed copies
+  `Category/` and `Manufacturer/_CreateOrUpdate.Mappings`, `Order/Edit`, `ReturnRequest/Edit`, `Reminder/Index` (added
+  2026-11-10: nop's page with one widget zone for the subsidy expiry card, `subsidy-system.md` §15); the renamed copies
   `_CWOrderDetails.Info`, `.Payments`, `.BillingAddress`, `.BillingShipping` (from `_OrderDetails.*`) and
   `AclDepartments` (from `AclCustomerRoles`); both `_ViewImports`.
 - **Behaviours relied on at runtime:**

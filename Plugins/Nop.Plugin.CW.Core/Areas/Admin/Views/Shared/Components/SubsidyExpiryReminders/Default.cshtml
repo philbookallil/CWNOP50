@@ -1,0 +1,87 @@
+@model CWRemindersModel
+
+@using Nop.Core.Domain.Messages
+@using Nop.Services
+
+@{
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Reminders/admin.subsidy.reminders.js");
+}
+
+<div class="card card-default" id="cw-subsidy-expiry-reminders">
+    <div class="card-body">
+        <input asp-for="SubsidyExpiry.ActiveStoreScopeConfiguration" type="hidden" />
+        <div class="callout callout-info">
+            @T("Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.Info")
+        </div>
+        @if (!Model.SubsidyExpiry.TaskFound)
+        {
+            <div class="callout callout-warning">
+                @T("Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.Warning.TaskNotFound")
+            </div>
+        }
+        else if (!Model.SubsidyExpiry.TaskEnabled)
+        {
+            <div class="callout callout-warning">
+                @T("Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.Warning.TaskDisabled", Model.SubsidyExpiry.TaskName, Url.Action("List", "ScheduleTask", new { area = AreaNames.ADMIN }))
+            </div>
+        }
+        <div class="form-group row">
+            <div class="col-md-3">
+                <nop-override-store-checkbox asp-for="SubsidyExpiry.Enabled_OverrideForStore" asp-input="SubsidyExpiry.Enabled" asp-store-scope="@Model.SubsidyExpiry.ActiveStoreScopeConfiguration" />
+                <nop-label asp-for="SubsidyExpiry.Enabled" />
+            </div>
+            <div class="col-md-9">
+                <nop-editor asp-for="SubsidyExpiry.Enabled" />
+                <span asp-validation-for="SubsidyExpiry.Enabled"></span>
+            </div>
+        </div>
+        <nop-nested-setting asp-for="SubsidyExpiry.Enabled">
+            <div class="form-group row">
+                <div class="col-md-3">
+                    <nop-override-store-checkbox asp-for="SubsidyExpiry.StartDateUtc_OverrideForStore" asp-input="SubsidyExpiry.StartDateUtc" asp-store-scope="@Model.SubsidyExpiry.ActiveStoreScopeConfiguration" />
+                    <nop-label asp-for="SubsidyExpiry.StartDateUtc" />
+                </div>
+                <div class="col-md-9">
+                    <nop-editor asp-for="SubsidyExpiry.StartDateUtc" />
+                    <span asp-validation-for="SubsidyExpiry.StartDateUtc"></span>
+                </div>
+            </div>
+            @for (var i = 0; i < Model.SubsidyExpiry.FollowUps.Count; i++)
+            {
+                var blockId = $"{Html.IdFor(m => m.SubsidyExpiry.FollowUps[i].Enabled)}-block";
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-label asp-for="SubsidyExpiry.FollowUps[i].Enabled" asp-resource-params="@(new string[] { Model.SubsidyExpiry.FollowUps[i].Number.ToString() })" />
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-sm-auto">
+                                <input asp-for="SubsidyExpiry.FollowUps[i].Enabled" class="cw-subsidy-followup-enable" data-followup-block="@blockId" />
+                            </div>
+                            <div class="col-sm-8" id="@blockId">
+                                <div class="row">
+                                    <div class="col-3">
+                                        <nop-editor asp-for="SubsidyExpiry.FollowUps[i].DelayBeforeSend" />
+                                    </div>
+                                    <div class="col-auto">
+                                        <nop-select asp-for="SubsidyExpiry.FollowUps[i].DelayPeriodId" asp-items="@(await ((MessageDelayPeriod)Model.SubsidyExpiry.FollowUps[i].DelayPeriodId).ToSelectListAsync())" />
+                                    </div>
+                                    <div class="col-auto label-wrapper">
+                                        <div title="@T("Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.FollowUp.DelayBeforeSend.Hint")" data-toggle="tooltip" class="ico-help"><i class="fas fa-circle-question"></i></div>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="SubsidyExpiry.FollowUps[i].DelayBeforeSend"></span>
+                                <span asp-validation-for="SubsidyExpiry.FollowUps[i].DelayPeriodId"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            <div class="form-group row">
+                <div class="col-md-9 offset-md-3">
+                    <span asp-validation-for="SubsidyExpiry.FollowUps"></span>
+                </div>
+            </div>
+        </nop-nested-setting>
+    </div>
+</div>

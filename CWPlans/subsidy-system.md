@@ -13,6 +13,7 @@ Migrated to nopCommerce 5.00 on 2026-10-31: checked against the 5.00 code; the 4
 > (by season), the top-up saves (one transaction each) and the bar before the checkout (§8.2); the SQL in
 > `CWDatabaseService` is unchanged. How the port went is `CWCore_Port_Reference.md`. The items still open are in
 > `Subsidy_PackName_Open_Items.md`; the 4.9 gap analysis is history (`LegacyVersions/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md`).
+> Added 2026-11-10: expiry reminders (§15).
 > Where this document and the code disagree, the code wins and this document is the bug — 4.9 lesson #27
 > (`tasks/lessons-4.9.md`).
 >
@@ -1388,3 +1389,110 @@ Order (NOP)
     settlement) is not planned — `Subsidy_PackName_Open_Items.md`.
     Every identifier the action acts on is tested, not only the posted order id — see
     `PackName_Order_Shipments.md` §9.1.
+
+---
+
+## 15. Expiry Reminders
+
+Added 2026-11-10 (`2026_11_09_DATA_0.2`). A fourth card on **Promotions › Reminders**, below nop's three: **Subsidy
+expiry reminders**, laid out like nop's (a switch overridable per store, a start date, and three follow-ups, each with
+an amount and Hours / Days). Each follow-up is e-mailed **that long before the subsidy's ordering period ends**: #1 the
+earliest (default 30 days), #3 the latest (default 1 day).
+
+### 15.1 Who is reminded, and when (business decisions of 2026-11-09)
+
+| Rule | How |
+|---|---|
+| **Only a packname with its own customer account** (active, not deleted, with an e-mail) | Managers are not reminded: a manager can have many packnames and a packname many managers. The packname's list must have a live branch (`CORE_Branch.Deleted = 0`) |
+| **Only while something is left to spend** | The season's credit (subsidy + product groups, top-ups included) or items, as `vw_CORE_SUB_SubsidyPackNameCredit` / `vw_CORE_SUB_ProductGroupPackNameCredit` count them (`SubsidyExpiryReminderHelper.RemainingToSpend`). The view also has the last word on "in period": no row, no reminder. The admin is told in the switch's tooltip and the card's info callout |
+| **One e-mail per customer** | Every season of the customer with a follow-up due in the same run goes in one e-mail, each listed with subsidy, packname, last day, days left and what is left. The wording is the template of the **latest** follow-up among them |
+| **`OrderOutsidePeriod` subsidies are reminded too** | Nothing filters them out. After the end such a packname may still order but the subsidy no longer pays (§3.1, §5.3) — exactly what the reminder warns about |
+
+### 15.2 How it works
+
+```
+Promotions › Reminders (CW.Core's copy of nop's page, Areas/Admin/Views/Reminder/Index.cshtml)
+  └─ nop's three cards ── nop's form ── Save ──► ReminderController.Index (nop)
+  └─ zone cw_admin_reminders_bottom              ▲
+       └─ SubsidyExpiryRemindersViewComponent    │ SubsidyRemindersSaveFilter (global, order 1)
+            (hidden while Subsidy is off)        │   before: bind SubsidyExpiry.*, validate → ModelState
+                                                 │   after (form valid): save switch, start date, follow-ups;
+                                                 │   clear the card's posted values so it redraws from what was saved
+
+System › Schedule tasks: "Process subsidy expiry reminders" (hourly)
+  └─ ProcessSubsidyExpiryRemindersTask → ISubsidyReminderService.SendExpiryRemindersAsync
+       per store (its own try/catch): Subsidy on? switch on? any follow-up active?
+         candidates (C#): live assignments whose packname has its own active account with an e-mail and whose list
+           has a live branch; season open today (SubsidyPeriodHelper + CustomerSubsidyHelper.SeasonFor, a variation's
+           dates win) and ending within the longest lead time
+         due follow-up not sent yet for this season (CORE_SUB_SubsidyReminder), and not due before the start date
+         credit view has the row and something is left to spend
+         → one e-mail per customer (batches of 100 customers) → record the follow-up per assignment and season end
+```
+
+**Where things are stored**
+
+| What | Where | Why |
+|---|---|---|
+| The switch and the start date | `SubsidyReminderSettings.ExpiryRemindersEnabled`, `.ExpiryRemindersStartDateUtc`, each overridable per store | nop's `ReminderSettings` is nop's class; a plugin cannot add to it |
+| Each follow-up's on/off and lead time | Its message template (`Customer.Subsidy.ExpiryReminder.FollowUp1/2/3`): `IsActive`, `DelayBeforeSend`, `DelayPeriod` | How nop stores its own follow-ups; saved through nop's `IReminderService.UpdateFollowUpAsync` |
+| What was sent | `CORE_SUB_SubsidyReminder` (`SubsidyPackNameId` FK no cascade, `PeriodEnd` date, `LastFollowUpNumber`, `LastFollowUpOnUtc`), unique on (assignment, period end) | Keyed on the season end, so the next season of an annual subsidy, or a variation that moves the end, starts again from #1 |
+
+**Timing.** A season ends at 23:59:59 of its last day in the store's time zone (store `DateTimeSettings`, then the
+instance's, then UTC — the SQL views' fallback). Follow-up *n* is due from *(end − lead time n)* until the end. The task
+runs hourly, so a reminder goes out within the hour. Of the follow-ups due, the latest is sent, and only if it comes after
+the last one sent (`GetDueFollowUp`): a subsidy assigned two days before its end gets #3, not #1, #2 and #3 at once.
+Changing a lead time after a follow-up was sent does not resend it.
+
+**Start date.** A follow-up that fell due before the start date is not sent, so switching the reminders on never sends a
+backlog. The date becomes the moment of the save (`StartsAfresh`) when the reminders are **switched on**, unless a new
+date is typed with it, or when they are on and the date is **emptied**, unless a store scope inherits the all-stores
+date. The new date is saved at the scope being edited, with its override ticked. Type an earlier date to catch up on
+purpose.
+
+**E-mail.** Queued with `ignoreDelayBeforeSend: true`, as nop sends its own reminders (otherwise nop would also hold the
+e-mail back by the template's delay). Tokens (group *Subsidy expiry tokens*): `%Subsidy.ExpiryDetails%` (the list) and
+`%Subsidy.DaysLeft%` (the fewest days left, for the subject), plus nop's store and customer tokens. Days left count
+**today included**: the 7-day follow-up reads "7 day(s) left", the last day "today is the last day". The credit is
+formatted in the message's language with no tax suffix (an allowance, not a price) — the welcome e-mail's
+`%Subsidy.Details%` the same.
+
+**Validation** (`SubsidyExpiryRemindersValidator`, only while the switch is on): each ticked follow-up has a lead time
+above 0 and at most a year, in Hours or Days; ticked follow-ups decrease from #1 to #3 (one with an invalid lead time is
+left out of the order check, so it shows one error). An error refuses the whole save, nop's cards included.
+
+**Feature switch** (`Feature_Toggles_Reference.md` §4.2, §4.3, §4.5). The task skips a store with Subsidy off. The card
+is not drawn when Subsidy is off for the store scope (for every store at the all-stores scope), and the filter acts only
+on a post that carries the card's own field, so a page without the card never turns the switch off. Settings and
+templates are kept while the feature is off.
+
+### 15.3 Inherited from nop, and accepted
+
+- **Lead times are not per store.** nop's `UpdateFollowUpAsync` updates the first template of the name, and the three
+  templates are not store-limited: editing the lead times at a store scope changes them for every store, as nop's own
+  cards do. The switch and the start date are per store.
+- **The template page shows "Delay before send"** for these templates; for them it means *before the end*. The template
+  description says so.
+- **A failure for one customer or one store** is logged and retried on the next run; the others still go. If the e-mail
+  is queued but recording it fails, the next run sends it again.
+- **Uninstalling** CW.Core deletes the task; the templates and settings go with the plugin's usual uninstall.
+
+### 15.4 Not built
+
+- **Managers.** If the business wants managers told about packnames without accounts: a second switch on the same card
+  and one digest per manager listing their packnames (the owned set, `MultiStore_Management_Reference.md` §7.1).
+- **Per-store lead times.** Would need store-limited copies of the three templates; nop's own cards do not do it either.
+
+### 15.5 Code and tests
+
+| Part | Where |
+|---|---|
+| Admin card | `Areas/Admin/Views/Reminder/Index.cshtml` (copy of nop's view + the zone; re-diff on upgrade, `CLAUDE.md` §10.3), `Components/SubsidyExpiryRemindersViewComponent`, `Factories/SubsidyReminderModelFactory`, `Models/Subsidies/SubsidyExpiryRemindersModel` / `SubsidyExpiryFollowUpModel` / `CWRemindersModel`, `Validators/Subsidies/SubsidyExpiryRemindersValidator`, `Content/Admin/Reminders/admin.subsidy.reminders.js` |
+| Save | `Filters/SubsidyRemindersSaveFilter` → `ISubsidyReminderService.SaveExpiryReminderSettingsAsync` |
+| Sending | `Services/Subsidies/ProcessSubsidyExpiryRemindersTask`, `SubsidyReminderService.SendExpiryRemindersAsync`, `Helpers/SubsidyExpiryReminderHelper`, `PackNameWorkflowMessageService.SendSubsidyExpiryReminderAsync` |
+| Data | `Domain/Subsidies/SubsidyReminder`, `Data/Mapping/Subsidies/SubsidyReminderBuilder`, `SchemaMigration` (install) and `Subsidies/SubsidyReminderMigration` (update) |
+| Unit tests | `Tests/CW.Tests/Core`: `SubsidyExpiryReminderHelperTests`, `SubsidyExpiryRemindersValidatorTests`, `SubsidyRemindersSaveFilterTests`, the zone in `CWCorePluginWidgetTests`, the filter in `NopStartupTests` |
+
+The dev-site run (2026-11-09/10, a second store added for the store-scope cases) passed 24 of 28 steps; not run on the
+site: the task-disabled warning, uninstall, a deleted branch, and the welcome e-mail's credit text (same call as the
+reminder's, which passed). The spec and its test plan are `Deprecated/Subsidy_Expiry_Reminders_Spec.md`.

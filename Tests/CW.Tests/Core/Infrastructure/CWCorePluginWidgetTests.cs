@@ -79,6 +79,15 @@ public class CWCorePluginWidgetTests
     }
 
     [Test]
+    public async Task The_reminders_page_zone_is_drawn_by_the_subsidy_card()
+    {
+        var plugin = Plugin();
+
+        (await plugin.GetWidgetZonesAsync()).Should().Contain("cw_admin_reminders_bottom");
+        plugin.GetWidgetViewComponent("cw_admin_reminders_bottom")!.Name.Should().Be("SubsidyExpiryRemindersViewComponent");
+    }
+
+    [Test]
     public void A_zone_the_plugin_does_not_draw_has_no_component()
     {
         Plugin().GetWidgetViewComponent("no_such_zone").Should().BeNull();

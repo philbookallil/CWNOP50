@@ -19,4 +19,9 @@ public static class CWTokenGroupNames
     /// Represents the token naming the packname a returned item was ordered for
     /// </summary>
     public const string ReturnPackNameTokens = "Return packname tokens";
+
+    /// <summary>
+    /// Represents the tokens of the subsidy expiry reminders: the seasons ending and the days left
+    /// </summary>
+    public const string SubsidyExpiryTokens = "Subsidy expiry tokens";
 }

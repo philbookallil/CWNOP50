@@ -22,4 +22,23 @@ public static partial class CWMessageTemplateSystemNames
     public const string CustomerRegistrationImport = "Customer.Subsidy.CustomerRegistrationImport";
 
     #endregion
+
+    #region Subsidy templates
+
+    /// <summary>
+    /// Subsidy expiry reminder, follow up #1: the earliest before a subsidy's season ends
+    /// </summary>
+    public const string SubsidyExpiryFollowUp1 = "Customer.Subsidy.ExpiryReminder.FollowUp1";
+
+    /// <summary>
+    /// Subsidy expiry reminder, follow up #2
+    /// </summary>
+    public const string SubsidyExpiryFollowUp2 = "Customer.Subsidy.ExpiryReminder.FollowUp2";
+
+    /// <summary>
+    /// Subsidy expiry reminder, follow up #3: the latest before a subsidy's season ends
+    /// </summary>
+    public const string SubsidyExpiryFollowUp3 = "Customer.Subsidy.ExpiryReminder.FollowUp3";
+
+    #endregion
 }

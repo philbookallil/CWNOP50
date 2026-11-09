@@ -88,6 +88,7 @@ public class NopStartup : INopStartup
         services.AddScoped<ISubsidyOrderingService, SubsidyOrderingService>();
         services.AddScoped<ISubsidyCreditService, SubsidyCreditService>();
         services.AddScoped<ISubsidyReportingService, SubsidyReportingService>();
+        services.AddScoped<ISubsidyReminderService, SubsidyReminderService>();
 
         services.AddScoped<ICWOrderService, CWOrderService>();
         services.AddScoped<ICWAddressService, CWAddressService>();
@@ -165,6 +166,7 @@ public class NopStartup : INopStartup
         services.AddScoped<IExchangeSettingsModelFactory, ExchangeSettingsModelFactory>();
 
         services.AddScoped<ISubsidyModelFactory, SubsidyModelFactory>();
+        services.AddScoped<ISubsidyReminderModelFactory, SubsidyReminderModelFactory>();
 
         services.AddScoped<IPackNameOrderModelFactory, PackNameOrderModelFactory>();
         services.AddScoped<IReturnRequestExchangeModelFactory, ReturnRequestExchangeModelFactory>();
@@ -210,6 +212,7 @@ public class NopStartup : INopStartup
             options.Filters.Add<PackNameOrderAdminGuardFilter>(1);
             options.Filters.Add<ReturnRequestSubmitFilter>(1);
             options.Filters.Add<ReturnReasonActionDeleteGuardFilter>(1);
+            options.Filters.Add<SubsidyRemindersSaveFilter>(1);
         });
     }
 

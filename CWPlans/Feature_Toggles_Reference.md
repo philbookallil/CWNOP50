@@ -901,6 +901,7 @@ current and future caller in one place.
 | `Components/ExchangesWidgetsViewComponent.cs` | `Exchanges`, only on the **cart** zone (`ExchangesFeesForCartComponentAsync`) — the order zones (public + admin) render fees already charged and are correctly left open | |
 | `Components/PackNameInfoViewComponent.cs` | `Subsidy`, for the subsidy button only (`HasSubsidies`) | Its PackName fallback is §4.6 |
 | `Components/BulkOrderLinkViewComponent.cs` | `BulkOrder`, through `IBulkOrderEntryService.CanUseBulkOrderingAsync` | Public, header link |
+| `Areas/Admin/Components/SubsidyExpiryRemindersViewComponent.cs` | `Subsidy`, for the store scope; at the all-stores scope `IsEnabledForAnyStoreAsync` | The subsidy expiry card on Promotions › Reminders (`subsidy-system.md` §15). Its save is guarded by `SubsidyRemindersSaveFilter` (§4.5) |
 
 `[CheckCWFeature]` itself does nothing on a view component — `IViewComponentHelper.InvokeAsync` calls
 the component directly and never runs the MVC filter pipeline, so `IAsyncActionFilter` attributes on
@@ -944,6 +945,7 @@ avoids changing an interface other plugins are meant to implement.
 | `Services/Exchanges/ExchangeReplacementPriceConsumer.cs` | The replacement line's price while an exchange is written to the cart | `Exchanges`, for the cart item's store |
 | `Services/PackNames/PackNameProvisioningService.cs` → `ProvisionNewBranchAsync`, `ProvisionCustomerBranchAsync` | The automation behind `UseBranchesAsPackNameList` / `UseStaffAsPackName`: a new branch's default list, a packname for a customer an admin links to a branch (callers: `MultiStoreController.SaveBranch`, `BranchController.Create`, `ExtendedCustomerController.Create` / `Edit`) | `PackName`, for the branch's store — nothing is created with the feature off (phase 8 Part 1). The Generate buttons reach the same service through actions already behind `[CheckCWFeature(PackName)]` |
 | `Services/Messages/MessageTokenProviderOverride.cs` | Exchange-fee and credit-note message tokens | **Left unconditional** — see §6.7, an order-attached-record read that must survive a re-sent email |
+| `Services/Subsidies/SubsidyReminderService.cs` → `SendExpiryRemindersAsync` (run by the hourly `ProcessSubsidyExpiryRemindersTask`) | The subsidy expiry reminders, per store | `Subsidy`, for each store — a store with it off is skipped; its settings and templates are kept (`subsidy-system.md` §15) |
 | `BusinessLogic/ExchangesLogic.cs` → `ExecuteExchangeWorkflowAsync` | Credit-notes balance check while completing an exchange | **Left unconditional** — see §6.1, the most important reversal in this whole effort |
 
 ### 4.4 Public controllers
@@ -980,6 +982,11 @@ quantities capped at CW's shipped count either way. The return page itself follo
 by the store's rules only when `Exchanges` is on.
 
 `Filters/PackNameOrderAdminGuardFilter.cs` deliberately reads **no** feature flag (§3.2, last paragraph).
+
+`Filters/SubsidyRemindersSaveFilter.cs` (admin, global, added 2026-11-10) reads no flag either: it acts only on a post
+of nop's Promotions › Reminders page that carries the subsidy card's own field, and the card is drawn only while
+`Subsidy` is on (§4.2). A page drawn without the card therefore never saves the card, so switching `Subsidy` off
+cannot turn the reminders' switch off behind the admin's back (`subsidy-system.md` §15).
 
 ### 4.6 The PackName fallback (making "off" behave like standard nopCommerce)
 

@@ -357,6 +357,15 @@ public class MessageTokenProviderOverride : MessageTokenProvider, IMessageTokenP
                     TokenGroupNames.CustomerTokens,
                     CWTokenGroupNames.SubsidyTokens
                 };
+            case CWMessageTemplateSystemNames.SubsidyExpiryFollowUp1:
+            case CWMessageTemplateSystemNames.SubsidyExpiryFollowUp2:
+            case CWMessageTemplateSystemNames.SubsidyExpiryFollowUp3:
+                return new[]
+                {
+                    TokenGroupNames.StoreTokens,
+                    TokenGroupNames.CustomerTokens,
+                    CWTokenGroupNames.SubsidyExpiryTokens
+                };
             default:
                 return base.GetTokenGroups(messageTemplate);
         }

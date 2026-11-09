@@ -14,4 +14,9 @@ public static class MigrationVersions
     /// ReturnRequestItem.ApprovalQueuedEmailId, on a database installed before the column was in the schema
     /// </summary>
     public const string ReturnRequestItemApprovalQueuedEmailId = "2026/11/06 12:00:00";
+
+    /// <summary>
+    /// CORE_SUB_SubsidyReminder, on a database installed before the table was in the schema
+    /// </summary>
+    public const string SubsidyReminder = "2026/11/09 12:00:00";
 }

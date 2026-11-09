@@ -92,6 +92,7 @@ public class CWNameCompatibility : INameCompatibility
         { typeof(SubsidyVariationHistory), "CORE_SUB_SubsidyVariationHistory" },
         { typeof(SubsidyOrderShipping), "CORE_SUB_SubsidyOrderShipping" },
         { typeof(SubsidyRestoreItem), "CORE_SUB_SubsidyRestoreItem" },
+        { typeof(SubsidyReminder), "CORE_SUB_SubsidyReminder" },
         { typeof(SubsidyPackNameCredit), "vw_CORE_SUB_SubsidyPackNameCredit" },
         { typeof(ProductGroupPackNameCredit), "vw_CORE_SUB_ProductGroupPackNameCredit" },
         { typeof(SubsidyPackNameCanOrder), "vw_CORE_SUB_SubsidyPackNameCanOrder" },

@@ -100,7 +100,7 @@ public class NopStartupTests
             .Where(type => type.Assembly == typeof(NopStartup).Assembly)
             .ToList();
 
-        filterTypes.Should().Contain([typeof(ReturnRequestAdminFilter), typeof(PackNameCheckoutRedirectFilter), typeof(AddShipmentDestinationFilter), typeof(PackNameOrderAdminGuardFilter), typeof(ReturnRequestSubmitFilter), typeof(ReturnReasonActionDeleteGuardFilter)]);
+        filterTypes.Should().Contain([typeof(ReturnRequestAdminFilter), typeof(PackNameCheckoutRedirectFilter), typeof(AddShipmentDestinationFilter), typeof(PackNameOrderAdminGuardFilter), typeof(ReturnRequestSubmitFilter), typeof(ReturnReasonActionDeleteGuardFilter), typeof(SubsidyRemindersSaveFilter)]);
         MissingDependencies(filterTypes).Should().BeEmpty();
     }
 

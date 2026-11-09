@@ -1,5 +1,6 @@
 ﻿using Nop.Core.Domain.Customers;
 using Nop.Plugin.CW.Core.Domain.PackNames;
+using Nop.Plugin.CW.Core.Domain.Subsidies.DTOs;
 
 namespace Nop.Plugin.CW.Core.Services.Messages;
 
@@ -23,4 +24,18 @@ public interface IPackNameWorkflowMessageService
     /// The task result contains the queued e-mail identifiers
     /// </returns>
     Task<IList<int>> SendCustomerRegisteredByManagerMessageAsync(Customer customer, PackName packName, string branchName, IList<string> subsidyNames, int storeId, int languageId);
+
+    /// <summary>
+    /// Sends a subsidy expiry reminder to the customer of a packname: every season listed, each with its last day, the
+    /// days left and what is left to spend
+    /// </summary>
+    /// <param name="customer">The packname's own customer account</param>
+    /// <param name="messageTemplateName">The follow-up template the reminder is written with</param>
+    /// <param name="items">The seasons ending, in the order listed</param>
+    /// <param name="storeId">The store the subsidies belong to</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the queued e-mail identifiers
+    /// </returns>
+    Task<IList<int>> SendSubsidyExpiryReminderAsync(Customer customer, string messageTemplateName, IList<SubsidyExpiryReminderItem> items, int storeId);
 }

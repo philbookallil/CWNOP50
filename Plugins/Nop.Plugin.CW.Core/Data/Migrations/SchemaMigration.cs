@@ -71,11 +71,17 @@ public class SchemaMigration : Migration
         typeof(SubsidyOrderShipping),
         typeof(SubsidyProductGroup),
         typeof(SubsidyRestoreItem),
+        typeof(SubsidyReminder),
         typeof(SubsidyTopup),
         typeof(SubsidyTopupHistory),
         typeof(SubsidyVariation),
         typeof(SubsidyVariationHistory)
     ];
+
+    /// <summary>
+    /// The unique index of the subsidy reminder table, created here and by <see cref="SubsidyReminderMigration"/>
+    /// </summary>
+    internal const string SubsidyReminderUniqueIndex = "UX_CORE_SUB_SubsidyReminder_SubsidyPackNameId_PeriodEnd";
 
     /// <summary>
     /// nop's CreateTableIfNotExists&lt;TEntity&gt;, called for each type of the table list
@@ -133,6 +139,12 @@ public class SchemaMigration : Migration
             nameof(SubsidyProductGroup.SubsidyId), nameof(SubsidyProductGroup.ProductGroupId));
         CreateLiveRowsUniqueIndex(typeof(SubsidyVariation), "UX_CORE_SUB_SubsidyVariation_SubsidyPackNameId",
             nameof(SubsidyVariation.SubsidyPackNameId));
+
+        Create.Index(SubsidyReminderUniqueIndex)
+            .OnTable(NameCompatibilityManager.GetTableName(typeof(SubsidyReminder)))
+            .OnColumn(nameof(SubsidyReminder.SubsidyPackNameId)).Ascending()
+            .OnColumn(nameof(SubsidyReminder.PeriodEnd)).Ascending()
+            .WithOptions().Unique();
     }
 
     /// <summary>

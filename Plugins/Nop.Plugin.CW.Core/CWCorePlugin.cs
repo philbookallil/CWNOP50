@@ -1,6 +1,7 @@
 ﻿using Nop.Core.Domain.Cms;
 using Nop.Core.Domain.Logging;
 using Nop.Core.Domain.Messages;
+using Nop.Core.Domain.ScheduleTasks;
 using Nop.Data;
 using Nop.Plugin.CW.Core.Areas.Admin.Components;
 using Nop.Plugin.CW.Core.Components;
@@ -8,11 +9,13 @@ using Nop.Plugin.CW.Core.Constants;
 using Nop.Plugin.CW.Core.Domain.Messages;
 using Nop.Plugin.CW.Core.Domain.Settings;
 using Nop.Plugin.CW.Core.Services.DataBase;
+using Nop.Plugin.CW.Core.Services.Subsidies;
 using Nop.Services.Cms;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Services.Messages;
 using Nop.Services.Plugins;
+using Nop.Services.ScheduleTasks;
 using Nop.Web.Framework.Infrastructure;
 
 namespace Nop.Plugin.CW.Core;
@@ -44,7 +47,8 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         [AdminWidgetZones.OrderShipmentAddButtons] = typeof(CWShipmentDestinationViewComponent),
         [AdminWidgetZones.OrderShipmentDetailsButtons] = typeof(CWShipmentDestinationViewComponent),
         [AdminWidgetZones.OrderListButtons] = typeof(OrderListBadgesViewComponent),
-        [AdminWidgetZones.CustomerDetailsButtons] = typeof(OrderListBadgesViewComponent)
+        [AdminWidgetZones.CustomerDetailsButtons] = typeof(OrderListBadgesViewComponent),
+        [CWWidgetsZones.ADMIN_REMINDERS_BOTTOM] = typeof(SubsidyExpiryRemindersViewComponent)
     };
 
     private readonly ISettingService _settingService;
@@ -55,6 +59,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
     private readonly IMessageTemplateService _messageTemplateService;
     private readonly IEmailAccountService _emailAccountService;
     private readonly EmailAccountSettings _emailAccountSettings;
+    private readonly IScheduleTaskService _scheduleTaskService;
 
     #endregion
 
@@ -68,7 +73,8 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         ICWDatabaseService cwDatabaseService,
         IMessageTemplateService messageTemplateService,
         IEmailAccountService emailAccountService,
-        EmailAccountSettings emailAccountSettings)
+        EmailAccountSettings emailAccountSettings,
+        IScheduleTaskService scheduleTaskService)
     {
         _settingService = settingService;
         _widgetSettings = widgetSettings;
@@ -78,6 +84,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         _messageTemplateService = messageTemplateService;
         _emailAccountService = emailAccountService;
         _emailAccountSettings = emailAccountSettings;
+        _scheduleTaskService = scheduleTaskService;
     }
 
     #endregion
@@ -90,6 +97,8 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         await InstallReturnReceiptTemplateAsync();
         await InstallReturnApprovalTemplatesAsync();
         await InstallCustomerRegistrationTemplateAsync();
+        await InstallSubsidyExpiryReminderTemplatesAsync();
+        await InstallSubsidyExpiryReminderTaskAsync();
         await AddPackNameToReturnReceiptTemplateAsync();
         await AddAdditionalFeeToPaymentTemplateAsync();
         await PointCustomerRegistrationTemplateAtSubsidyDetailsAsync();
@@ -343,6 +352,74 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         await _localizationService.AddOrUpdateLocaleResourceAsync(
             $"Admin.ContentManagement.MessageTemplates.Description.{CWMessageTemplateSystemNames.CustomerRegistrationImport}",
             "Sent to a customer a manager registers for a packname: the packname details, the subsidies assigned and a link to set the password.");
+    }
+
+    /// <summary>
+    /// Installs the three subsidy expiry reminders, each once: a store that has edited one keeps its wording and its lead
+    /// time.
+    /// </summary>
+    /// <remarks>
+    /// When each is sent is its <c>DelayBeforeSend</c> and <c>DelayPeriod</c>, before the season ends; Promotions ›
+    /// Reminders edits them. The reminders stay off until switched on there.
+    /// </remarks>
+    protected async Task InstallSubsidyExpiryReminderTemplatesAsync()
+    {
+        var emailAccount = await _emailAccountService.GetEmailAccountByIdAsync(_emailAccountSettings.DefaultEmailAccountId)
+            ?? (await _emailAccountService.GetAllEmailAccountsAsync()).FirstOrDefault();
+
+        const string body = "Hello %Customer.FullName%,<br /><br />" +
+                            "You still have subsidy to spend at <a href=\"%Store.URL%\">%Store.Name%</a>, and it ends soon:<br />" +
+                            "%Subsidy.ExpiryDetails%" +
+                            "<br />What is not used by the end date cannot be used afterwards. Please sign in and place your order before then.<br /><br />" +
+                            "Thank you,<br />%Store.Name%<br />";
+
+        var templates = new[]
+        {
+            (Name: CWMessageTemplateSystemNames.SubsidyExpiryFollowUp1, Subject: "Your subsidy at %Store.Name% ends soon", DelayBeforeSend: 30, DelayPeriod: MessageDelayPeriod.Days, Number: 1),
+            (Name: CWMessageTemplateSystemNames.SubsidyExpiryFollowUp2, Subject: "Your subsidy at %Store.Name% ends in %Subsidy.DaysLeft% day(s)", DelayBeforeSend: 7, DelayPeriod: MessageDelayPeriod.Days, Number: 2),
+            (Name: CWMessageTemplateSystemNames.SubsidyExpiryFollowUp3, Subject: "Last reminder: your subsidy at %Store.Name% is about to end", DelayBeforeSend: 1, DelayPeriod: MessageDelayPeriod.Days, Number: 3)
+        };
+
+        foreach (var template in templates)
+        {
+            if ((await _messageTemplateService.GetMessageTemplatesByNameAsync(template.Name)).Any())
+                continue;
+
+            await _messageTemplateService.InsertMessageTemplateAsync(new MessageTemplate
+            {
+                Name = template.Name,
+                Subject = template.Subject,
+                Body = body,
+                IsActive = true,
+                EmailAccountId = emailAccount?.Id ?? 0,
+                DelayBeforeSend = template.DelayBeforeSend,
+                DelayPeriod = template.DelayPeriod
+            });
+
+            await _localizationService.AddOrUpdateLocaleResourceAsync(
+                $"Admin.ContentManagement.MessageTemplates.Description.{template.Name}",
+                $"Subsidy expiry reminder, follow up #{template.Number}: sent to the customer of a packname before a subsidy's ordering period ends, while something is left to spend. Switched on, and timed, on Promotions › Reminders.");
+        }
+    }
+
+    /// <summary>
+    /// Installs the scheduled task that sends the subsidy expiry reminders, once: a store that has disabled it or
+    /// changed its interval keeps that.
+    /// </summary>
+    protected async Task InstallSubsidyExpiryReminderTaskAsync()
+    {
+        if (await _scheduleTaskService.GetTaskByTypeAsync(SubsidyReminderDefaults.ExpiryTaskTypeFullName) != null)
+            return;
+
+        await _scheduleTaskService.InsertTaskAsync(new ScheduleTask
+        {
+            Name = SubsidyReminderDefaults.ExpiryTaskName,
+            Seconds = SubsidyReminderDefaults.ExpiryTaskSeconds,
+            Type = SubsidyReminderDefaults.ExpiryTaskTypeFullName,
+            Enabled = true,
+            LastEnabledUtc = DateTime.UtcNow,
+            StopOnError = false
+        });
     }
 
     /// <summary>
@@ -1752,6 +1829,25 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.Messages.Subsidy.Details.Period"] = "{0}: {1} to {2}",
             ["Plugins.CW.Core.Messages.Subsidy.Details.Credit"] = "{0} credit",
             ["Plugins.CW.Core.Messages.Subsidy.Details.Units"] = "{0} items",
+            ["Plugins.CW.Core.Messages.Subsidy.Expiry.Title"] = "Subsidies ending soon:",
+            ["Plugins.CW.Core.Messages.Subsidy.Expiry.Line"] = "{0} for {1} ends on {2}",
+            ["Plugins.CW.Core.Messages.Subsidy.Expiry.DaysLeft"] = "{0} day(s) left",
+            ["Plugins.CW.Core.Messages.Subsidy.Expiry.LastDay"] = "today is the last day",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.Enabled"] = "Subsidy expiry reminders enabled",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.Enabled.Hint"] = "Check to e-mail the customer of a packname before the ordering period of one of its subsidies ends. Only a packname with its own customer account is reminded, and only while something is left to spend in the period: subsidy credit or items.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.Info"] = "Subsidy expiry reminders go to the customer account of each packname before a subsidy's ordering period ends. A packname without its own account is not reminded. A reminder is sent only while something is left to spend in the period (subsidy credit or items), and a customer with several subsidies ending gets one e-mail listing them all. Subsidies that allow ordering outside the period are reminded too: after the end the customer may still order, but the subsidy no longer pays. A follow up that fell due before the start date is not sent, so switching the reminders on does not send a backlog.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.StartDate"] = "Start date",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.StartDate.Hint"] = "The moment the reminders start from, in Coordinated Universal Time (UTC). A follow up that fell due before it is not sent. Leave it empty to start from the moment you switch the reminders on and save.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.FollowUp.Enabled"] = "Follow up #{0}",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.FollowUp.Enabled.Hint"] = "Check to send this reminder.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.FollowUp.DelayBeforeSend"] = "Before the end",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.FollowUp.DelayBeforeSend.Hint"] = "How long before the subsidy's ordering period ends this reminder is sent. Follow up #1 is the earliest and #3 the latest.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.FollowUp.DelayBeforeSend.MustBeGreaterThanZero"] = "The time before the end must be greater than 0.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.FollowUp.DelayBeforeSend.Maximum"] = "The time before the end cannot be more than a year.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.FollowUp.DelayPeriod.Invalid"] = "Choose hours or days.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.FollowUps.Order"] = "Each follow up must be sent closer to the end than the one before it: #1 the longest before the end, #3 the shortest.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.Warning.TaskDisabled"] = "The \"{0}\" scheduled task is disabled: no reminder is sent until it is <a href=\"{1}\" target=\"_blank\">enabled</a>.",
+            ["Plugins.CW.Core.Admin.Reminders.SubsidyExpiry.Warning.TaskNotFound"] = "The scheduled task that sends the subsidy expiry reminders is missing. Update the CW Core plugin to add it again.",
             ["Plugins.CW.Core.Admin.Returns.CompletionNotification.Queued"] = "The customer has been sent the e-mail asking them to complete the checkout.",
             ["Plugins.CW.Core.Admin.Returns.Reason.InUse"] = "This return reason cannot be deleted: returns use it. You can rename it instead.",
             ["Plugins.CW.Core.Admin.Returns.Action.InUse"] = "This return action cannot be deleted: returns use it. You can rename it instead.",
@@ -2173,6 +2269,11 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             _widgetSettings.ActiveWidgetSystemNames.Remove(CWCoreDefaults.SystemName);
             await _settingService.SaveSettingAsync(_widgetSettings);
         }
+
+        //the scheduler would fail on every run to find the type of a task left behind
+        var subsidyExpiryTask = await _scheduleTaskService.GetTaskByTypeAsync(SubsidyReminderDefaults.ExpiryTaskTypeFullName);
+        if (subsidyExpiryTask != null)
+            await _scheduleTaskService.DeleteTaskAsync(subsidyExpiryTask);
 
         await base.UninstallAsync();
     }

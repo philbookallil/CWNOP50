@@ -279,7 +279,7 @@ across wholesale. Port deliberately, into the 5.00 patterns (§10.5).
 |---|---|---|---|
 | `Nop.Plugin.ExternalAuth.SSO` | Single sign-on with Entra ID (OIDC / SAML 2.0) | **Ported** 2026-10-19; reviewed and extended (plugin version `…_DATA_0.12`); unit tests in `Tests/CW.Tests` (94 cases). OIDC and SAML sign-in pass against Keycloak 26 (2026-10-21); Entra still open (§22 Note C) | `Plugins/Nop.Plugin.ExternalAuth.SSO/References/SSO_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Freight` | Shipping rate computation: flat-rate methods per store, restricted countries; the methods CW.Core's packname checkout offers | **Ported** 2026-10-26 (`2026_10_26_DATA_1.2`); one installation migration, admin fixes. Unit tests in `Tests/CW.Tests` (8 cases); installed on a local site 2026-10-26 and T3–T7 passed (admin pages, cart shipping estimate) | `Plugins/Nop.Plugin.CW.Freight/References/Freight_Plugin_Reference.md` |
-| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Ported** 2026-10-31 — phases 1–5 on the 5.00 beta, then moved to the final 5.00 (M1–M4), phase 6 (outputs) and phase 7 (regression: 173 of 182 pass, none fail) approved, the deferred fixes applied (`2026_10_31_DATA_0.2`). Unit tests in `Tests/CW.Tests/Core` (634 cases). §13–§21 describe its 5.00 code | `CWPlans/CWCore_Port_Reference.md`; the feature references in `CWPlans/` (`subsidy-system.md`, `MultiStore_Management_Reference.md`, `Exchanges_Returns_CreditNotes_Reference.md`, `PackName_Order_Shipments.md`, `BulkOrdering_Design.md`, `Feature_Toggles_Reference.md`) |
+| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Ported** 2026-10-31 — phases 1–5 on the 5.00 beta, then moved to the final 5.00 (M1–M4), phase 6 (outputs) and phase 7 (regression: 173 of 182 pass, none fail) approved, the deferred fixes applied (`2026_10_31_DATA_0.2`); subsidy expiry reminders added 2026-11-10 (`2026_11_09_DATA_0.2`, `subsidy-system.md` §15). Unit tests in `Tests/CW.Tests/Core` (634 cases). §13–§21 describe its 5.00 code | `CWPlans/CWCore_Port_Reference.md`; the feature references in `CWPlans/` (`subsidy-system.md`, `MultiStore_Management_Reference.md`, `Exchanges_Returns_CreditNotes_Reference.md`, `PackName_Order_Shipments.md`, `BulkOrdering_Design.md`, `Feature_Toggles_Reference.md`) |
 | `Nop.Plugin.CW.ThemeCore` | Theme framework: accent colours, custom CSS, layout options, logos, Brand Designer with live preview | **Ported** 2026-10-29 (now `2026_11_06_DATA_1.6`); installed on a local site with `CW.Standard` active, Configure page and live preview (home, category, product, cart, checkout) pass. Unit tests in `Tests/CW.Tests` (231 cases; the custom-CSS sanitizer reads CSS the way the browser does, 2026-10-30) | `Plugins/Nop.Plugin.CW.ThemeCore/References/ThemeCore_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Theme.Standard` | Settings for the `CW.Standard` theme (dark nav bar, square corners); the theme's own storefront text | **Ported** 2026-10-29 (`2026_11_06_DATA_1.2`), with ThemeCore (§10.2 framework exception, `DependsOnSystemNames`) | ThemeCore reference doc |
 | `Themes/CW.Standard` | The CW storefront theme | **Ported** 2026-10-29: its views rebased on the 5.00 views, CSS and images on 5.00 `DefaultClean` | ThemeCore reference doc §3 |
@@ -1196,6 +1196,7 @@ the override simply goes on doing what the old version did.
 | `CW.Core/Areas/Admin/Controllers/ExtendedCustomerController` (re-diffed against 5.00 in CW.Core part 4b) | `Nop.Web/Areas/Admin/Controllers/CustomerController.cs`: `Create` / `Edit` (GET and POST), `List`, `CustomerList`, `Delete`, `ChangePassword`, `GdprDelete`, the VAT, affiliate, MFA, impersonate and message actions, and the helpers | takes nop's `admin/customer/list`, `create` and `edit/{id}` routes (`RouteProvider`); `Create` and `Edit` save the customer's branch and provision the packname; CW's model and view paths; `PlaceOrder` (impersonation landing) is CW's own |
 | `CW.Core/Areas/Admin/Factories/CustomerOverrideModelFactory.PrepareCustomerListModelAsync`, `.PrepareExtendedCustomerModelAsync` (re-diffed in part 4b) | `Nop.Web/Areas/Admin/Factories/CustomerModelFactory.PrepareCustomerListModelAsync`, `.PrepareCustomerModelAsync` | the branch column and store filter; the branch, packname and credit-notes data of the edit page |
 | `CW.Core/Services/Orders/OrderReportOverrideService.ProfitReportAsync` | `Nop.Services/Orders/OrderReportService.cs` (the order filter, ~90 lines) | the filtered orders are joined to their settlement rows (`CORE_PN_OrderSettlement`) and the subsidy (goods + shipping) is added back onto nop's profit; store credit is not (it is customer money the store already holds) |
+| `CW.Core/Areas/Admin/Views/Reminder/Index.cshtml` (a view, not a method) | `Nop.Web/Areas/Admin/Views/Reminder/Index.cshtml` (the whole page) | one widget zone added inside nop's form, after its three cards: `CWWidgetsZones.ADMIN_REMINDERS_BOTTOM` (`cw_admin_reminders_bottom`), where the subsidy expiry card draws so nop's Save posts it (`subsidy-system.md` §15). A nop change to the page is silently lost until the copy is re-diffed |
 
 Everything else in the CW plugins overrides by calling `base` and post-processing, or by overriding a
 `protected virtual` hook, and needs no such check. Background and rationale: `CWPlans/Exchanges_Rebuild_Record.md`
@@ -1403,7 +1404,7 @@ Plugins/Nop.Plugin.CW.<Feature>/
 | SystemName | `CW.Core` |
 | Group | `CW` |
 | FriendlyName | `CW Core Plugin` |
-| Supported NOP Version | `5.00` (`plugin.json` `SupportedVersions`; version `2026_10_31_DATA_0.2` at the end of the port) |
+| Supported NOP Version | `5.00` (`plugin.json` `SupportedVersions`; version `2026_10_31_DATA_0.2` at the end of the port, `2026_11_09_DATA_0.2` with the subsidy expiry reminders) |
 | DLL | `Nop.Plugin.CW.Core.dll` |
 
 ### 13.2 Key Domains
@@ -1432,8 +1433,9 @@ Nop.Plugin.CW.Core/
 │   ├── Mapping/CWNameCompatibility.cs  — Entity → table name map
 │   ├── Migrations/        — one SchemaMigration: every table and the extra indexes (the 4.9 history of 33
 │   │                        migrations was not ported, decision D1; the SQL views, functions and procedures are
-│   │                        created by ICWDatabaseService on install and update)
-│   └── MigrationVersions.cs — InitialSchema
+│   │                        created by ICWDatabaseService on install and update); a table added since also has
+│   │                        an Update migration for sites already installed (Subsidies/SubsidyReminderMigration)
+│   └── MigrationVersions.cs — InitialSchema, SubsidyReminder
 ├── Background/            — IBackgroundTaskQueue + QueuedHostedService
 ├── Components/            — Public store ViewComponents (selector, info strip, subsidy bar, widgets)
 ├── Constants/             — Widget zones, activity types, message template / token names
@@ -1495,19 +1497,21 @@ All registered as **Scoped** unless noted:
 | `IPackNameImportService` | `PackNameImportService` — the Excel import for **two importers**: a manager (`BuildLayoutAsync`, storefront `PackNameController`) and an administrator (`BuildAdministratorLayoutAsync`, `MultiStoreController` region *PackName Import*); both build the layout through the protected `BuildLayoutForImporterAsync`. Template per store settings (the manager settings shape only a manager's), the file check (`CheckFileAsync`), read (the upload is copied into memory), check every row (nop's `CustomerInfoValidator` / `AddressValidator` included), then write ten rows per transaction, stopping at a batch refused while written; error report. The page's JSON is `PackNameImportResultExtensions.ToPageAnswer()` |
 | `IPackNameBulkService` | `PackNameBulkService` (`Services/PackNames/Bulk/`) — the admin packname grids' bulk Activate / Deactivate / Move / Delete (single save's and delete's rules, ten per transaction, each batch reading its rows and target again, the consumer's cache keys cleared again after each commit) and the Excel export; see `CWPlans/MultiStore_Management_Reference.md` §8h |
 | `IPackNameLandingService` | `PackNameLandingService` — where a customer lands after sign-in, packname selection or impersonation (subsidy catalogue, then bulk ordering) |
-| `IPackNameWorkflowMessageService` | `PackNameWorkflowMessageService` — the welcome e-mail of a manager-created customer (`Customer.Subsidy.CustomerRegistrationImport`, nop's set-password link, `%PackName.*%` / `%Subsidy.SubsidyName%` tokens) |
+| `IPackNameWorkflowMessageService` | `PackNameWorkflowMessageService` — the welcome e-mail of a manager-created customer (`Customer.Subsidy.CustomerRegistrationImport`, nop's set-password link, `%PackName.*%` / `%Subsidy.SubsidyName%` tokens) and the subsidy expiry reminders (`Customer.Subsidy.ExpiryReminder.FollowUp1` – `3`, `%Subsidy.ExpiryDetails%` / `%Subsidy.DaysLeft%`) |
 | `ICustomerSubsidiesModelFactory` | `CustomerSubsidiesModelFactory` — the My Subsidies page |
+| `ISubsidyReminderService` | `SubsidyReminderService` — the subsidy expiry reminders: the send of the hourly task `ProcessSubsidyExpiryRemindersTask` and the save of the card on Promotions › Reminders (`subsidy-system.md` §15) |
 | `IBackgroundTaskQueue` | `BackgroundTaskQueue` (Singleton); `QueuedHostedService` as `IHostedService` |
 | `ICustomersLogic`, `IExchangesLogic`, `IReturnSubmissionLogic`, `IReturnResolutionLogic`, `IBulkOrderLogic` | the business-logic classes (§6.13) |
 | `IPackNamePanelProvider` | `SubsidyPackNamePanelProvider` (§21) |
-| Admin factories | `CustomerOverrideModelFactory` (as nop's `ICustomerModelFactory` too), `BranchModelFactory`, `MultiStoreModelFactory`, `PackNameModelFactory`, `SubsidyModelFactory`, `CWSettingModelFactory`, `CWAddressModelFactory`, `CreditNotesModelFactory`, `ReturnRequestOverrideModelFactory` (CW interface only: the admin return list is nop's), `ExchangeSettingsModelFactory`, `PackNameOrderModelFactory`, `ReturnRequestExchangeModelFactory` |
+| Admin factories | `CustomerOverrideModelFactory` (as nop's `ICustomerModelFactory` too), `BranchModelFactory`, `MultiStoreModelFactory`, `PackNameModelFactory`, `SubsidyModelFactory`, `CWSettingModelFactory`, `CWAddressModelFactory`, `CreditNotesModelFactory`, `ReturnRequestOverrideModelFactory` (CW interface only: the admin return list is nop's), `SubsidyReminderModelFactory`, `ExchangeSettingsModelFactory`, `PackNameOrderModelFactory`, `ReturnRequestExchangeModelFactory` |
 | Public factories | `PackNameModelFactory`, `ShoppingCartOverrideModelFactory` (as nop's `IShoppingCartModelFactory` too), `PackNameCheckoutModelFactory`, `ExchangesModelFactory`, `ReturnRequestItemModelFactory`, `ReturnRequestOverrideModelFactory` (as nop's), `PackNameOrderModelFactory`, `SubsidyCatalogModelFactory`, `CustomerSubsidiesModelFactory`, `OrderOverrideModelFactory` (as nop's `IOrderModelFactory`), `BulkOrderModelFactory` |
 
 **Global MVC filters** (`services.Configure<MvcOptions>`, order 1): `ReturnRequestAdminFilter`,
 `PackNameCheckoutRedirectFilter`, `AddShipmentDestinationFilter`, `PackNameOrderAdminGuardFilter`,
 `ReturnRequestSubmitFilter` (new in 5.00: nop's return post with *Exchanges* off or a guest's withdrawal link refuses more
-units than CW's return page offers) and `ReturnReasonActionDeleteGuardFilter` (nop's delete of a return reason or action
-is refused while a return records it).
+units than CW's return page offers), `ReturnReasonActionDeleteGuardFilter` (nop's delete of a return reason or action
+is refused while a return records it) and `SubsidyRemindersSaveFilter` (nop's save of Promotions › Reminders also
+validates and saves the subsidy expiry card; acts only on a post that carries the card).
 
 **Event consumers** are found by nop, not registered here; besides `EventConsumer`, the ones a reader looks for are
 `PackNameCustomerBranchEventConsumer` (customer and packname kept in one branch) and
@@ -1562,6 +1566,7 @@ The full list is `Infrastructure/NopStartup.cs`; this table names what a reader 
 | `CWShipmentDestinationViewComponent` | Shipment add / details pages — the destination picker |
 | `BulkOrderProductPageAdminViewComponent` | Product edit page — bulk-ordering settings |
 | `OrderListBadgesViewComponent` | `OrderListButtons` (Sales → Orders) and `CustomerDetailsButtons` (customer edit page, Orders tab) — renders the `.cw-order-badges-config` div and registers `Content/Admin/Orders/admin.order.badges.js`, which adds the **E** / **R** badges to the order-number cell after each draw of `#orders-grid` / `#order-grid`; nothing for a vendor or without `Orders.OrdersView` |
+| `SubsidyExpiryRemindersViewComponent` | Promotions › Reminders, zone `cw_admin_reminders_bottom` of CW.Core's copy of nop's page — the subsidy expiry card (switch, start date, three follow-ups); nothing while Subsidy is off for the store scope (for every store at the all-stores scope) |
 
 ---
 
@@ -1738,6 +1743,13 @@ assignment per (subsidy, packname), one live allocation per (subsidy, product gr
 assignment are enforced by filtered unique indexes on `Deleted = 0`.
 
 Also: `SubsidyOrderItem`, `SubsidyOrderShipping`, `SubsidyTopupHistory`, `SubsidyVariationHistory`, `ProductGroupTopupHistory`.
+
+#### `SubsidyReminder` → `CORE_SUB_SubsidyReminder`
+```
+Id, SubsidyPackNameId (FK, no cascade), PeriodEnd (date), LastFollowUpNumber, LastFollowUpOnUtc
+```
+The last expiry reminder sent per assignment and season end, unique on the pair; a new season or a moved end starts
+again from #1 (`subsidy-system.md` §15).
 
 #### `SubsidyRestoreItem` → `CORE_SUB_SubsidyRestoreItem`
 ```
@@ -1952,6 +1964,17 @@ is saved, so a new store starts with bulk ordering off. The `BulkOrder*` group i
 Gone: `UseBranchAddress` (never existed in 4.9 — P-12, not needed), `GenderFiltering` (phase 5 Part 2),
 `RegistrationScreen` / `RegistrationScreenPageName` (store self-registration deleted, phase 8 Part 1).
 
+### 15.4 SubsidyReminderSettings (per-store)
+
+`Domain/Settings/SubsidyReminderSettings.cs`; edited on the subsidy card of Promotions › Reminders (`subsidy-system.md` §15).
+
+| Setting | Purpose |
+|---|---|
+| `ExpiryRemindersEnabled` | Send the subsidy expiry reminders (off until switched on) |
+| `ExpiryRemindersStartDateUtc` | A follow-up that fell due before it is not sent. Set to the moment of the save when the reminders are switched on (or the date is emptied) without a typed date, so switching on sends no backlog |
+
+The three follow-ups (on/off, lead time) are stored on their message templates, as nop's own reminders are.
+
 ---
 
 ## 16. Caching Reference
@@ -2068,6 +2091,7 @@ Registered in `CWCorePlugin` (`GetWidgetZonesAsync` / `_widgetComponents`):
 - `CWWidgetsZones.WIDGET_EXCHANGES_FEES_FOR_CART` → `ExchangesWidgetsViewComponent`
 - `CWWidgetsZones.WIDGET_EXCHANGES_FEES_FOR_ORDER` → `ExchangesWidgetsViewComponent`
 - `CWWidgetsZones.WIDGET_EXCHANGES_FEES_FOR_ORDER_ADMIN` → `ExchangesWidgetsViewComponent`
+- `CWWidgetsZones.ADMIN_REMINDERS_BOTTOM` (`cw_admin_reminders_bottom`, added by CW.Core's copy of nop's Reminders page) → `SubsidyExpiryRemindersViewComponent`
 
 ---
 
@@ -2098,6 +2122,11 @@ CW.Core defines `IPackNamePanelProvider` so other plugins can inject extra panel
 ### Background Jobs
 
 `IBackgroundTaskQueue` / `QueuedHostedService` (registered as `IHostedService`) — for fire-and-forget async operations (e.g., sending messages after order processing without blocking the request).
+
+### Scheduled tasks
+
+`ProcessSubsidyExpiryRemindersTask` ("Process subsidy expiry reminders", hourly) — installed on install and update, deleted
+on uninstall; sends the subsidy expiry reminders (`subsidy-system.md` §15).
 
 ---
 

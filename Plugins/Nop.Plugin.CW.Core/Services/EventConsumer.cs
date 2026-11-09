@@ -750,6 +750,13 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
             eventMessage.AdditionalTokens.Add("%Subsidy.Details%");
         }
 
+        //The subsidy expiry reminders: the seasons ending, and the fewest days left among them
+        if (eventMessage.TokenGroups == null || eventMessage.TokenGroups.Contains(CWTokenGroupNames.SubsidyExpiryTokens))
+        {
+            eventMessage.AdditionalTokens.Add("%Subsidy.ExpiryDetails%");
+            eventMessage.AdditionalTokens.Add("%Subsidy.DaysLeft%");
+        }
+
         //The return e-mails and the return receipt: the packname the returned item was ordered for (listed once when
         //every group is asked for, as the welcome e-mail's group lists it too)
         if ((eventMessage.TokenGroups == null || eventMessage.TokenGroups.Contains(CWTokenGroupNames.ReturnPackNameTokens))
