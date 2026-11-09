@@ -285,8 +285,9 @@ public class PdfOverrideService : PdfService
         var totals = await base.GetTotalsAsync(lang, order);
 
         var settlement = await _cwOrderService.GetOrderSettlementAsync(order.Id);
+        var exchangeFees = (await _exchangeService.GetExchangeFeesAmountsAsync(order)).Values.Sum();
 
-        if (settlement == null)
+        if (settlement == null && exchangeFees <= decimal.Zero)
             return totals;
 
         var languageId = lang.Id;
@@ -297,8 +298,6 @@ public class PdfOverrideService : PdfService
 
             return await _priceFormatter.FormatPriceAsync(negative ? -inCustomerCurrency : inCustomerCurrency, true, order.CustomerCurrencyCode, false, languageId);
         }
-
-        var exchangeFees = (await _exchangeService.GetExchangeFeesAmountsAsync(order)).Values.Sum();
 
         //nop writes the subtotal discount and the order discount into the one Discount field, the second over the
         //first; a settled order can carry both, so each gets its own row here
@@ -325,22 +324,39 @@ public class PdfOverrideService : PdfService
             TaxRates = totals.TaxRates,
             RewardPoints = totals.RewardPoints,
             OrderTotal = totals.OrderTotal,
-            GrossTotal = await formatAsync(settlement.SettleableAmount),
-            SubsidyForStock = settlement.SubsidyStockAmount > decimal.Zero ? await formatAsync(settlement.SubsidyStockAmount, true) : null,
-            SubsidyForShipping = settlement.SubsidyShippingAmount > decimal.Zero ? await formatAsync(settlement.SubsidyShippingAmount, true) : null,
-            CreditNotes = settlement.CreditNoteAmount > decimal.Zero ? await formatAsync(settlement.CreditNoteAmount, true) : null,
+            GrossTotal = settlement != null ? await formatAsync(settlement.SettleableAmount) : null,
+            SubsidyForStock = settlement?.SubsidyStockAmount > decimal.Zero ? await formatAsync(settlement.SubsidyStockAmount, true) : null,
+            SubsidyForShipping = settlement?.SubsidyShippingAmount > decimal.Zero ? await formatAsync(settlement.SubsidyShippingAmount, true) : null,
+            CreditNotes = settlement?.CreditNoteAmount > decimal.Zero ? await formatAsync(settlement.CreditNoteAmount, true) : null,
             ExchangeFees = exchangeFees > decimal.Zero ? await formatAsync(exchangeFees) : null,
             PayableBalance = totals.OrderTotal,
+            IsPackNameOrder = await _cwOrderService.IsPackNameOrderAsync(order.Id)
         };
     }
 
     /// <summary>
-    /// Print an invoice naming every delivery address on the order, with the packnames sharing each.
+    /// Whether the order's invoice has rows of CW's to print: a settlement (subsidy or store credit paid for part of
+    /// it) or exchange fees.
+    /// </summary>
+    /// <param name="order">The order</param>
+    /// <returns>A task that represents the asynchronous operation; the task result is true when it has</returns>
+    protected virtual async Task<bool> HasCWTotalsAsync(Order order)
+    {
+        if (await _cwOrderService.GetOrderSettlementAsync(order.Id) != null)
+            return true;
+
+        return (await _exchangeService.GetExchangeFeesAmountsAsync(order)).Values.Sum() > decimal.Zero;
+    }
+
+    /// <summary>
+    /// Print an invoice naming every delivery address on the order, with the packnames sharing each, and the
+    /// settlement and exchange-fee rows of any order that has them.
     /// </summary>
     /// <remarks>
     /// nop's body is reproduced because <c>PrintOrderToPdfAsync</c> constructs its
     /// <c>InvoiceDocument</c> inline and offers no factory hook. Two things differ from it: the document
-    /// type, and the two shipping properties on the initialiser. Everything else is nop's, line for line
+    /// type, and the two shipping properties on the initialiser (a plain order keeps nop's own shipping address).
+    /// Everything else is nop's, line for line
     /// — the same accepted trade as <c>ShipmentOverrideService.GetAllShipmentsAsync</c>.
     /// </remarks>
     public override async Task PrintOrderToPdfAsync(Stream stream, Order order, Language language = null, Store store = null, Vendor vendor = null)
@@ -349,10 +365,14 @@ public class PdfOverrideService : PdfService
 
         var destinations = await _cwOrderService.GetOrderShippingDestinationsAsync(order.Id);
 
-        //Not a packname order — hand it back to nop untouched. This is the regression guard for every
-        //ordinary order in the shop, and it is why the body below is only ever reached by a packname
-        //one. GetOrderShippingDestinationsAsync is cached per order, so the guard costs almost nothing.
-        if (destinations.Count == 0)
+        //nop's own document cannot print CW's totals rows (store credit, subsidy, exchange fees); a vendor sees
+        //no totals at all
+        var printsCWTotals = vendor is null && await HasCWTotalsAsync(order);
+
+        //Not a packname order and nothing of CW's to total — hand it back to nop untouched. This is the
+        //regression guard for every ordinary order in the shop. GetOrderShippingDestinationsAsync and the
+        //settlement are cached per order, so the guard costs little.
+        if (destinations.Count == 0 && !printsCWTotals)
         {
             await base.PrintOrderToPdfAsync(stream, order, language, store, vendor);
 
@@ -403,16 +423,20 @@ public class PdfOverrideService : PdfService
             .Where(destination => destination.OrderItemIds.Any(printedOrderItemIds.Contains))
             .ToList();
 
-        //Nothing being printed belongs to any destination. Rather than guess an address, hand the whole
-        //document back to nop.
-        if (printedDestinations.Count == 0)
+        //Nothing being printed belongs to any destination, and no CW totals to print. Rather than guess an
+        //address, hand the whole document back to nop.
+        if (printedDestinations.Count == 0 && !printsCWTotals)
         {
             await base.PrintOrderToPdfAsync(stream, order, language, store, vendor);
 
             return;
         }
 
-        var shippingDestinations = await BuildShippingDestinationAddressesAsync(order, printedDestinations, language);
+        //a plain order has no destinations: its own shipping address is nop's, and CWInvoiceDocument then lays
+        //the addresses out as nop does
+        var shippingDestinations = printedDestinations.Count > 0
+            ? await BuildShippingDestinationAddressesAsync(order, printedDestinations, language)
+            : new List<AddressItem>();
 
         var column1Lines = string.IsNullOrEmpty(pdfSettingsByStore.InvoiceFooterTextColumn1) ?
             new List<string>()
@@ -445,7 +469,7 @@ public class PdfOverrideService : PdfService
             //--- the two lines that differ from nop's implementation ---
             //ShippingAddress stays the first destination so that CWInvoiceDocument can defer to nop's
             //own single-address layout whenever there is only one to show.
-            ShippingAddress = shippingDestinations[0],
+            ShippingAddress = shippingDestinations.Count > 0 ? shippingDestinations[0] : await GetShippingAddressAsync(language, order),
             ShippingDestinations = shippingDestinations,
 
             Products = await GetOrderProductItemsAsync(order, orderItems, language),

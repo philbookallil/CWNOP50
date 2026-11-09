@@ -17,6 +17,7 @@ using Nop.Plugin.CW.Core.Services.Subsidies;
 using Nop.Services.Catalog;
 using Nop.Services.Customers;
 using Nop.Services.Logging;
+using Nop.Services.Messages;
 using Nop.Services.Orders;
 
 namespace Nop.Plugin.CW.Core.BusinessLogic;
@@ -45,6 +46,7 @@ public class ExchangesLogic : IExchangesLogic
     protected readonly IExchangeWorkflowMessageService _exchangeWorkflowMessageService;
     protected readonly IReturnCaseService _returnCaseService;
     protected readonly ILocker _locker;
+    protected readonly IQueuedEmailService _queuedEmailService;
 
     #endregion
 
@@ -69,7 +71,8 @@ public class ExchangesLogic : IExchangesLogic
         ICWOrderService cwOrderService,
         ISubsidyCreditService subsidyCreditService,
         IReturnCaseService returnCaseService,
-        ILocker locker)
+        ILocker locker,
+        IQueuedEmailService queuedEmailService)
     {
         _orderService = orderService;
         _exchangeService = exchangeService;
@@ -91,6 +94,7 @@ public class ExchangesLogic : IExchangesLogic
         _subsidyCreditService = subsidyCreditService;
         _returnCaseService = returnCaseService;
         _locker = locker;
+        _queuedEmailService = queuedEmailService;
     }
 
     #endregion
@@ -274,6 +278,46 @@ public class ExchangesLogic : IExchangesLogic
     #region Exchange workflow
 
     /// <summary>
+    /// Keeps the id of the approval e-mail queued for the line, so an undo can withdraw it before it is sent.
+    /// </summary>
+    /// <remarks>
+    /// One id: a store has one active template of each name, so an approval queues one e-mail.
+    /// </remarks>
+    /// <param name="returnRequestItem">The approved line</param>
+    /// <param name="queuedEmailIds">The ids of the e-mails queued for the approval; nothing is recorded when none was</param>
+    protected virtual async Task RecordApprovalEmailAsync(ReturnRequestItem returnRequestItem, IList<int> queuedEmailIds)
+    {
+        var queuedEmailId = queuedEmailIds?.FirstOrDefault() ?? 0;
+
+        if (queuedEmailId <= 0)
+            return;
+
+        returnRequestItem.ApprovalQueuedEmailId = queuedEmailId;
+        await _exchangeService.UpdateReturnRequestItemAsync(returnRequestItem);
+    }
+
+    /// <summary>
+    /// Deletes the approval e-mail queued for the line when the queue has not sent it yet; a sent one stays, as the
+    /// record of what the customer was told.
+    /// </summary>
+    /// <param name="returnRequest">The return request whose approval is being undone</param>
+    protected virtual async Task WithdrawApprovalEmailAsync(ReturnRequest returnRequest)
+    {
+        var returnRequestItem = await _exchangeService.GetReturnRequestItemAsync(returnRequest.Id);
+
+        if (returnRequestItem?.ApprovalQueuedEmailId is not int queuedEmailId)
+            return;
+
+        var queuedEmail = await _queuedEmailService.GetQueuedEmailByIdAsync(queuedEmailId);
+
+        if (queuedEmail != null && !queuedEmail.SentOnUtc.HasValue)
+            await _queuedEmailService.DeleteQueuedEmailAsync(queuedEmail);
+
+        returnRequestItem.ApprovalQueuedEmailId = null;
+        await _exchangeService.UpdateReturnRequestItemAsync(returnRequestItem);
+    }
+
+    /// <summary>
     /// Places the replacement order outright, or puts the replacement in the customer's cart.
     /// </summary>
     /// <param name="subsidyWasRestored">
@@ -355,7 +399,8 @@ public class ExchangesLogic : IExchangesLogic
                     var paidOrder = placeOrderResult.PlacedOrder;
 
                     // Notify the customer about the approval
-                    await _exchangeWorkflowMessageService.SendReturnRequestApprovedExceptedCustomerNotificationAsync(returnRequest, paidOrder, orderItem);
+                    var queuedEmailIds = await _exchangeWorkflowMessageService.SendReturnRequestApprovedExceptedCustomerNotificationAsync(returnRequest, paidOrder, orderItem);
+                    await RecordApprovalEmailAsync(returnRequestItem, queuedEmailIds);
 
                     #endregion
                 }
@@ -383,7 +428,8 @@ public class ExchangesLogic : IExchangesLogic
                     // Notify the customer about the approval. The item is passed explicitly so the email
                     // itemises the same instance this workflow priced against — the controller has already
                     // committed it, so this is about not re-reading the row rather than outrunning a commit.
-                    await _exchangeWorkflowMessageService.SendReturnRequestApprovedPaymentCustomerNotificationAsync(returnRequest, orderItem, pendingAmount, returnRequestItem);
+                    var queuedEmailIds = await _exchangeWorkflowMessageService.SendReturnRequestApprovedPaymentCustomerNotificationAsync(returnRequest, orderItem, pendingAmount, returnRequestItem);
+                    await RecordApprovalEmailAsync(returnRequestItem, queuedEmailIds);
 
                     #endregion
 
@@ -474,6 +520,8 @@ public class ExchangesLogic : IExchangesLogic
     {
         if (creditNoteWasApplied)
             await _creditNotesService.UndoCreditNoteForReturnRequestAsync(returnRequest.Id);
+
+        await WithdrawApprovalEmailAsync(returnRequest);
 
         await UndoApprovedExchangeItemsAsync(returnRequest);
 
@@ -639,6 +687,39 @@ public class ExchangesLogic : IExchangesLogic
         var currentCustomer = await _workContext.GetCurrentCustomerAsync();
         var activityLog = $"Approval for Return Request '{returnRequest.Id}' has been undone/reset";
         await _customerActivityService.InsertActivityAsync(currentCustomer, "EditReturnRequest", activityLog, returnRequest);
+    }
+
+    /// <summary>
+    /// The body of SendCompletionRequiredNotificationAsync, run under the return request's lock. Never call it
+    /// directly - going straight here can interleave with an approval or an undo.
+    /// </summary>
+    protected virtual async Task<IList<int>> SendCompletionRequiredNotificationCoreAsync(ReturnRequest returnRequest)
+    {
+        var returnRequestItem = await _exchangeService.GetReturnRequestItemAsync(returnRequest.Id);
+        var orderItem = await _orderService.GetOrderItemByIdAsync(returnRequest.OrderItemId);
+
+        if (returnRequestItem is not { NeedsCompletion: true, IsCompleted: false } || orderItem == null)
+            return new List<int>();
+
+        //the e-mail this one replaces goes, when the customer has not received it yet: they get the current figure once
+        await WithdrawApprovalEmailAsync(returnRequest);
+
+        //priced as the approval priced it: the replacement at what the customer paid for the returned item
+        using var replacementScope = ExchangeReplacementScope.Begin(returnRequestItem);
+
+        var creditNotesBalance = await DetermineCurrentCreditNotesBalanceAsync(returnRequest.CustomerId);
+        var (total, exchangeFeesAmount) = await CalculateExchangeTotalAmountAsync(returnRequest, returnRequestItem);
+        var pendingAmount = await DeterminePendingAmountAsync(returnRequest, total, exchangeFeesAmount, creditNotesBalance);
+
+        var queuedEmailIds = await _exchangeWorkflowMessageService.SendReturnRequestApprovedPaymentCustomerNotificationAsync(returnRequest, orderItem, pendingAmount, returnRequestItem);
+
+        //recorded on a fresh read: the customer's checkout does not take this lock, and the line it completes must stay completed
+        var currentItem = await _exchangeService.GetReturnRequestItemAsync(returnRequest.Id);
+
+        if (currentItem != null)
+            await RecordApprovalEmailAsync(currentItem, queuedEmailIds);
+
+        return queuedEmailIds;
     }
 
     /// <summary>
@@ -912,6 +993,31 @@ public class ExchangesLogic : IExchangesLogic
         }
 
         return workflowResult;
+    }
+
+    #endregion
+
+    #region Notifications
+
+    public virtual async Task<IList<int>> SendCompletionRequiredNotificationAsync(ReturnRequest returnRequest)
+    {
+        ArgumentNullException.ThrowIfNull(returnRequest);
+
+        IList<int> queuedEmailIds = new List<int>();
+
+        //Same key as the approval and its undo: all three write the same line.
+        var ran = await _locker.PerformActionWithLockAsync(
+            ApprovalLockKey(returnRequest.Id),
+            TimeSpan.FromSeconds(60),
+            async () =>
+            {
+                queuedEmailIds = await SendCompletionRequiredNotificationCoreAsync(returnRequest);
+            });
+
+        if (!ran)
+            throw new NopException("This return request is being approved or undone right now. Nothing was sent - please reload the page and check its state before trying again.");
+
+        return queuedEmailIds;
     }
 
     #endregion

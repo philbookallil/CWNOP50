@@ -784,6 +784,45 @@ public class ExchangeService : IExchangeService
             : enabledActions;
     }
 
+    public virtual async Task<IList<ReturnRequestAction>> GetStaffActionsByReasonIdAsync(int returnReasonId, int storeId)
+    {
+        var offered = await GetActiveActionsByReasonIdAsync(returnReasonId, storeId);
+        if (offered.Count > 0)
+            return offered;
+
+        //A store with no enabled action rule has not set its return rules up, and offers nothing; staff still have to be
+        //able to save its returns. A store that has rules but offers nothing for this reason offers nothing to staff either.
+        var storeHasRules = await _returnActionRuleRepository.Table.AnyAsync(rule => rule.StoreId == storeId && !rule.IsDisabled);
+
+        return storeHasRules
+            ? offered
+            : await _returnRequestService.GetAllReturnRequestActionsAsync();
+    }
+
+    public virtual async Task<bool> IsReturnReasonInUseAsync(int returnReasonId)
+    {
+        return await _returnRequestItemRepository.Table.AnyAsync(item => item.ReturnReasonId == returnReasonId)
+            || await _returnCaseService.IsReturnReasonUsedByCaseAsync(returnReasonId);
+    }
+
+    public virtual async Task<bool> IsReturnActionInUseAsync(int returnActionId)
+    {
+        return await _returnRequestItemRepository.Table.AnyAsync(item => item.ReturnActionId == returnActionId)
+            || await _returnCaseService.IsReturnActionUsedByCaseAsync(returnActionId);
+    }
+
+    public virtual async Task DeleteReturnReasonConfigurationAsync(int returnReasonId)
+    {
+        await _returnReasonRuleRepository.DeleteAsync(rule => rule.ReturnReasonId == returnReasonId);
+        await _reasonActionRelationshipRepository.DeleteAsync(link => link.ReasonId == returnReasonId);
+    }
+
+    public virtual async Task DeleteReturnActionConfigurationAsync(int returnActionId)
+    {
+        await _returnActionRuleRepository.DeleteAsync(rule => rule.ReturnActionId == returnActionId);
+        await _reasonActionRelationshipRepository.DeleteAsync(link => link.ActionId == returnActionId);
+    }
+
     #endregion
 
     #region Return Requests

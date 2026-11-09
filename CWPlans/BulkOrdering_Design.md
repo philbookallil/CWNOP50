@@ -15,7 +15,7 @@ Migrated to nopCommerce 5.00 on 2026-10-31: checked against the 5.00 code; the 4
 >
 > **Companion documents.** `BulkOrdering_NOP46_Reference.md` (what the 4.6 implementation does — the
 > functional baseline) and `BulkOrdering_NOP41_Improvements.md` (what 4.1 did better), both in
-> `CWPlans/Deprecated/`, and `BulkOrdering_Future_Improvements.md` (everything deliberately deferred out of this
+> `CWPlans/LegacyVersions/`, and `BulkOrdering_Future_Improvements.md` (everything deliberately deferred out of this
 > design).
 >
 > **Rule for this document.** Every claim about nop behaviour is derived from the nop source under

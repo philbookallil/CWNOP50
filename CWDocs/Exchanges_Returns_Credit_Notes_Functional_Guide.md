@@ -254,10 +254,10 @@ that follows automatically:
 - Gives back any subsidy that was spent on the returned items (§5).
 - Either places the replacement order outright, or puts the replacement in the customer's cart and tells
   them what is owed.
-- Sends the customer the appropriate notification. *(5.00: the two approval e-mails — "approved, nothing further
-  needed" and "approved, payment needed" — are only sent once their message templates have been created in the
-  store's message templates. The system does not create them, so until someone does, the customer is not e-mailed
-  when a return is authorised. Their "return received" e-mail and printable confirmation are not affected.)*
+- Sends the customer the appropriate e-mail: "approved, nothing further needed" (with the replacement order's
+  number) or "approved, payment needed" (with what is owed). Both name the person the garment was for. If the
+  approval is undone before the e-mail has gone out, the e-mail is withdrawn. Staff can send the "payment needed"
+  e-mail again with the current amount from the return's page (*Checkout Notification*).
 
 If anything fails partway, nothing is left half-done — the whole approval is undone.
 

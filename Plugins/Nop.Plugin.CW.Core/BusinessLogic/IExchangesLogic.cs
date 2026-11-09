@@ -52,5 +52,13 @@ public interface IExchangesLogic
     /// </param>
     Task<ReturnRequestWorkflowResult> ExecuteApprovedLineAsync(ReturnRequest returnRequest, int newStatusId);
 
+    /// <summary>
+    /// Sends the customer the "your approved return needs a payment" e-mail again, with what the cart asks for
+    /// now; nothing is sent unless the return is waiting for the customer to check out.
+    /// </summary>
+    /// <param name="returnRequest">The return request</param>
+    /// <returns>A task that represents the asynchronous operation; the task result contains the ids of the queued e-mails</returns>
+    Task<IList<int>> SendCompletionRequiredNotificationAsync(ReturnRequest returnRequest);
+
     Task UndoReturnRequestApprovalAsync(ReturnRequest returnRequest);
 }

@@ -14,4 +14,9 @@ public static class CWTokenGroupNames
     /// Represents tokens with information about the packname a customer was registered for and its subsidies
     /// </summary>
     public const string SubsidyTokens = "Subsidy tokens";
+
+    /// <summary>
+    /// Represents the token naming the packname a returned item was ordered for
+    /// </summary>
+    public const string ReturnPackNameTokens = "Return packname tokens";
 }

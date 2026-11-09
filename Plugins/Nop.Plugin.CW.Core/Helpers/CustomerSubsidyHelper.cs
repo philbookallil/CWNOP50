@@ -145,4 +145,16 @@ public static class CustomerSubsidyHelper
 
         return Math.Clamp(percent, 0, 100);
     }
+
+    /// <summary>
+    /// One subsidy as the welcome e-mail lists it: its period, then its credit and its items where it has them,
+    /// separated by commas.
+    /// </summary>
+    /// <param name="period">The subsidy's name and season</param>
+    /// <param name="credit">The credit, or null or empty when the subsidy has none</param>
+    /// <param name="units">The items, or null or empty when the subsidy allocates none</param>
+    public static string DetailsLine(string period, string credit, string units)
+    {
+        return string.Join(", ", new[] { period, credit, units }.Where(part => !string.IsNullOrEmpty(part)));
+    }
 }

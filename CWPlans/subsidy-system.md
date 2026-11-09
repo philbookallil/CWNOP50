@@ -12,7 +12,7 @@ Migrated to nopCommerce 5.00 on 2026-10-31: checked against the 5.00 code; the 4
 > 2026-10-31: the port changed the schema's delivery (one `Data/Migrations/SchemaMigration.cs`), My Subsidies' history
 > (by season), the top-up saves (one transaction each) and the bar before the checkout (§8.2); the SQL in
 > `CWDatabaseService` is unchanged. How the port went is `CWCore_Port_Reference.md`. The items still open are in
-> `Subsidy_PackName_Open_Items.md`; the 4.9 gap analysis is history (`Deprecated/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md`).
+> `Subsidy_PackName_Open_Items.md`; the 4.9 gap analysis is history (`LegacyVersions/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md`).
 > Where this document and the code disagree, the code wins and this document is the bug — 4.9 lesson #27
 > (`tasks/lessons-4.9.md`).
 >

@@ -24,9 +24,9 @@ Still live and **not** merged here, because they serve a different purpose:
 | `Exchanges_Returns_CreditNotes_Reference.md` | A map of the existing code. Reference, not plan |
 | `Exchanges_Returns_CreditNotes_DevNotes.md` | The dated changelog |
 | `Deprecated/Exchanges_Questions_For_Manager.md` | Manager-facing. Questions 1–14 answered; **15 and 16 opened 2026-09-11** and awaiting an answer |
-| `Deprecated/Legacy_NOP41_Exchanges_Subsidy_Reference.md` | What 4.1 does, which is the tie-breaker for most arguments |
+| `LegacyVersions/Legacy_NOP41_Exchanges_Subsidy_Reference.md` | What 4.1 does, which is the tie-breaker for most arguments |
 | `CWDocs/Exchanges_Returns_Credit_Notes_Functional_Guide.md` | The plain-English guide for non-developers |
-| `Deprecated/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md` | Unscheduled defects and improvements found along the way (its open items are carried by `Subsidy_PackName_Open_Items.md`) |
+| `LegacyVersions/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md` | Unscheduled defects and improvements found along the way (its open items are carried by `Subsidy_PackName_Open_Items.md`) |
 
 ---
 
@@ -485,11 +485,11 @@ groups by `OrderId`, so the de-duplication could only ever collapse two zero row
 | **4a** | Delta settlement — §4 above | **Closed.** Superseded by **4b**, which shipped 2026-09-11 |
 | **4** (rest) | `OrderReturnOrigin`, retiring `PlaceReturnOrderAsync`, frozen prices | Deferred. None is needed for 4.1 parity |
 | **8a** | Pickup in store for packnames | ⏭️ **Skipped by decision, 2026-08-27.** Not needed for the first release. The spec stands; nothing depends on it |
-| **6** | Collapse the three rule tables into `ReturnPolicy`; rewrite the admin config grids. Do **B7** in the same pass | Backlog. Needs a three-into-one data migration |
+| **6** | Collapse the three rule tables into `ReturnPolicy`; rewrite the admin config grids (B7 is already done) | Backlog. Needs a three-into-one data migration |
 | **B4** | Credit-note liability reporting views — replace per-store application loops with aggregates | Backlog. Pure performance |
 | **B5** | Jim2 / Punchout sync | **Out of scope by decision.** It is a *port* — 4.1 has both fully implemented — not a new build |
 | **B6** | Five small cleanups | Backlog |
-| **B7** | Remove orphaned rule rows when a reason or action is deleted | Backlog. Deliberately no FK constraints — they would break nop's own admin delete |
+| **B7** | Remove orphaned rule rows when a reason or action is deleted | **Done on 5.00, 2026-11-09** (round 1 part B, `Deprecated/R1B_Admin_Returns_Picker_Spec.md`): no FK constraints still; a filter refuses the delete while a return uses the record, and an event consumer deletes the rules and links of one that is deleted |
 | — | `FeeConceptItem` versus `ReturnCharge` | Answer it when 3b lands, not before |
 
 **One decision still owed:** `CLAUDE.md` §22 **Note A** — whether CW tests live in `Tests/Nop.Tests`
@@ -585,7 +585,8 @@ transcriptions of one loop in two views, agreeing today only because nobody has 
   a `QueuedEmail` row rather than sending, and `CleanupFailedExchangeWorkflowAsync` does not delete it — so
   an undone approval still mails the customer if the send task has not run. Needs a nullable
   `ApprovalQueuedEmailId` on `ReturnRequestItem`, set when the notification is queued and used to delete
-  the row on cleanup. Found in phase 3b, not fixed.
+  the row on cleanup. Found in phase 3b. **Fixed on 5.00, 2026-11-09** (round 1 part A, `Deprecated/R1A_Return_Emails_Invoice_Spec.md`): the column
+  exists, an undo or a failed approval deletes the row while it is unsent, and a sent e-mail is left alone.
 - **Restored entitlement is spendable between approval and checkout.** 4.1 has the same gap.
 - **A quantity-only subsidy shows no quantity anywhere** — the storefront panel reads $0.00 and the admin
   grid reads 0% used, before and after a unit is spent, because both are money-based. The allocation is
@@ -724,11 +725,10 @@ Nothing that blocks. In the order I would take them:
 
 | Item | Where | Size |
 |---|---|---|
-| A queued approval email survives an undo — needs `ApprovalQueuedEmailId` on `ReturnRequestItem` | §7.4 | ~1 hour |
 | `_SummaryTotals.cshtml:36-39` duplicates `_FeesAndChargesList.cshtml:18` — two transcriptions of one fee loop | §7.3 | Cosmetic |
 | The pure `Plan(ReturnResolutionInput)` — now unblocked, since `Tests/CW.Tests` exists and it is designed to be pure | §5 | Medium |
 | Phase 4 leftovers: `OrderReturnOrigin`, retiring `PlaceReturnOrderAsync`, frozen prices | §5 | None needed for 4.1 parity |
-| Phase 6: collapse the three rule tables into `ReturnPolicy`, plus B7 | §5 | Needs a three-into-one data migration |
+| Phase 6: collapse the three rule tables into `ReturnPolicy` (B7's clean-up is done) | §5 | Needs a three-into-one data migration |
 
 ### 9.2 What someone else owes
 
@@ -755,7 +755,7 @@ found was actually caught.
 
 ### 9.4 The natural next body of work
 
-`CWPlans/Deprecated/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md` (now `CWPlans/Deprecated/`; its open items are carried by
+`CWPlans/LegacyVersions/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md` (now `CWPlans/LegacyVersions/`; its open items are carried by
 `Subsidy_PackName_Open_Items.md`), which had its own sequenced plan. Its **P-01** — nop's standard checkout reachable
 for a packname customer, placing an order with no packname, no destinations and no subsidy — was the blocker named
 here on 2026-09-12; that document records it **closed by phase 2a, 2026-09-17**.

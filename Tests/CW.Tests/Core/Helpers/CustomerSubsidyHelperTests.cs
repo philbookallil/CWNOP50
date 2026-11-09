@@ -129,4 +129,21 @@ public class CustomerSubsidyHelperTests
     {
         CustomerSubsidyHelper.IsStanding(type).Should().Be(standing);
     }
+
+    [Test]
+    public void A_subsidy_line_lists_its_period_credit_and_items()
+    {
+        CustomerSubsidyHelper.DetailsLine("Uniform: 1/07/2026 to 30/06/2027", "$300.00 credit", "5 items")
+            .Should().Be("Uniform: 1/07/2026 to 30/06/2027, $300.00 credit, 5 items");
+    }
+
+    [Test]
+    public void A_subsidy_line_leaves_out_what_the_subsidy_does_not_give()
+    {
+        CustomerSubsidyHelper.DetailsLine("Uniform: 1/07/2026 to 30/06/2027", null, "5 items")
+            .Should().Be("Uniform: 1/07/2026 to 30/06/2027, 5 items", "a quantity-only subsidy has no credit to name");
+
+        CustomerSubsidyHelper.DetailsLine("Uniform: 1/07/2026 to 30/06/2027", "$300.00 credit", string.Empty)
+            .Should().Be("Uniform: 1/07/2026 to 30/06/2027, $300.00 credit");
+    }
 }

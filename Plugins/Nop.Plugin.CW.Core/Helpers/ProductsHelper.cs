@@ -61,17 +61,6 @@ namespace Nop.Plugin.CW.Core.Helpers
             return IsColourAttributeType(attributeModel.AttributeControlType) || IsColourAttributeName(attributeModel.Name);
         }
 
-        /// <remarks>
-        /// Unused — kept only in case the mapping-level path is revived.
-        /// If it ever is, give it the same two-pass treatment as <see cref="FindColourAttribute"/>; the
-        /// loose "col" prefix must not be applied per attribute.
-        /// </remarks>
-        public static bool IsColourAttribute(ProductAttributeMapping attributeMapping, ProductAttribute productAttribute)
-        {
-
-            return IsColourAttributeType(attributeMapping.AttributeControlType) || IsColourAttributeName(productAttribute.Name);
-        }
-
         /// <summary>
         /// The one attribute the replacement picker renders as the colour choice, or null.
         /// </summary>

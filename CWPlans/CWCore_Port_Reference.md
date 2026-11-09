@@ -754,8 +754,8 @@ M3's data had these flags on *Received*, so an authorisation made no credit note
 ## 9. Open after the port
 
 **CW.Core:**
-- The *ReturnAuthorisedPayment* and *ReturnAuthorisedExcepted* customer e-mails are sent only when their templates
-  exist, and CW.Core installs neither, on 4.9 as well. The customer gets no e-mail when a return is authorised.
+- *(Closed 2026-11-09: CW.Core now installs the* ReturnAuthorisedPayment *and* ReturnAuthorisedExcepted *templates —
+  `Deprecated/R1A_Return_Emails_Invoice_Spec.md`.)*
 - A storefront access-denied lands on nop's *Page not found* and logs a 404. `PackNameController` (26 calls) and
   `CustomerSubsidiesController` use `AccessDeniedView()`, which redirects to an admin-only action. 4.9 behaves the
   same. Which answer the storefront should give is a design choice.

@@ -61,7 +61,8 @@ Before starting any task, self-classify its complexity:
 - **Specs, plans and phase records live in `CWPlans/`** at the repository root (e.g.
   `CWPlans/CWCore_Port_Reference.md`); superseded ones go in `CWPlans/Deprecated/`. CW.Core's 4.90 documents were
   migrated on 2026-10-31: the references were checked against the 5.00 code and are in `CWPlans/` (the exchanges
-  functional guide in `CWDocs/`); finished 4.9 working documents are in `CWPlans/Deprecated/` as history. A plugin's own reference document — what the plugin is and how it works — stays
+  functional guide in `CWDocs/`); finished 4.9 working documents are in `CWPlans/Deprecated/` as history. **Analyses of the earlier versions** (4.1, 4.6,
+  4.9 — what they did, and what 5.00 still lacks from them) live in `CWPlans/LegacyVersions/`. A plugin's own reference document — what the plugin is and how it works — stays
   in the plugin's `References/` folder (e.g. `Plugins/Nop.Plugin.ExternalAuth.SSO/References/`).
 - **A phase's test plan lives inside that phase's document**, not beside it. One file to hand someone, not two.
 - **Check every feature reader against the feature switch before specifying it** (CW.Core features, once ported).
@@ -240,6 +241,7 @@ CW_NOP_5/
 ├── Build/                  ClearPluginAssemblies.proj
 ├── Directory.Build.props   Central .NET 10.0 + version metadata
 ├── CWPlans/                Specs, plans and phase records (Deprecated/ for superseded ones — §0.4)
+│   └── LegacyVersions/     Analyses of the 4.1, 4.6 and 4.9 versions and the 4.1 → 5.00 gap list (§0.4)
 ├── tasks/lessons.md        Captured lessons (§0.7)
 ├── CLAUDE.local.md         Personal instructions — gitignored (§0.10); template: CLAUDE.local.example.md
 └── NopCommerce.sln
@@ -1180,8 +1182,8 @@ the override simply goes on doing what the old version did.
 | Our file | Copied from | What we changed |
 |---|---|---|
 | `CW.Core/Services/Shipping/ShipmentOverrideService.GetAllShipmentsAsync` | `Nop.Services/Shipping/ShipmentService.cs` (~113 lines) | the four location filters join `vw_CORE_PN_ShipmentAddress` instead of `o.ShippingAddressId` |
-| `CW.Core/Services/Common/PdfOverrideService.PrintOrderToPdfAsync` | `Nop.Services/Common/PdfService.cs` (~60 lines) | builds a `CWInvoiceDocument`, and sets `ShippingAddress` + `ShippingDestinations`; `GetTotalsAsync` returns a `CWInvoiceTotals` for an order with a settlement row (gross, subsidy for goods and shipping, store credit, exchange fees, payable, and the subtotal and order discounts **apart** — nop's `InvoiceTotals` has one `Discount` slot, which nop fills with the subtotal discount and then overwrites with the order discount) |
-| `CW.Core/Services/Common/Pdf/CWInvoiceDocument.CreateSummary` | `Nop.Web.Framework/…/InvoiceDocument.CreateSummary` (~25 rows) | when `Totals` is a `CWInvoiceTotals` the block reads in the order the money moved — "Total before subsidy and credit", subsidy (items / shipping), store credit, subtotal discount, fee, order discount, gift cards, reward points, exchange fees, payable; nop's own block otherwise (nop places its order total last and offers no seam) |
+| `CW.Core/Services/Common/PdfOverrideService.PrintOrderToPdfAsync` | `Nop.Services/Common/PdfService.cs` (~60 lines) | builds a `CWInvoiceDocument` for a packname order **and for a plain order with a settlement row or exchange fees** (`HasCWTotalsAsync`; nop's own document otherwise), and sets `ShippingAddress` + `ShippingDestinations` (a plain order: its shipping address); `GetTotalsAsync` returns a `CWInvoiceTotals` (with `IsPackNameOrder`) for an order with a settlement row or exchange fees (gross, subsidy for goods and shipping, store credit, exchange fees, payable, and the subtotal and order discounts **apart** — nop's `InvoiceTotals` has one `Discount` slot, which nop fills with the subtotal discount and then overwrites with the order discount) |
+| `CW.Core/Services/Common/Pdf/CWInvoiceDocument.CreateSummary` | `Nop.Web.Framework/…/InvoiceDocument.CreateSummary` (~25 rows) | when `Totals` is a `CWInvoiceTotals` the block reads in the order the money moved — "Total before subsidy and credit", subsidy (items / shipping), store credit, subtotal discount, fee, order discount, gift cards, reward points, exchange fees, payable; for a plain order (`IsPackNameOrder` false) `CreatePlainOrderSummary` copies nop's rows and adds store credit and exchange fees before the order total; nop's own block when `Totals` is nop's (nop places its order total last and offers no seam) |
 | `CW.Core/Services/Catalog/ProductOverrideService.SearchProductsAsync` | `Nop.Services/Catalog/ProductService.cs` | nop's query with one addition: the restricted packname's visible product ids (`IPackNameCatalogGate`) applied inside the query (the method is marked with an upgrade note in code); re-diffed against the final 5.00 (the AI branch only for a keyword search and joined to the query, a category's products in their own display order) |
 | `CW.Core/Services/Common/PdfOverrideService.PrintPackagingSlipToPdfAsync` | `Nop.Services/Common/PdfService.cs` | builds a `CWShipmentDocument` (prints each product's attribute lines — and so the For line — under its name, which nop's `ShipmentDocument` does not); `Address` comes from the shipment's destination via a stand-in `Order` |
 | `CW.Core/Services/Messages/MessageTokenProviderOverride.WriteTotalsAsync` | `Nop.Services/Messages/MessageTokenProvider.cs` (~200 lines) | for a **packname** order with a settlement row (`CORE_PN_OrderSettlement`): nop's subtotal-discount and payment-fee rows are skipped; after the tax rows `WriteSettlementTotalsAsync` writes "Total before subsidy and credit", subsidy for goods, subsidy for shipping and store credit, then `AppendTotalsRow` writes the subtotal discount and the fee; the order discount and total rows take the CW labels ("Order discount", "Payable balance"). A **plain** order keeps nop's layout, with a store-credit row (when it has a settlement row) after the reward points. Before the total, `WriteExchangeFeesTotalsAsync` (fees come after every deduction) — seven places differ from nop's body |
@@ -1495,21 +1497,22 @@ All registered as **Scoped** unless noted:
 | `IPackNameLandingService` | `PackNameLandingService` — where a customer lands after sign-in, packname selection or impersonation (subsidy catalogue, then bulk ordering) |
 | `IPackNameWorkflowMessageService` | `PackNameWorkflowMessageService` — the welcome e-mail of a manager-created customer (`Customer.Subsidy.CustomerRegistrationImport`, nop's set-password link, `%PackName.*%` / `%Subsidy.SubsidyName%` tokens) |
 | `ICustomerSubsidiesModelFactory` | `CustomerSubsidiesModelFactory` — the My Subsidies page |
-| `ICWReturnRequestService` | `CWReturnRequestService` |
 | `IBackgroundTaskQueue` | `BackgroundTaskQueue` (Singleton); `QueuedHostedService` as `IHostedService` |
 | `ICustomersLogic`, `IExchangesLogic`, `IReturnSubmissionLogic`, `IReturnResolutionLogic`, `IBulkOrderLogic` | the business-logic classes (§6.13) |
 | `IPackNamePanelProvider` | `SubsidyPackNamePanelProvider` (§21) |
-| Admin factories | `CustomerOverrideModelFactory` (as nop's `ICustomerModelFactory` too), `BranchModelFactory`, `MultiStoreModelFactory`, `PackNameModelFactory`, `SubsidyModelFactory`, `CWSettingModelFactory`, `CWAddressModelFactory`, `CreditNotesModelFactory`, `ReturnRequestOverrideModelFactory` (as nop's `IReturnRequestModelFactory` too), `ExchangeSettingsModelFactory`, `PackNameOrderModelFactory`, `ReturnRequestExchangeModelFactory` |
+| Admin factories | `CustomerOverrideModelFactory` (as nop's `ICustomerModelFactory` too), `BranchModelFactory`, `MultiStoreModelFactory`, `PackNameModelFactory`, `SubsidyModelFactory`, `CWSettingModelFactory`, `CWAddressModelFactory`, `CreditNotesModelFactory`, `ReturnRequestOverrideModelFactory` (CW interface only: the admin return list is nop's), `ExchangeSettingsModelFactory`, `PackNameOrderModelFactory`, `ReturnRequestExchangeModelFactory` |
 | Public factories | `PackNameModelFactory`, `ShoppingCartOverrideModelFactory` (as nop's `IShoppingCartModelFactory` too), `PackNameCheckoutModelFactory`, `ExchangesModelFactory`, `ReturnRequestItemModelFactory`, `ReturnRequestOverrideModelFactory` (as nop's), `PackNameOrderModelFactory`, `SubsidyCatalogModelFactory`, `CustomerSubsidiesModelFactory`, `OrderOverrideModelFactory` (as nop's `IOrderModelFactory`), `BulkOrderModelFactory` |
 
 **Global MVC filters** (`services.Configure<MvcOptions>`, order 1): `ReturnRequestAdminFilter`,
-`PackNameCheckoutRedirectFilter`, `AddShipmentDestinationFilter`, `PackNameOrderAdminGuardFilter` and
+`PackNameCheckoutRedirectFilter`, `AddShipmentDestinationFilter`, `PackNameOrderAdminGuardFilter`,
 `ReturnRequestSubmitFilter` (new in 5.00: nop's return post with *Exchanges* off or a guest's withdrawal link refuses more
-units than CW's return page offers).
+units than CW's return page offers) and `ReturnReasonActionDeleteGuardFilter` (nop's delete of a return reason or action
+is refused while a return records it).
 
 **Event consumers** are found by nop, not registered here; besides `EventConsumer`, the ones a reader looks for are
 `PackNameCustomerBranchEventConsumer` (customer and packname kept in one branch) and
-`CustomerPermanentlyDeletedEventConsumer` (a GDPR delete also deletes the packname cart lines the cart override hides).
+`CustomerPermanentlyDeletedEventConsumer` (a GDPR delete also deletes the packname cart lines the cart override hides) and
+`ReturnReasonActionDeletedEventConsumer` (a deleted return reason or action takes its CW rules and links with it).
 
 The full list is `Infrastructure/NopStartup.cs`; this table names what a reader is likely to look for.
 
@@ -1850,7 +1853,7 @@ Id, ReturnRequestId (FK to NOP ReturnRequest), ExchangeModeId (ExchangeReturnMod
 ExchangeTypeId (ExchangeType), ReturnReasonId, ReturnActionId, StaffShipQty?, StaffRepackQty?,
 ReturnRequestGroup (Guid?), NeedsCompletion, IsCompleted,
 ShoppingCartItemId?, OrderItemId?, ReturnedOrderItemId,
-AdditionalFeeName, AdditionalFeeAmount?
+AdditionalFeeName, AdditionalFeeAmount?, ApprovalQueuedEmailId? (the approval e-mail queued for this line; deleted while unsent on undo)
 ```
 The replacement is `ReturnReplacementItem.ReturnRequestItem` (the navigation lives on the replacement, not here).
 

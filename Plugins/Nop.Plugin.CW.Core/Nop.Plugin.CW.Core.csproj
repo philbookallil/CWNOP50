@@ -388,6 +388,9 @@
     <None Update="Content\Admin\Common\loader.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Content\Admin\Exchanges\return-request-actions.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Content\Admin\Exchanges\return-request-fees.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

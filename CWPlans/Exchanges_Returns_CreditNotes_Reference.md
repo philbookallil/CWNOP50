@@ -11,7 +11,7 @@ planning further work here.
 design rationale behind decisions made in this area — developer-only, read it alongside this file when
 planning new work. See §14 for how the two files work together going forward.
 
-**Legacy reference:** `CWPlans/Deprecated/Legacy_NOP41_Exchanges_Subsidy_Reference.md` describes the original
+**Legacy reference:** `CWPlans/LegacyVersions/Legacy_NOP41_Exchanges_Subsidy_Reference.md` describes the original
 nopCommerce 4.1 implementation this was ported from — the behaviour the business has relied on for ~10
 years. Consult it before changing any rule, and especially before assuming something is missing by
 design rather than lost in the port.
@@ -332,10 +332,13 @@ The rules/config + return-request-item data-access layer. Large surface; grouped
   `IsReturnRequestAlreadyPerformed` (idempotency guard keyed by `ReturnRequestGroup` Guid so re-posting
   the same wizard submission doesn't double-create requests).
 
-### 6.3 `CWReturnRequestService` (`Services/Orders/`)
+### 6.3 The admin return list
 
-Thin — one method, `SearchReturnRequestsAsync`, a filtered/paged query over nop's `ReturnRequest` table
-(store, customer, name, status, order item, custom number, date range). Used by admin search.
+nop's own (`ReturnRequestController.List`, nop's `ReturnRequestModelFactory`): number, status and date filters, a
+Customer column. CW's override of it, `CWReturnRequestService` and `CWReturnRequestSearchModel` were deleted on
+2026-11-09 — the override read a first / last name filter no screen posted and otherwise did what nop's does. The 4.1
+name filters were not ported (decided). The admin `ReturnRequestOverrideModelFactory` remains only for the one-return
+model of the exchange configuration screens.
 
 ### 6.4 `ExchangesLogic` / `IExchangesLogic` (`BusinessLogic/ExchangesLogic.cs`)
 
@@ -379,10 +382,15 @@ Logic (`ExecuteApprovedLineCoreAsync`):
    `NeedsCompletion`, `OrderWasPlaced`, `Errors`) that the admin controller turns into notification banners. The
    return case's resolution is written by `IReturnResolutionLogic.TryResolveCaseAsync` once every line is decided.
 
-**The customer e-mails at approval are sent only when their templates exist**
-(`ReturnAuthorisedExcepted.CustomerNotification`, `ReturnAuthorisedPayment.CustomerNotification`,
-`ExchangeWorkflowMessageService`), and CW.Core installs neither (it installs `Return.Receipt` only). Until someone
-creates them, the customer gets no e-mail when a return is authorised.
+**The customer e-mails at approval** (`ExchangeWorkflowMessageService`). Pathway A queues
+`ReturnAuthorisedExcepted.CustomerNotification` ("approved, nothing to pay", with the order placed); pathway B queues
+`ReturnAuthorisedPayment.CustomerNotification` ("approved, please complete your order", with the fees and the amount
+due). `CWCorePlugin` installs both, on install and on update, beside `Return.Receipt`. All three carry a
+`%PackName.Name%` line (the returned line's packname, empty for a plain order item, so the template's `%if%` drops
+the line). The payment e-mail names an additional fee when there is one ("It also includes …"), through
+`%ReturnRequest.HasAdditionalFee%` — a bool, so its `%if%` works whatever the fee's name holds (a string token with a
+double quote breaks nop's condition, which then drops the whole block). The id of the queued e-mail is kept on `ReturnRequestItem.ApprovalQueuedEmailId`: an undo, or a failed
+approval's cleanup, deletes that row while it is still unsent; an e-mail already sent is left alone.
 
 Other responsibilities in this class: building the "single product" transient cart used to reuse nop's
 official price-calculation pipeline (`CalculateCartItemsTotalAmountAsync`), the "modify exchanged item
@@ -458,7 +466,7 @@ above what CW's return page offers. From there:
 6. **`CustomerReturnRequests`** / **`GenerateReturnRequestReceipt(s)`** — customer's status list + PDF
    receipt download (`ICWPdfService`). A **confirmation panel** (`ReturnRequestsConfirmations` view
    component) opens over the list immediately after submitting, showing each new return and the
-   `Return.Receipt` message template, with an optional print-before-closing guard
+   `Return.Receipt` message template (with a "For:" line naming the returned line's packname), with an optional print-before-closing guard
    (`MultiStoreSettings.AllowCloseWithoutPrintingReturnNote`). Pending returns offer **Edit Exchange
    Item**, which reopens the picker for the chosen replacement (`EditExchangedItem`; options not posted keep their
    value). The list shows the exchange block (type, replacement) only for an `ExchangeReturnMode.Exchange` request
@@ -509,12 +517,32 @@ subclassed — not a parallel controller) overrides/adds:
   which is a **stub**: the token is fabricated locally (the 4.1 API client is commented out), nothing writes the
   `ImpersonationToken` table, and the redirect to `{otherStore}/impersonate/useToken` lands on a route no CW.Core
   controller serves. Cross-store impersonation therefore does not work (`Subsidy_PackName_Open_Items.md`).
-- **`NotifyCustomer`** (override) / **`NotifyCompletionRequired`** — manual "resend status email" / "nudge
-  the customer to complete a pending-payment exchange" actions.
+- **`NotifyCustomer`** (override) — nop's "resend status e-mail".
+- **`NotifyCompletionRequired`** (the *Checkout Notification* button, pathway B returns not yet completed) — calls
+  `IExchangesLogic.SendCompletionRequiredNotificationAsync`: under the approval lock it withdraws the earlier unsent
+  approval e-mail and queues `ReturnAuthorisedPayment` again with what the cart asks for now, recording the new id.
+  Nothing is queued for a return that does not need completion (a warning says so).
 - **`UndoReturnRequestApproval`** — calls `IExchangesLogic.UndoReturnRequestApprovalAsync`, resets status
   to Pending and rolls back credit notes/cart items created by a previous (mistaken) approval.
+- **`ReturnActionsForReason`** (GET, JSON) — the *Requested action* dropdown's items for the reason chosen on the
+  page (`IReturnRequestExchangeModelFactory.PrepareAvailableReturnActionsAsync`).
 - **`ReturnRequestReasonCreatePopup`** / **`ReturnRequestActionCreatePopup`** — nop-standard popups for
   creating new Reason/Action master records (the CW rule rows are configured separately, see below).
+
+**Reason and requested action on the edit page** (an exchange line only; a plain nop return has no line, stores neither
+choice and keeps nop's lists). *Requested action* lists "Select an action", the actions the return's store offers for
+the chosen reason (`IExchangeService.GetStaffActionsByReasonIdAsync`: the storefront wizard's rule, or every action
+when the store has no enabled action rule at all), and the line's saved action while its saved reason is chosen. It
+reloads when the reason changes (`Content/Admin/Exchanges/return-request-actions.js`, config div
+`.cw-return-actions-config`). `ReturnExchangeRequestValidator` refuses any other action
+(`ExchangesHelper.IsReturnActionAllowed`); a refused save redisplays what was posted. *Reason for return* lists every
+reason.
+
+**Deleting a reason or an action** in nop's settings (*Settings → Order settings → Return request reasons / actions*):
+`ReturnReasonActionDeleteGuardFilter` (global MVC filter, on nop's `ReturnRequestReasonDelete` /
+`ReturnRequestActionDelete`, also reached through `ReturnsController`) refuses it while any return line or case, of any
+status, records it, and sends staff back to its page with a message (rename it instead). When the delete goes ahead,
+`ReturnReasonActionDeletedEventConsumer` deletes its per-store rules and its reason-action links.
 
 The admin **Edit Return** view (`Areas/Admin/Views/ReturnRequest/Edit.cshtml`) is the CW-extended version
 of nop's stock page (Figure 11/12 in the docx): shows exchange mode/type, replacement product, packname,

@@ -407,6 +407,8 @@ public class ExchangesModelFactory : IExchangesModelFactory
             storeId: storeId,
             keywords: string.IsNullOrWhiteSpace(keywords) ? null : keywords.Trim(),
             searchSku: true,
+            //a grouped product's parent has no price or options of its own, and the picker cannot offer its variants
+            productType: ProductType.SimpleProduct,
             visibleIndividuallyOnly: true,
             orderBy: ProductSortingEnum.NameAsc,
             overridePublished: true);

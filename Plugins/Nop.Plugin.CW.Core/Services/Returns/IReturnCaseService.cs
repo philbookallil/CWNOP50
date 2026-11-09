@@ -46,6 +46,20 @@ public interface IReturnCaseService
     /// </exception>
     Task SubmitReturnCaseAsync(ReturnCase returnCase);
 
+    /// <summary>
+    /// Whether a case, whatever its status, records this return reason
+    /// </summary>
+    /// <param name="returnReasonId">Return request reason identifier</param>
+    /// <returns>A task that represents the asynchronous operation; the task result is true when a case uses it</returns>
+    Task<bool> IsReturnReasonUsedByCaseAsync(int returnReasonId);
+
+    /// <summary>
+    /// Whether a case, whatever its status, records this requested action
+    /// </summary>
+    /// <param name="returnActionId">Return request action identifier</param>
+    /// <returns>A task that represents the asynchronous operation; the task result is true when a case uses it</returns>
+    Task<bool> IsReturnActionUsedByCaseAsync(int returnActionId);
+
     #endregion
 
     #region Lines

@@ -35,4 +35,10 @@ public partial class CWInvoiceTotals : InvoiceTotals
     /// <summary>What the customer paid: the order total after every deduction and fee.</summary>
     [DisplayName("Plugins.CW.Core.Pdf.PayableBalance")]
     public string PayableBalance { get; set; }
+
+    /// <summary>
+    /// Whether the order is a packname order, whose totals read in the order the money moved; a plain order keeps
+    /// nop's rows, with its store credit and exchange fees after them.
+    /// </summary>
+    public bool IsPackNameOrder { get; set; }
 }

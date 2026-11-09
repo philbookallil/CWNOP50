@@ -219,4 +219,44 @@ public class ExchangesHelperTests
     }
 
     #endregion
+
+    #region IsReturnActionAllowed
+
+    /// <summary>The admin return page offers the actions the store offers for the chosen reason.</summary>
+    [Test]
+    public void IsReturnActionAllowed_AnActionOfferedForTheReason_IsAllowed()
+    {
+        ExchangesHelper.IsReturnActionAllowed(5, 2, [4, 5], savedReasonId: 1, savedActionId: 9).Should().BeTrue();
+    }
+
+    [Test]
+    public void IsReturnActionAllowed_AnActionNotOfferedForTheReason_IsRefused()
+    {
+        ExchangesHelper.IsReturnActionAllowed(7, 2, [4, 5], savedReasonId: 1, savedActionId: 9).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// The line's saved pair keeps saving after the store's rules change, so an old return is never stuck.
+    /// </summary>
+    [Test]
+    public void IsReturnActionAllowed_TheSavedPairNoLongerOffered_IsAllowed()
+    {
+        ExchangesHelper.IsReturnActionAllowed(9, 1, [4, 5], savedReasonId: 1, savedActionId: 9).Should().BeTrue();
+    }
+
+    /// <summary>The saved action does not carry over to another reason: changing the reason means choosing again.</summary>
+    [Test]
+    public void IsReturnActionAllowed_TheSavedActionWithAnotherReason_IsRefused()
+    {
+        ExchangesHelper.IsReturnActionAllowed(9, 2, [4, 5], savedReasonId: 1, savedActionId: 9).Should().BeFalse();
+    }
+
+    /// <summary>"Select an action" (0) is never a choice, even on a line with nothing saved.</summary>
+    [Test]
+    public void IsReturnActionAllowed_NoAction_IsRefused()
+    {
+        ExchangesHelper.IsReturnActionAllowed(0, 0, [0, 4], savedReasonId: 0, savedActionId: 0).Should().BeFalse();
+    }
+
+    #endregion
 }

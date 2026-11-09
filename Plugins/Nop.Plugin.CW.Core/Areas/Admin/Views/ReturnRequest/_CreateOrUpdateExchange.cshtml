@@ -25,7 +25,13 @@
     var needsCompletion = isExchangeModelData ? exchangeRequestModel.NeedsCompletion : false;
     var isCompleted = isExchangeModelData ? exchangeRequestModel.IsCompleted : false;
 
+    //the requested-action dropdown follows the reason while an exchange line can be edited (a plain nop return has no
+    //exchange line, so no mode, and stores neither choice)
+    var actionsFollowReason = allowEdit && isExchangeModelData && exchangeRequestModel.ExchangeModeId > 0;
+    if (actionsFollowReason)
+        NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Exchanges/return-request-actions.js");
 }
+
 <section class="content">
     <div class="container-fluid">
         <div class="form-horizontal">
@@ -274,6 +280,14 @@
                                             {
                                                 <nop-select asp-for="ReturnRequestActionId" asp-items="@Model.ReturnActionsList" />
                                                 <span asp-validation-for="ReturnRequestActionId"></span>
+                                                @if (actionsFollowReason)
+                                                {
+                                                    <div class="cw-return-actions-config"
+                                                         data-url="@Url.Action("ReturnActionsForReason", "Returns")"
+                                                         data-return-request-id="@Model.Id"
+                                                         data-error-text="@T("Plugins.CW.Core.Admin.Returns.Fields.Action.LoadError")"
+                                                         style="display: none;"></div>
+                                                }
                                             }
                                             else
                                             {

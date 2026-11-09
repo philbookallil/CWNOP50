@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Routing;
 using Nop.Core;
 using Nop.Core.Caching;
+using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Http;
 using Nop.Plugin.CW.Core.BusinessLogic;
@@ -337,6 +338,10 @@ public class ExchangesController : BasePublicController
 
         //another product must be on sale; the returned product itself the customer already has
         if (!product.Published && orderItem.ProductId != product.Id)
+            return NotFound();
+
+        //a grouped product's parent is not something to order; the grid does not offer one
+        if (product.ProductType == ProductType.GroupedProduct)
             return NotFound();
 
         if (returnRequestId > 0)

@@ -204,6 +204,44 @@ namespace Nop.Plugin.CW.Core.Services.Exchanges
         /// <returns>A task that represents the asynchronous operation; the task result contains the reason identifiers</returns>
         Task<IList<int>> GetActiveReasonIdsAsync(int storeId);
 
+        /// <summary>
+        /// The requested actions staff may give a return line with this reason: those the store offers for the reason, as
+        /// the storefront wizard offers them, or every action when the store has no enabled action rule at all (its return
+        /// rules are not set up)
+        /// </summary>
+        /// <param name="returnReasonId">Return request reason identifier</param>
+        /// <param name="storeId">The return's store identifier</param>
+        /// <returns>A task that represents the asynchronous operation; the task result contains the actions</returns>
+        Task<IList<ReturnRequestAction>> GetStaffActionsByReasonIdAsync(int returnReasonId, int storeId);
+
+        /// <summary>
+        /// Whether a return (any line or case, whatever its status) records this reason
+        /// </summary>
+        /// <param name="returnReasonId">Return request reason identifier</param>
+        /// <returns>A task that represents the asynchronous operation; the task result is true when a return uses it</returns>
+        Task<bool> IsReturnReasonInUseAsync(int returnReasonId);
+
+        /// <summary>
+        /// Whether a return (any line or case, whatever its status) records this requested action
+        /// </summary>
+        /// <param name="returnActionId">Return request action identifier</param>
+        /// <returns>A task that represents the asynchronous operation; the task result is true when a return uses it</returns>
+        Task<bool> IsReturnActionInUseAsync(int returnActionId);
+
+        /// <summary>
+        /// Deletes every store's rule and action links of a return reason that no longer exists
+        /// </summary>
+        /// <param name="returnReasonId">Return request reason identifier</param>
+        /// <returns>A task that represents the asynchronous operation</returns>
+        Task DeleteReturnReasonConfigurationAsync(int returnReasonId);
+
+        /// <summary>
+        /// Deletes every store's rule and reason links of a return action that no longer exists
+        /// </summary>
+        /// <param name="returnActionId">Return request action identifier</param>
+        /// <returns>A task that represents the asynchronous operation</returns>
+        Task DeleteReturnActionConfigurationAsync(int returnActionId);
+
         #endregion
 
         #region Return Requests

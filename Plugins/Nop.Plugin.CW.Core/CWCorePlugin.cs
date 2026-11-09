@@ -88,7 +88,11 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
     {
         await InstallActivityLogTypesAsync();
         await InstallReturnReceiptTemplateAsync();
+        await InstallReturnApprovalTemplatesAsync();
         await InstallCustomerRegistrationTemplateAsync();
+        await AddPackNameToReturnReceiptTemplateAsync();
+        await AddAdditionalFeeToPaymentTemplateAsync();
+        await PointCustomerRegistrationTemplateAtSubsidyDetailsAsync();
         await PointShipmentTemplatesAtShipmentAddressAsync();
         await PointOrderTemplatesAtShippingDestinationsAsync();
 
@@ -150,6 +154,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
                    "%Store.CompanyName%<br />" +
                    "Attn: %Store.Name% RETURNS<br />" +
                    "RETURN REQUEST BY: %Customer.FullName%<br />" +
+                   "%if (%PackName.Name% != \"\") FOR: %PackName.Name%<br /> endif%" +
                    "REF: Order #%Order.OrderNumber%<br />" +
                    "%Store.CompanyAddress%<br />",
             IsActive = true,
@@ -159,6 +164,150 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         await _localizationService.AddOrUpdateLocaleResourceAsync(
             $"Admin.ContentManagement.MessageTemplates.Description.{CWMessageTemplateSystemNames.ReturnReceipt}",
             "Shown to the customer on the return confirmation screen and printed on the PDF return receipt.");
+    }
+
+    /// <summary>
+    /// Installs the two e-mails sent when a return is authorised, once each: a store that has edited one keeps its
+    /// wording.
+    /// </summary>
+    protected async Task InstallReturnApprovalTemplatesAsync()
+    {
+        var emailAccount = await _emailAccountService.GetEmailAccountByIdAsync(_emailAccountSettings.DefaultEmailAccountId)
+            ?? (await _emailAccountService.GetAllEmailAccountsAsync()).FirstOrDefault();
+
+        if (!(await _messageTemplateService.GetMessageTemplatesByNameAsync(CWMessageTemplateSystemNames.ReturnAuthorisedPaymentCustomer)).Any())
+        {
+            await _messageTemplateService.InsertMessageTemplateAsync(new MessageTemplate
+            {
+                Name = CWMessageTemplateSystemNames.ReturnAuthorisedPaymentCustomer,
+                Subject = "Your return #%ReturnRequest.CustomNumber% is approved - please complete your order",
+                Body = "Hello %Customer.FullName%,<br /><br />" +
+                       "We have approved your return #%ReturnRequest.CustomNumber%: %ReturnRequest.Product.Quantity% x %ReturnRequest.Product.Name%.<br />" +
+                       "%if (%PackName.Name% != \"\") For: %PackName.Name%<br /> endif%" +
+                       "<br />" +
+                       "Your replacement is waiting in your shopping cart. To receive it, please sign in to " +
+                       "<a href=\"%Store.URL%\">%Store.Name%</a> and complete the checkout.<br /><br />" +
+                       "Amount to pay: <strong>%ReturnRequest.PendingAmount%</strong><br />" +
+                       "This includes the redelivery fee (%ReturnRequest.ReShippingFee%) and the repackaging fee (%ReturnRequest.RePackagingFee%) " +
+                       "where they apply.<br />" +
+                       "%if (%ReturnRequest.HasAdditionalFee%) It also includes %ReturnRequest.AdditionalFeeName% (%ReturnRequest.AdditionalFeeAmount%).<br /> endif%" +
+                       "<br />" +
+                       "Thank you,<br />%Store.Name%<br />",
+                IsActive = true,
+                EmailAccountId = emailAccount?.Id ?? 0
+            });
+
+            await _localizationService.AddOrUpdateLocaleResourceAsync(
+                $"Admin.ContentManagement.MessageTemplates.Description.{CWMessageTemplateSystemNames.ReturnAuthorisedPaymentCustomer}",
+                "Sent to the customer when a return is authorised and the replacement is put in their cart: they complete the checkout to pay what is still due (fees, a price difference). Also sent again by the return page's Notify completion required button.");
+        }
+
+        if (!(await _messageTemplateService.GetMessageTemplatesByNameAsync(CWMessageTemplateSystemNames.ReturnAuthorisedExceptedCustomer)).Any())
+        {
+            await _messageTemplateService.InsertMessageTemplateAsync(new MessageTemplate
+            {
+                Name = CWMessageTemplateSystemNames.ReturnAuthorisedExceptedCustomer,
+                Subject = "Your return #%ReturnRequest.CustomNumber% is approved",
+                Body = "Hello %Customer.FullName%,<br /><br />" +
+                       "We have approved your return #%ReturnRequest.CustomNumber%: %ReturnRequest.Product.Quantity% x %ReturnRequest.Product.Name%.<br />" +
+                       "%if (%PackName.Name% != \"\") For: %PackName.Name%<br /> endif%" +
+                       "<br />" +
+                       "There is nothing to pay: we have placed order #%Order.OrderNumber% for your replacement, and we will let you know " +
+                       "when it is on its way.<br /><br />" +
+                       "Thank you,<br />%Store.Name%<br />",
+                IsActive = true,
+                EmailAccountId = emailAccount?.Id ?? 0
+            });
+
+            await _localizationService.AddOrUpdateLocaleResourceAsync(
+                $"Admin.ContentManagement.MessageTemplates.Description.{CWMessageTemplateSystemNames.ReturnAuthorisedExceptedCustomer}",
+                "Sent to the customer when a return is authorised and nothing is due: the order for the replacement has been placed for them.");
+        }
+    }
+
+    /// <summary>
+    /// Adds the packname line under "RETURN REQUEST BY" in a return receipt installed before the line was in the
+    /// default body.
+    /// </summary>
+    /// <remarks>
+    /// Targeted, so a store's own wording survives, and idempotent: a body that already uses the packname token, or
+    /// whose anchor line has been reworded, is left alone.
+    /// </remarks>
+    protected async Task AddPackNameToReturnReceiptTemplateAsync()
+    {
+        const string anchor = "RETURN REQUEST BY: %Customer.FullName%<br />";
+        const string packNameLine = "%if (%PackName.Name% != \"\") FOR: %PackName.Name%<br /> endif%";
+
+        foreach (var template in await _messageTemplateService.GetMessageTemplatesByNameAsync(CWMessageTemplateSystemNames.ReturnReceipt))
+        {
+            if (string.IsNullOrEmpty(template.Body) || template.Body.Contains("%PackName.Name%", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var position = template.Body.IndexOf(anchor, StringComparison.OrdinalIgnoreCase);
+
+            if (position < 0)
+                continue;
+
+            template.Body = template.Body.Insert(position + anchor.Length, packNameLine);
+
+            await _messageTemplateService.UpdateMessageTemplateAsync(template);
+        }
+    }
+
+    /// <summary>
+    /// Adds the additional-fee sentence to a "payment needed" approval e-mail installed before the sentence was in the
+    /// default body.
+    /// </summary>
+    /// <remarks>
+    /// Targeted, so a store's own wording survives, and idempotent: a body that already uses the additional-fee tokens, or
+    /// whose anchor sentence has been reworded, is left alone.
+    /// </remarks>
+    protected async Task AddAdditionalFeeToPaymentTemplateAsync()
+    {
+        const string anchor = "where they apply.<br /><br />";
+        const string withFeeLine = "where they apply.<br />" +
+            "%if (%ReturnRequest.HasAdditionalFee%) It also includes %ReturnRequest.AdditionalFeeName% (%ReturnRequest.AdditionalFeeAmount%).<br /> endif%" +
+            "<br />";
+
+        foreach (var template in await _messageTemplateService.GetMessageTemplatesByNameAsync(CWMessageTemplateSystemNames.ReturnAuthorisedPaymentCustomer))
+        {
+            if (string.IsNullOrEmpty(template.Body) || template.Body.Contains("%ReturnRequest.AdditionalFee", StringComparison.OrdinalIgnoreCase)
+                || template.Body.Contains("%ReturnRequest.HasAdditionalFee%", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var position = template.Body.IndexOf(anchor, StringComparison.OrdinalIgnoreCase);
+
+            if (position < 0)
+                continue;
+
+            template.Body = template.Body.Remove(position, anchor.Length).Insert(position, withFeeLine);
+
+            await _messageTemplateService.UpdateMessageTemplateAsync(template);
+        }
+    }
+
+    /// <summary>
+    /// Replaces the subsidy-name line of a welcome e-mail installed before <c>%Subsidy.Details%</c> existed with the
+    /// details line: each subsidy with its period, credit and items.
+    /// </summary>
+    /// <remarks>
+    /// Only the exact line the earlier default body carried is replaced, so a store's own wording survives; a re-run
+    /// finds nothing to replace.
+    /// </remarks>
+    protected async Task PointCustomerRegistrationTemplateAtSubsidyDetailsAsync()
+    {
+        const string oldLine = "%if (%Subsidy.SubsidyName% != \"\") Subsidy: %Subsidy.SubsidyName%<br /> endif%";
+        const string newLine = "%Subsidy.Details%";
+
+        foreach (var template in await _messageTemplateService.GetMessageTemplatesByNameAsync(CWMessageTemplateSystemNames.CustomerRegistrationImport))
+        {
+            if (string.IsNullOrEmpty(template.Body) || !template.Body.Contains(oldLine, StringComparison.Ordinal))
+                continue;
+
+            template.Body = template.Body.Replace(oldLine, newLine, StringComparison.Ordinal);
+
+            await _messageTemplateService.UpdateMessageTemplateAsync(template);
+        }
     }
 
     /// <summary>
@@ -184,7 +333,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
                    "Name: %PackName.Name%<br />" +
                    "%if (%PackName.EmployeeNumber% != \"\") Employee number: %PackName.EmployeeNumber%<br /> endif%" +
                    "Branch: %PackName.Branch%<br />" +
-                   "%if (%Subsidy.SubsidyName% != \"\") Subsidy: %Subsidy.SubsidyName%<br /> endif%" +
+                   "%Subsidy.Details%" +
                    "<br />To set your password and sign in, <a href=\"%Customer.PasswordRecoveryURL%\">click here</a>.<br /><br />" +
                    "If anything here is wrong, please let your manager know.<br />",
             IsActive = true,
@@ -1599,6 +1748,17 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.Messages.Order.SubTotalDiscount"] = "Subtotal discount:",
             ["Plugins.CW.Core.Messages.Order.OrderDiscount"] = "Order discount:",
             ["Plugins.CW.Core.Messages.Order.PayableBalance"] = "Payable balance:",
+            ["Plugins.CW.Core.Messages.Subsidy.Details.Title"] = "Your subsidies:",
+            ["Plugins.CW.Core.Messages.Subsidy.Details.Period"] = "{0}: {1} to {2}",
+            ["Plugins.CW.Core.Messages.Subsidy.Details.Credit"] = "{0} credit",
+            ["Plugins.CW.Core.Messages.Subsidy.Details.Units"] = "{0} items",
+            ["Plugins.CW.Core.Admin.Returns.CompletionNotification.Queued"] = "The customer has been sent the e-mail asking them to complete the checkout.",
+            ["Plugins.CW.Core.Admin.Returns.Reason.InUse"] = "This return reason cannot be deleted: returns use it. You can rename it instead.",
+            ["Plugins.CW.Core.Admin.Returns.Action.InUse"] = "This return action cannot be deleted: returns use it. You can rename it instead.",
+            ["Plugins.CW.Core.Admin.Returns.Fields.Action.Select"] = "Select an action",
+            ["Plugins.CW.Core.Admin.Returns.Fields.Action.NotForReason"] = "The requested action is not offered for this reason. Please choose one from the list.",
+            ["Plugins.CW.Core.Admin.Returns.Fields.Action.LoadError"] = "The actions for this reason could not be loaded. Please reload the page.",
+            ["Plugins.CW.Core.Admin.Returns.CompletionNotification.NotQueued"] = "No e-mail was queued: the return is not waiting for the customer to check out, or the 'ReturnAuthorisedPayment.CustomerNotification' message template is not active for this store.",
 
             // Exchanges — customer-facing return wizard
             ["Plugins.CW.Core.Exchanges.Continue"] = "Continue",

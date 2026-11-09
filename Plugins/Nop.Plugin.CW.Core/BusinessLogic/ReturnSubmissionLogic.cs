@@ -1,4 +1,5 @@
 ﻿using Nop.Core;
+using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Orders;
 using Nop.Plugin.CW.Core.Domain.Exchanges;
@@ -156,7 +157,7 @@ public class ReturnSubmissionLogic : IReturnSubmissionLogic
             return false;
 
         var product = await _productService.GetProductByIdAsync(line.ReplacementProductId.Value);
-        if (product == null || product.Deleted || product.IsGiftCard || product.IsRental)
+        if (product == null || product.Deleted || product.IsGiftCard || product.IsRental || product.ProductType == ProductType.GroupedProduct)
             return false;
 
         //every required option chosen, each one of the product's values

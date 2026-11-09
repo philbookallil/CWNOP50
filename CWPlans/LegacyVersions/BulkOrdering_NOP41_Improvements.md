@@ -3,7 +3,7 @@
 > **4.9 history.** Copied from the 4.90 source (`NOP49/CWPlans/`) on 2026-10-31, when CW.Core moved to nopCommerce 5.00. It is kept as the record of the 4.9 work and is **not updated for 5.00**: file paths, line numbers and versions are 4.9's. For how CW.Core works now, read the references in `CWPlans/` and `CWPlans/CWCore_Port_Reference.md`.
 
 > **Purpose.** The 4.9 `CW.Core` rebuild is based on the **4.6** implementation
-> (`CWPlans/BulkOrdering_NOP46_Reference.md`). This document exists for one job only: to record where the older
+> (`CWPlans/LegacyVersions/BulkOrdering_NOP46_Reference.md`). This document exists for one job only: to record where the older
 > **4.1** implementation is *better* or does something 4.6 does not do at all, so those ideas are not lost.
 > It is **not** a description of 4.1, and nothing here is a decision.
 >

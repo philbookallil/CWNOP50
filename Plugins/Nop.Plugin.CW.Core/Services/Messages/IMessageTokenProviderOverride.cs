@@ -15,4 +15,12 @@ public interface IMessageTokenProviderOverride
     /// caller priced against, not whatever a second read returns.
     /// </param>
     Task AddExchangeReturnTokensAsync(IList<Token> tokens, ReturnRequest returnRequest, decimal pendingAmount, ReturnRequestItem returnRequestItem = null);
+
+    /// <summary>
+    /// Adds the packname token of a returned item: the packname it was ordered for, empty when there is none.
+    /// </summary>
+    /// <param name="tokens">List of already added tokens</param>
+    /// <param name="orderItem">The returned order item</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    Task AddReturnPackNameTokensAsync(IList<Token> tokens, OrderItem orderItem);
 }

@@ -23,6 +23,7 @@ public class ReturnRequestItemBuilder : NopEntityBuilder<ReturnRequestItem>
             .WithColumn(nameof(ReturnRequestItem.OrderItemId)).AsInt32().Nullable()
             .WithColumn(nameof(ReturnRequestItem.ReturnedOrderItemId)).AsInt32().NotNullable()
             .WithColumn(nameof(ReturnRequestItem.AdditionalFeeName)).AsString().Nullable()
-            .WithColumn(nameof(ReturnRequestItem.AdditionalFeeAmount)).AsDecimal(18, 4).Nullable();
+            .WithColumn(nameof(ReturnRequestItem.AdditionalFeeAmount)).AsDecimal(18, 4).Nullable()
+            .WithColumn(nameof(ReturnRequestItem.ApprovalQueuedEmailId)).AsInt32().Nullable();
     }
 }

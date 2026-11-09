@@ -89,6 +89,9 @@ public class CWInvoiceDocument : InvoiceDocument
         if (Totals is not CWInvoiceTotals totals)
             return base.CreateSummary();
 
+        if (!totals.IsPackNameOrder)
+            return CreatePlainOrderSummary(totals);
+
         var summaryData = PdfDocumentHelper.BuildPdfGrid(numColumns: 1, DocumentRunDirection);
 
         if (!string.IsNullOrEmpty(totals.SubTotal))
@@ -125,6 +128,43 @@ public class CWInvoiceDocument : InvoiceDocument
             summaryData.AddCell(BuildTextCell<CWInvoiceTotals>(t => t.ExchangeFees, totals.ExchangeFees));
         if (!string.IsNullOrEmpty(totals.PayableBalance))
             summaryData.AddCell(BuildTextCell<CWInvoiceTotals>(t => t.PayableBalance, totals.PayableBalance));
+
+        return summaryData;
+    }
+
+    /// <summary>
+    /// Build the totals block of a plain (non-packname) order: nop's rows in nop's order, then the store credit that
+    /// settled nop's total and the exchange fees, then nop's order total - the layout of the order e-mail.
+    /// </summary>
+    protected virtual PdfGrid CreatePlainOrderSummary(CWInvoiceTotals totals)
+    {
+        var summaryData = PdfDocumentHelper.BuildPdfGrid(numColumns: 1, DocumentRunDirection);
+
+        if (!string.IsNullOrEmpty(totals.SubTotal))
+            summaryData.AddCell(BuildTextCell<InvoiceTotals>(t => t.SubTotal, totals.SubTotal));
+        if (!string.IsNullOrEmpty(totals.Discount))
+            summaryData.AddCell(BuildTextCell<InvoiceTotals>(t => t.Discount, totals.Discount));
+        if (!string.IsNullOrEmpty(totals.Shipping))
+            summaryData.AddCell(BuildTextCell<InvoiceTotals>(t => t.Shipping, totals.Shipping));
+        if (!string.IsNullOrEmpty(totals.PaymentMethodAdditionalFee))
+            summaryData.AddCell(BuildTextCell<InvoiceTotals>(t => t.PaymentMethodAdditionalFee, totals.PaymentMethodAdditionalFee));
+        if (!string.IsNullOrEmpty(totals.Tax))
+            summaryData.AddCell(BuildTextCell<InvoiceTotals>(t => t.Tax, totals.Tax));
+
+        foreach (var rate in totals.TaxRates)
+            summaryData.AddCell(BuildPdfPCell(rate));
+
+        foreach (var card in totals.GiftCards)
+            summaryData.AddCell(BuildPdfPCell(card));
+
+        if (!string.IsNullOrEmpty(totals.RewardPoints))
+            summaryData.AddCell(BuildTextCell<InvoiceTotals>(t => t.RewardPoints, totals.RewardPoints));
+        if (!string.IsNullOrEmpty(totals.CreditNotes))
+            summaryData.AddCell(BuildTextCell<CWInvoiceTotals>(t => t.CreditNotes, totals.CreditNotes));
+        if (!string.IsNullOrEmpty(totals.ExchangeFees))
+            summaryData.AddCell(BuildTextCell<CWInvoiceTotals>(t => t.ExchangeFees, totals.ExchangeFees));
+        if (!string.IsNullOrEmpty(totals.OrderTotal))
+            summaryData.AddCell(BuildTextCell<InvoiceTotals>(t => t.OrderTotal, totals.OrderTotal));
 
         return summaryData;
     }

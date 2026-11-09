@@ -45,4 +45,14 @@ internal static class TestObject
 
         return await (Task<TResult>)info.Invoke(target, arguments)!;
     }
+
+    /// <summary>
+    /// Calls a protected or private instance method that returns a task with no result
+    /// </summary>
+    public static async Task InvokeAsync(object target, string method, params object?[] arguments)
+    {
+        var info = target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!;
+
+        await (Task)info.Invoke(target, arguments)!;
+    }
 }

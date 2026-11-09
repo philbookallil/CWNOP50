@@ -114,6 +114,16 @@ public class ReturnCaseService : IReturnCaseService
         await UpdateReturnCaseAsync(returnCase);
     }
 
+    public virtual async Task<bool> IsReturnReasonUsedByCaseAsync(int returnReasonId)
+    {
+        return await _returnCaseRepository.Table.AnyAsync(returnCase => returnCase.ReturnReasonId == returnReasonId);
+    }
+
+    public virtual async Task<bool> IsReturnActionUsedByCaseAsync(int returnActionId)
+    {
+        return await _returnCaseRepository.Table.AnyAsync(returnCase => returnCase.ReturnActionId == returnActionId);
+    }
+
     #endregion
 
     #region Lines

@@ -7,7 +7,6 @@ using Nop.Plugin.CW.Core.BusinessLogic;
 using Nop.Plugin.CW.Core.Domain.Returns;
 using Nop.Plugin.CW.Core.Helpers;
 using Nop.Plugin.CW.Core.Services.Exchanges;
-using Nop.Plugin.CW.Core.Services.Messages;
 using Nop.Plugin.CW.Core.Services.Returns;
 using Nop.Services.Catalog;
 using Nop.Services.Localization;
@@ -38,7 +37,6 @@ public class ReturnsController : ReturnRequestController
     protected readonly IStoreContext _storeContext;
     protected readonly ILogger _logger;
     protected readonly IReturnCaseService _returnCaseService;
-    protected readonly IExchangeWorkflowMessageService _exchangeWorkflowMessageService;
     protected readonly IReturnResolutionLogic _returnResolutionLogic;
 
     #endregion
@@ -64,7 +62,6 @@ public class ReturnsController : ReturnRequestController
         IStoreContext storeContext,
         ILogger logger,
         IReturnCaseService returnCaseService,
-        IExchangeWorkflowMessageService exchangeWorkflowMessageService,
         IReturnResolutionLogic returnResolutionLogic) : base(customerActivityService,
             localizationService,
             localizedEntityService,
@@ -85,7 +82,6 @@ public class ReturnsController : ReturnRequestController
         _storeContext = storeContext;
         _logger = logger;
         _returnCaseService = returnCaseService;
-        _exchangeWorkflowMessageService = exchangeWorkflowMessageService;
         _returnResolutionLogic = returnResolutionLogic;
     }
 
@@ -691,9 +687,13 @@ public class ReturnsController : ReturnRequestController
             }
             else
             {
-                // Notify the customer that actions are required
-                int emailId = await _exchangeWorkflowMessageService.SendPendingReturnRequestNotificationAsync(returnRequest);
-                _notificationService.SuccessNotification($"A message with ID: {emailId} has been queued to notify the customer about the pending actions needed to complete Return Request with ID: {returnRequest.Id}");
+                //the approval's own "payment needed" e-mail again, with what the cart asks for now
+                var queuedEmailIds = await _exchangesLogic.SendCompletionRequiredNotificationAsync(returnRequest);
+
+                if (queuedEmailIds.Any())
+                    _notificationService.SuccessNotification(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Returns.CompletionNotification.Queued"));
+                else
+                    _notificationService.WarningNotification(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Returns.CompletionNotification.NotQueued"));
             }
         }
         catch (NopException ex)
@@ -737,6 +737,24 @@ public class ReturnsController : ReturnRequestController
         }
 
         return RedirectAfterLeavingReturn();
+    }
+
+    /// <summary>
+    /// The requested actions of the return page's dropdown, for the reason chosen there
+    /// </summary>
+    /// <param name="returnRequestId">The return being edited; its store's rules apply</param>
+    /// <param name="reasonId">The reason chosen</param>
+    [HttpGet]
+    [CheckPermission(StandardPermission.Orders.RETURN_REQUESTS_CREATE_EDIT_DELETE)]
+    public virtual async Task<IActionResult> ReturnActionsForReason(int returnRequestId, int reasonId)
+    {
+        var returnRequest = await _returnRequestService.GetReturnRequestByIdAsync(returnRequestId);
+        if (returnRequest == null)
+            return NotFound();
+
+        var actions = await _modelFactory.PrepareAvailableReturnActionsAsync(returnRequest, reasonId);
+
+        return Json(actions.Select(action => new { action.Value, action.Text }));
     }
 
     [CheckPermission(StandardPermission.Configuration.MANAGE_SETTINGS)]

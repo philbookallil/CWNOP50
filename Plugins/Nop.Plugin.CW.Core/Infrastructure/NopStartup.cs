@@ -83,7 +83,6 @@ public class NopStartup : INopStartup
         services.AddScoped<IOrderTotalCalculationOverrideService, OrderTotalCalculationOverrideService>();
         services.AddScoped<IOrderProcessingService, OrderProcessingOverrideService>();
         services.AddScoped<IOrderProcessingOverrideService, OrderProcessingOverrideService>();
-        services.AddScoped<ICWReturnRequestService, CWReturnRequestService>();
 
         services.AddScoped<ISubsidyService, SubsidyService>();
         services.AddScoped<ISubsidyOrderingService, SubsidyOrderingService>();
@@ -162,7 +161,6 @@ public class NopStartup : INopStartup
         services.AddScoped<ICWAddressModelFactory, CWAddressModelFactory>();
 
         services.AddScoped<ICreditNotesModelFactory, CreditNotesModelFactory>();
-        services.AddScoped<IReturnRequestModelFactory, ReturnRequestOverrideModelFactory>();
         services.AddScoped<IReturnRequestOverrideModelFactory, ReturnRequestOverrideModelFactory>();
         services.AddScoped<IExchangeSettingsModelFactory, ExchangeSettingsModelFactory>();
 
@@ -211,6 +209,7 @@ public class NopStartup : INopStartup
             options.Filters.Add<AddShipmentDestinationFilter>(1);
             options.Filters.Add<PackNameOrderAdminGuardFilter>(1);
             options.Filters.Add<ReturnRequestSubmitFilter>(1);
+            options.Filters.Add<ReturnReasonActionDeleteGuardFilter>(1);
         });
     }
 

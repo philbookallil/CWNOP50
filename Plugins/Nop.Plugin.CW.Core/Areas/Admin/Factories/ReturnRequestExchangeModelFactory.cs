@@ -108,16 +108,30 @@ public class ReturnRequestExchangeModelFactory : IReturnRequestExchangeModelFact
         }
     }
 
-    protected async Task PrepareReasonAndActionListsAsync(CWReturnRequestModel model, ReturnRequestItem requestItem)
+    protected async Task PrepareReasonAndActionListsAsync(CWReturnRequestModel model, ReturnRequest returnRequest, ReturnRequestItem requestItem)
     {
         var reasons = await _returnRequestService.GetAllReturnRequestReasonsAsync();
-        var actions = await _returnRequestService.GetAllReturnRequestActionsAsync();
 
-        model.ReturnRequestReasonId = requestItem?.ReturnReasonId ?? 0;
-        model.ReturnRequestActionId = requestItem?.ReturnActionId ?? 0;
+        //a refused save redisplays what staff posted; the page itself opens on what the line has saved
+        if (model.ReturnRequestReasonId <= 0)
+        {
+            model.ReturnRequestReasonId = requestItem?.ReturnReasonId ?? 0;
+            model.ReturnRequestActionId = requestItem?.ReturnActionId ?? 0;
+        }
 
         model.ReturnReasonsList = new SelectList(reasons, "Id", "Name", model.ReturnRequestReasonId);
-        model.ReturnActionsList = new SelectList(actions, "Id", "Name", model.ReturnRequestActionId);
+
+        //a plain nop return (no exchange line) stores neither choice, so its dropdowns stay as they were: every action
+        if (requestItem == null)
+        {
+            var allActions = await _returnRequestService.GetAllReturnRequestActionsAsync();
+            model.ReturnActionsList = new SelectList(allActions, "Id", "Name", model.ReturnRequestActionId);
+
+            return;
+        }
+
+        var actions = await PrepareAvailableReturnActionsAsync(returnRequest, model.ReturnRequestReasonId);
+        model.ReturnActionsList = new SelectList(actions, nameof(SelectListItem.Value), nameof(SelectListItem.Text), model.ReturnRequestActionId.ToString());
     }
 
     protected async Task PrepareEditabilityStateAsync(CWReturnRequestModel model, ReturnRequestModel requestData, ReturnRequest returnRequest)
@@ -281,10 +295,35 @@ public class ReturnRequestExchangeModelFactory : IReturnRequestExchangeModelFact
         var customer = await _customerService.GetCustomerByIdAsync(returnRequest.CustomerId);
 
         await PrepareRequestContextAsync(model, returnRequest, store, customer);
-        await PrepareReasonAndActionListsAsync(model, requestItem);
+        await PrepareReasonAndActionListsAsync(model, returnRequest, requestItem);
         await PrepareEditabilityStateAsync(model, requestData, returnRequest);
         await PrepareExchangeDetailAsync(model, requestData, requestItem, returnRequest, store, customer);
         await PrepareReturnCaseDetailAsync(model, requestData);
+    }
+
+    public virtual async Task<IList<SelectListItem>> PrepareAvailableReturnActionsAsync(ReturnRequest returnRequest, int reasonId)
+    {
+        ArgumentNullException.ThrowIfNull(returnRequest);
+
+        var items = new List<SelectListItem>
+        {
+            new() { Value = "0", Text = await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Returns.Fields.Action.Select") }
+        };
+
+        var offered = await _exchangeService.GetStaffActionsByReasonIdAsync(reasonId, returnRequest.StoreId);
+        items.AddRange(offered.Select(action => new SelectListItem { Value = action.Id.ToString(), Text = action.Name }));
+
+        //and the line's saved action while its saved reason is chosen, so a return keeps saving after the rules change
+        var requestItem = await _exchangeService.GetReturnRequestItemAsync(returnRequest.Id);
+        if (requestItem != null && requestItem.ReturnReasonId == reasonId && requestItem.ReturnActionId > 0
+            && offered.All(action => action.Id != requestItem.ReturnActionId))
+        {
+            var savedAction = await _returnRequestService.GetReturnRequestActionByIdAsync(requestItem.ReturnActionId);
+            if (savedAction != null)
+                items.Add(new SelectListItem { Value = savedAction.Id.ToString(), Text = savedAction.Name });
+        }
+
+        return items;
     }
 
     #endregion

@@ -737,6 +737,7 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
             eventMessage.AdditionalTokens.Add("%ReturnRequest.RePackagingFee%");
             eventMessage.AdditionalTokens.Add("%ReturnRequest.AdditionalFeeName%");
             eventMessage.AdditionalTokens.Add("%ReturnRequest.AdditionalFeeAmount%");
+            eventMessage.AdditionalTokens.Add("%ReturnRequest.HasAdditionalFee%");
         }
 
         //The welcome e-mail of a customer registered by a manager: the packname and the subsidies assigned to it
@@ -746,7 +747,14 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
             eventMessage.AdditionalTokens.Add("%PackName.EmployeeNumber%");
             eventMessage.AdditionalTokens.Add("%PackName.Branch%");
             eventMessage.AdditionalTokens.Add("%Subsidy.SubsidyName%");
+            eventMessage.AdditionalTokens.Add("%Subsidy.Details%");
         }
+
+        //The return e-mails and the return receipt: the packname the returned item was ordered for (listed once when
+        //every group is asked for, as the welcome e-mail's group lists it too)
+        if ((eventMessage.TokenGroups == null || eventMessage.TokenGroups.Contains(CWTokenGroupNames.ReturnPackNameTokens))
+            && !eventMessage.AdditionalTokens.Contains("%PackName.Name%"))
+            eventMessage.AdditionalTokens.Add("%PackName.Name%");
 
         //Shipment-scoped delivery address, so a shipment email can name the branch that parcel went to
         //rather than the order's placeholder. The three shipment templates already carry ShipmentTokens,

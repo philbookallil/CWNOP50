@@ -493,7 +493,7 @@ admin order factory (a 43-service constructor) and copying its list view. The cr
 "Calculated on next steps" are gone (`CreditNotesOrderSummaryModel.Message` removed). Reference §6.2, §7.1, §8.4.
 Observed while testing: authorising return #98 failed at the replacement-to-cart step ("This packname is not available
 for ordering") and `CleanupFailedExchangeWorkflowAsync` removed the credit note each attempt had raised — no
-`CORE_EX_CreditNote` row was left. Record: `CWPlans/Deprecated/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md` §17b "From phase 6 Part 2".
+`CORE_EX_CreditNote` row was left. Record: `CWPlans/LegacyVersions/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md` §17b "From phase 6 Part 2".
 
 **2026-09-11 — Phase 3b: serialisation, and the invariant the database owns.** Re-scoped on survey before
 any code was written — `ReturnRequestStatusChangeData` was already retired and "execution held until the

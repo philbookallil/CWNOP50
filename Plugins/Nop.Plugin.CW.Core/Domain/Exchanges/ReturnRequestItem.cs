@@ -84,6 +84,12 @@ public class ReturnRequestItem : BaseEntity
     /// </summary>
     public decimal? AdditionalFeeAmount { get; set; }
 
+    /// <summary>
+    /// Gets or sets the identifier of the approval e-mail queued for the customer (FK-free reference to NOP QueuedEmail),
+    /// so an undone approval can withdraw it before it is sent
+    /// </summary>
+    public int? ApprovalQueuedEmailId { get; set; }
+
     #region Custom properties
 
     /// <summary>

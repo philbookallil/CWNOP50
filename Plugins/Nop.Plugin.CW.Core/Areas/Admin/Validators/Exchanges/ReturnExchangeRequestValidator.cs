@@ -75,6 +75,29 @@ public class ReturnExchangeRequestValidator : BaseNopValidator<CWReturnRequestMo
         return true;
     }
 
+    /// <summary>
+    /// The requested action is one staff may give the line for the chosen reason (the store's offer, or the line's saved
+    /// pair). The page filters the dropdown the same way; this holds a post that skips the page.
+    /// </summary>
+    private static async Task<bool> ValidReturnActionAsync(CWReturnRequestModel model, IReturnRequestService returnRequestService,
+        IExchangeService exchangeService)
+    {
+        //a missing return is the controller's to report
+        var returnRequest = await returnRequestService.GetReturnRequestByIdAsync(model.Id);
+        if (returnRequest == null)
+            return true;
+
+        //a plain nop return (no exchange line) does not store the choice, so there is nothing to hold
+        var returnRequestItem = await exchangeService.GetReturnRequestItemAsync(returnRequest.Id);
+        if (returnRequestItem == null)
+            return true;
+
+        var offered = await exchangeService.GetStaffActionsByReasonIdAsync(model.ReturnRequestReasonId, returnRequest.StoreId);
+
+        return ExchangesHelper.IsReturnActionAllowed(model.ReturnRequestActionId, model.ReturnRequestReasonId,
+            offered.Select(action => action.Id), returnRequestItem.ReturnReasonId, returnRequestItem.ReturnActionId);
+    }
+
     #endregion
 
     public ReturnExchangeRequestValidator(IReturnRequestService returnRequestService,
@@ -84,6 +107,10 @@ public class ReturnExchangeRequestValidator : BaseNopValidator<CWReturnRequestMo
     {
         RuleFor(m => m.ReturnRequestReasonId).GreaterThan(0).WithMessage("Please select a reason for return");
         RuleFor(m => m.ReturnRequestActionId).GreaterThan(0).WithMessage("Please select a requested action");
+        RuleFor(m => m.ReturnRequestActionId)
+            .MustAsync((model, _, _) => ValidReturnActionAsync(model, returnRequestService, exchangeService))
+            .When(model => model.ReturnRequestActionId > 0)
+            .WithMessageAwait(localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Returns.Fields.Action.NotForReason"));
 
         //nop's own rule: its validator is not run for this model, and the save puts the difference back in stock
         RuleFor(m => m.ReturnedQuantity).Must((model, value) => value <= model.Quantity)

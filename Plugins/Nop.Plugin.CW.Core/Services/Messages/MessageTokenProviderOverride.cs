@@ -337,9 +337,9 @@ public class MessageTokenProviderOverride : MessageTokenProvider, IMessageTokenP
                     TokenGroupNames.StoreTokens,
                     TokenGroupNames.OrderTokens,
                     TokenGroupNames.CustomerTokens,
-                    TokenGroupNames.ReturnRequestTokens
+                    TokenGroupNames.ReturnRequestTokens,
+                    CWTokenGroupNames.ReturnPackNameTokens
                 };
-
             case CWMessageTemplateSystemNames.ReturnAuthorisedPaymentCustomer:
                 return new[]
                 {
@@ -347,7 +347,8 @@ public class MessageTokenProviderOverride : MessageTokenProvider, IMessageTokenP
                     TokenGroupNames.OrderTokens,
                     TokenGroupNames.CustomerTokens,
                     TokenGroupNames.ReturnRequestTokens,
-                    CWTokenGroupNames.ExchangeReturnsTokens
+                    CWTokenGroupNames.ExchangeReturnsTokens,
+                    CWTokenGroupNames.ReturnPackNameTokens
                 };
             case CWMessageTemplateSystemNames.CustomerRegistrationImport:
                 return new[]
@@ -725,8 +726,25 @@ public class MessageTokenProviderOverride : MessageTokenProvider, IMessageTokenP
                 tokens.Add(new Token("ReturnRequest.RePackagingFee", await _priceFormatter.FormatPriceAsync(repackagingFee)));
                 tokens.Add(new Token("ReturnRequest.AdditionalFeeName", additionalFeeName));
                 tokens.Add(new Token("ReturnRequest.AdditionalFeeAmount", await _priceFormatter.FormatPriceAsync(additionalFeeAmount)));
+                //a bool, not a string, so a template's %if% can test it whatever the fee's name holds (a quote in a
+                //string token breaks nop's condition, which then drops the whole %if% block)
+                tokens.Add(new Token("ReturnRequest.HasAdditionalFee", additionalFeeAmount > decimal.Zero));
             }
         }
+    }
+
+    /// <summary>
+    /// Adds the packname the returned item was ordered for, as it was named when the order was placed; empty for an
+    /// item ordered without a packname
+    /// </summary>
+    /// <param name="tokens">List of already added tokens</param>
+    /// <param name="orderItem">The returned order item</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    public async Task AddReturnPackNameTokensAsync(IList<Token> tokens, OrderItem orderItem)
+    {
+        var packNameOrderItem = orderItem == null ? null : await _cwOrderService.GetPackNameOrderItemAsync(orderItem.Id);
+
+        tokens.Add(new Token("PackName.Name", packNameOrderItem?.PackName ?? string.Empty));
     }
 
     #endregion

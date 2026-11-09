@@ -145,4 +145,26 @@ public static class ExchangesHelper
     {
         return productDetails?.ProductAttributes != null && productDetails.ProductAttributes.Count > 0;
     }
+
+    /// <summary>
+    /// Whether staff may give a return line this requested action for this reason: one the store offers for the
+    /// reason (the storefront wizard's rule), or the line's saved pair left as it is.
+    /// </summary>
+    /// <remarks>
+    /// The saved pair is allowed so a return keeps saving after the store's rules change; it does not carry over to
+    /// another reason, so changing the reason means choosing an action that reason offers.
+    /// </remarks>
+    /// <param name="actionId">The action chosen</param>
+    /// <param name="reasonId">The reason chosen</param>
+    /// <param name="offeredActionIds">The actions the store offers for that reason</param>
+    /// <param name="savedReasonId">The reason saved on the line; 0 when the line has none</param>
+    /// <param name="savedActionId">The action saved on the line; 0 when the line has none</param>
+    /// <returns>True when the action may be saved</returns>
+    public static bool IsReturnActionAllowed(int actionId, int reasonId, IEnumerable<int> offeredActionIds, int savedReasonId, int savedActionId)
+    {
+        if (actionId <= 0)
+            return false;
+
+        return offeredActionIds.Contains(actionId) || (reasonId == savedReasonId && actionId == savedActionId);
+    }
 }

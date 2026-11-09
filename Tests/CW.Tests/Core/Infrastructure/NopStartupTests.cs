@@ -100,7 +100,7 @@ public class NopStartupTests
             .Where(type => type.Assembly == typeof(NopStartup).Assembly)
             .ToList();
 
-        filterTypes.Should().Contain([typeof(ReturnRequestAdminFilter), typeof(PackNameCheckoutRedirectFilter), typeof(AddShipmentDestinationFilter), typeof(PackNameOrderAdminGuardFilter)]);
+        filterTypes.Should().Contain([typeof(ReturnRequestAdminFilter), typeof(PackNameCheckoutRedirectFilter), typeof(AddShipmentDestinationFilter), typeof(PackNameOrderAdminGuardFilter), typeof(ReturnRequestSubmitFilter), typeof(ReturnReasonActionDeleteGuardFilter)]);
         MissingDependencies(filterTypes).Should().BeEmpty();
     }
 
@@ -190,15 +190,17 @@ public class NopStartupTests
     [Test]
     public void The_storefront_and_admin_return_request_factories_are_each_registered_to_their_own()
     {
-        //nop's storefront and admin return request factories share a name, and so do CW's; each side gets its own
+        //nop's storefront and admin return request factories share a name, and so do CW's; each side gets its own.
+        //The admin one replaces nothing of nop's: the Return requests list is nop's own.
         var registrations = Registrations();
 
         registrations.Should().Contain(descriptor => descriptor.ServiceType == typeof(Nop.Web.Factories.IReturnRequestModelFactory)
             && descriptor.ImplementationType == typeof(Nop.Plugin.CW.Core.Factories.ReturnRequestOverrideModelFactory));
         registrations.Should().Contain(descriptor => descriptor.ServiceType == typeof(Nop.Plugin.CW.Core.Factories.IReturnRequestOverrideModelFactory)
             && descriptor.ImplementationType == typeof(Nop.Plugin.CW.Core.Factories.ReturnRequestOverrideModelFactory));
-        registrations.Should().Contain(descriptor => descriptor.ServiceType == typeof(Nop.Web.Areas.Admin.Factories.IReturnRequestModelFactory)
+        registrations.Should().Contain(descriptor => descriptor.ServiceType == typeof(Nop.Plugin.CW.Core.Areas.Admin.Factories.IReturnRequestOverrideModelFactory)
             && descriptor.ImplementationType == typeof(Nop.Plugin.CW.Core.Areas.Admin.Factories.ReturnRequestOverrideModelFactory));
+        registrations.Should().NotContain(descriptor => descriptor.ServiceType == typeof(Nop.Web.Areas.Admin.Factories.IReturnRequestModelFactory));
     }
 
     [Test]
