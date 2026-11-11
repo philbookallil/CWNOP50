@@ -180,7 +180,7 @@ sources live (§3.1), the local database and dev-site address, and personal work
 
 | Property | Value |
 |---|---|
-| **Product** | nopCommerce **5.00** customized for CW (rebranded from Total Image Group / TIG) |
+| **Product** | nopCommerce **5.00** customized for CW (rebranded from Total Image Group / TIG). Fix release **5.00.1** applied 2026-11-11 (§10.6) |
 | **Runtime** | .NET **10.0** (`Directory.Build.props`) |
 | **Database** | SQL Server (`appsettings.json` → `DataProvider: "sqlserver"`); each developer's local database is in `CLAUDE.local.md` |
 | **Solution file** | `NopCommerce.sln` at repo root |
@@ -1170,7 +1170,8 @@ Most decoupled, but reflection-heavy and brittle to renames.
 > **CW.Core's copies were re-diffed against 5.00 in its phase 2** (the beta port source's `CWPlans/Deprecated/CWCore_Phase2_Spec.md` §3): the
 > three nop originals that changed (`SaveOrderDetailsAsync`, `PlaceOrderAsync`, `AddToCartAsync`), `SearchProductsAsync`
 > and the two PDF methods were brought up to 5.00; the rest are unchanged in 5.00. The SSO plugin copies no nop method
-> bodies.
+> bodies. **Re-checked against 5.00.1** (2026-11-11): none of the nop files in the table below changed
+> (`CWPlans/Nop_5.00.1_Upgrade_Record.md`).
 
 Overriding a nop service normally means calling `base` and adjusting. In the places below that was impossible
 because nop builds the thing **inline with no hook**, so the method body was copied and one part changed.
@@ -1277,6 +1278,24 @@ Found porting `ExternalAuth.SSO` (2026-10-19). Check every one of these in each 
 
 After a port: build, start the site, open every admin and storefront page the plugin owns, and run its flows. Record
 what the port changed in the plugin's reference doc (`References/`).
+
+### 10.6 Applying a nopCommerce fix release (5.00.x)
+
+A fix release changes `NopVersion.MINOR_VERSION` only; `CURRENT_VERSION` stays "5.00", so every plugin's
+`SupportedVersions: ["5.00"]` still loads. Checked for 5.00.1 on 2026-11-11 (`CWPlans/Nop_5.00.1_Upgrade_Record.md`).
+
+1. **Diff the release against the last commit, ignoring line endings.** The release ships different line endings,
+   so `git diff` lists almost every file. Extract the committed nop folders (`git archive HEAD Libraries Presentation
+   Build Tests/Nop.Tests` plus the nop plugins) and compare with `diff -rq --strip-trailing-cr` against the release.
+   Compare the working tree with the release the same way to confirm it was copied in completely.
+2. Look up every changed file in §10.3 (copied method bodies), §10.4 (CW.Core's forked views) and the `CW.Standard`
+   theme's views, and check whether a CW class derives from, replaces or calls it.
+3. Compare package references added to nop's `.csproj` files with the CW plugins' packages (lessons #11).
+4. A change to a nop `IPermissionConfigManager` default reaches new databases only: `InsertPermissionsAsync` adds
+   missing permission records at start-up and never changes existing mappings.
+5. A nop plugin whose `plugin.json` version moved is updated at the next start (`UpdatePluginsAsync`). If it has no
+   `UpdateAsync`, its new resources and settings are not installed on an existing database.
+6. Record the result in `CWPlans/Nop_<version>_Upgrade_Record.md`.
 
 ---
 
