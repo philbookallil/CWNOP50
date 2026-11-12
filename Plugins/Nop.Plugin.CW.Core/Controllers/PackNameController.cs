@@ -225,14 +225,10 @@ public class PackNameController : BasePublicController
     }
 
     /// <summary>
-    /// The store a manager belongs to, resolved from the branch their own packname list hangs from.
+    /// The store a manager belongs to: the store of the list their own packname is in
+    /// (<c>IMultiStoreService.GetManagerStoreIdAsync</c>).
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <c>PackName</c> has no <c>StoreId</c> (the store comes from list → branch) and
-    /// <c>MultiStoreService.GetManagerStoreIdAsync</c> is protected and not on the interface, so
-    /// <c>GetBranchByPackNameIdAsync</c> is the route. It skips deleted branches.
-    /// </para>
     /// <para>
     /// <b>Never take the store from the request.</b> <c>MultiStoreSettings</c> is store-scoped and
     /// carries this controller's authorisation gates — <c>AllowManagersToAddPackNames</c> and
@@ -246,9 +242,7 @@ public class PackNameController : BasePublicController
         if (manager == null)
             return null;
 
-        var managerBranch = await _packNameService.GetBranchByPackNameIdAsync(manager.Id);
-
-        return managerBranch?.StoreId;
+        return await _multiStoreService.GetManagerStoreIdAsync(manager.Id);
     }
 
     /// <summary>
@@ -924,6 +918,10 @@ public class PackNameController : BasePublicController
 
                 scope.Complete();
             }
+
+            //activity log, once the save is committed
+            await _customerActivityService.InsertActivityAsync("EditPackName",
+                string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.EditPackName"), packName.Name), packName);
 
             //Verify that the manager can still select the packname: the branch may have moved to one
             //whose lists the manager does not own, even though the move itself was permitted.

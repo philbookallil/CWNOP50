@@ -61,6 +61,7 @@
     }
     @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.OrderSummaryContentAfter, additionalData = Model })
 </div>
+<div id="packname-order-summary-config" data-confirm="@T("Common.AreYouSure")" style="display: none;"></div>
 <script asp-location="Footer">
     $(document).ready(function () {
         //one vendor's lines at a time: the server moves the others to the stash, and the page is drawn again
@@ -94,9 +95,9 @@
         loadCartItems();
     });
 
-    //keepExpanded: a shipping change redraws the whole cart in one request (it used to send one request per
-    //packname panel), so the panels the customer had open are opened again once it is drawn. A panel is
-    //remembered by its row and its packname: in the by-product view one packname's panel repeats on every row.
+    //keepExpanded: a shipping change redraws the whole cart in one request, so the panels the customer had open are
+    //opened again once it is drawn. A panel is remembered by its packname: only the by-packname view has panels that
+    //open, one per packname.
     function loadCartItems(keepExpanded) {
         let viewMode = getViewMode();
         let expandedPanels = [];
@@ -124,14 +125,9 @@
             });
     }
 
-    //The panel's packname class and its position among the panels of that packname.
+    //The panel's packname class.
     function panelKey(panel) {
-        let packNameClass = ($(panel).attr('class') || '').split(/\s+/).filter(function (c) { return /^pack-name-panel-\d+$/.test(c); })[0] || '';
-        if (!packNameClass) {
-            return '';
-        }
-        let position = $('#cartItemsContainer .' + packNameClass).index(panel);
-        return packNameClass + ':' + position;
+        return ($(panel).attr('class') || '').split(/\s+/).filter(function (c) { return /^pack-name-panel-\d+$/.test(c); })[0] || '';
     }
 
     function getViewMode() {
@@ -140,7 +136,7 @@
     }
 
     function removeFromCart(itemId) {
-        if (confirm('@T("Common.AreYouSure")')) {
+        if (confirm($('#packname-order-summary-config').data('confirm'))) {
             PackNameCheckout.startRequest();
 
             var postData = {
@@ -285,7 +281,7 @@
                         });
                 }
                 else {
-                    alert(data.message);
+                    displayBarNotification($('<span>').text(data.message).html(), 'error', 3500);
                 }
             },
             complete: function () {
@@ -325,7 +321,7 @@
                         });
                 }
                 else {
-                    alert(data.message);
+                    displayBarNotification($('<span>').text(data.message).html(), 'error', 3500);
                 }
             },
             complete: function () {

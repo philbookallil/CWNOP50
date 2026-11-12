@@ -64,13 +64,18 @@
         @T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.AddButton")
     </button>
 </div>
+<div id="branch-addresses-config"
+     data-default-label="@T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.Default")"
+     data-set-default-label="@T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.SetDefault")"
+     style="display: none;"></div>
 <script>
     function renderBranchAddressDefaultColumn(data, type, row, meta) {
+        var $cfg = $('#branch-addresses-config');
         if (row.IsDefault) {
-            return '<span class="badge badge-success"><i class="fas fa-star"></i> @T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.Default").Text</span>';
+            return '<span class="badge badge-success"><i class="fas fa-star"></i> ' + $('<span>').text($cfg.data('defaultLabel')).html() + '</span>';
         }
         return '<button class="btn btn-default btn-xs" onclick="setBranchDefaultAddress(' + row.AddressId + '); return false;">'
-             + '<i class="far fa-star"></i> @T("Plugins.CW.Core.Admin.Branches.Branch.Addresses.SetDefault").Text'
+             + '<i class="far fa-star"></i> ' + $('<span>').text($cfg.data('setDefaultLabel')).html()
              + '</button>';
     }
 

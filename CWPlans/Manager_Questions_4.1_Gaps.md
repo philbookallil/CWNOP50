@@ -2,6 +2,11 @@
 
 **Date:** 2026-11-05. **From:** Eduardo. **Status:** open — waiting for answers.
 
+> **How these are answered (2026-11-12).** No answers have come back. When a round needs one of these questions,
+> Claude asks Eduardo that question; he answers it himself where he can, or sends that one question to the manager
+> again. Each answer is recorded on the gap list item (`LegacyVersions/NOP41_To_500_Gap_Analysis.md`) with who gave it
+> and when.
+
 We have compared the old TIG system (nopCommerce 4.1) with the new CW system (nopCommerce 5.00) feature by feature,
 reading the old code itself. The features below were in 4.1 and are not in 5.00, or work differently there. Before we
 build anything we need you to tell us what the business needs **today**.

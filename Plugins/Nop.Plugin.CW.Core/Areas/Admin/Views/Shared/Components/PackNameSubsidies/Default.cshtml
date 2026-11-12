@@ -13,6 +13,9 @@
      data-prefix="@Model.Prefix"
      data-load-url="@Url.Action("PackNameSubsidies", "Subsidy")"
      data-edit-label="@T("Admin.Common.Edit")"
+     data-loading-label="@T("Plugins.CW.Core.Admin.StoreNav.Common.Loading")"
+     data-load-error="@T("Plugins.CW.Core.Admin.StoreNav.Common.FailedToLoad")"
+     data-retry-label="@T("Plugins.CW.Core.Admin.StoreNav.Common.Retry")"
      style="display: none;"></div>
 
 <script>
@@ -51,16 +54,32 @@
         var packNameId = $cfg.data('packnameId');
         var prefix = $cfg.data('prefix');
         var loadUrl = $cfg.data('loadUrl');
+        var loadingLabel = $cfg.data('loadingLabel');
+        var loadError = $cfg.data('loadError');
+        var retryLabel = $cfg.data('retryLabel');
 
+        //a failed load says so and offers a retry, rather than leaving the card on its loading message
         function loadPanel() {
             $.get(loadUrl, { packNameId: packNameId, prefix: prefix })
-                .done(function (html) { $container.html(html); });
+                .done(function (html) { $container.html(html); })
+                .fail(function () {
+                    $container.html($('<div class="subsidy-loading-message"></div>')
+                        .text(loadError + ' ')
+                        .append($('<a href="#" class="pns-retry"></a>').text(retryLabel)));
+                });
         }
 
         //THE CONTAINER OUTLIVES THE PARTIAL: every reload swaps its innerHTML, so the handlers are
         //attached once, here, and removed first in case this view is rendered again for the same
         //packname.
         $container.off('.pns');
+
+        // ── Load failed: try again ──
+        $container.on('click.pns', '.pns-retry', function () {
+            $container.html($('<div class="subsidy-loading-message"></div>').text(loadingLabel));
+            loadPanel();
+            return false;
+        });
 
         // ── Topup info changed (popup closed): the whole panel is rebuilt ──
         $container.on('click.pns', '.pns-reload', function () {

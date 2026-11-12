@@ -138,8 +138,21 @@
     </div>
 </div>
 
+@* The texts the script shows, read back as plain text (an attribute round-trips them exactly) *@
+<div id="fee-rules-config"
+     data-override-label="@T("Plugins.CW.Core.Admin.Exchanges.Fees.Override")"
+     data-edit-label="@T("Admin.Common.Edit")"
+     data-delete-label="@T("Admin.Common.Delete")"
+     data-add-title="@T("Plugins.CW.Core.Admin.Exchanges.Fees.Modal.AddTitle")"
+     data-edit-title="@T("Plugins.CW.Core.Admin.Exchanges.Fees.Modal.EditTitle")"
+     data-delete-confirm="@T("Plugins.CW.Core.Admin.Exchanges.Fees.Delete.Confirm")"
+     data-amount-required="@T("Plugins.CW.Core.Admin.Exchanges.Fees.Validation.Amount")"
+     data-qty-required="@T("Plugins.CW.Core.Admin.Exchanges.Fees.Validation.Qty")"
+     style="display: none;"></div>
+
 <script asp-location="Footer">
     (function () {
+        var $cfg = $('#fee-rules-config');
         var storeId = @storeId;
         var createUrl = '@Url.Action("CreateFeeRule", "ExchangesConfig")';
         var updateUrl = '@Url.Action("UpdateFeeRule", "ExchangesConfig")';
@@ -162,21 +175,19 @@
         };
 
         window.renderFeeRuleButtons = function (data, type, row) {
-            var editLabel = row.IsInherited
-                ? '@T("Plugins.CW.Core.Admin.Exchanges.Fees.Override")'
-                : '@T("Admin.Common.Edit")';
+            var editLabel = $('<span>').text(row.IsInherited ? $cfg.data('overrideLabel') : $cfg.data('editLabel')).html();
             var html = '<button type="button" class="btn btn-default btn-sm" onclick="openFeeRuleEdit(' +
                 row.Id + ',' + row.FeeTypeId + ',' + row.Amount + ',' + row.OperatorId + ',' + row.UnitsQuantity + ')">' +
                 '<i class="fas fa-pencil-alt"></i> ' + editLabel + '</button>';
             if (!row.IsInherited) {
                 html += ' <button type="button" class="btn btn-danger btn-sm" onclick="deleteFeeRule(' + row.Id + ')">' +
-                    '<i class="far fa-trash-can"></i> @T("Admin.Common.Delete")</button>';
+                    '<i class="far fa-trash-can"></i> ' + $('<span>').text($cfg.data('deleteLabel')).html() + '</button>';
             }
             return html;
         };
 
         window.openFeeRuleCreate = function () {
-            $('#feerule-modal-title').text('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Modal.AddTitle")');
+            $('#feerule-modal-title').text($cfg.data('addTitle'));
             $('#feerule-id').val(0);
             $('#feerule-type').val($('#feerule-type option:first').val()).prop('disabled', false);
             $('#feerule-amount').val(0);
@@ -187,7 +198,7 @@
         };
 
         window.openFeeRuleEdit = function (id, feeTypeId, amount, operatorId, unitsQuantity) {
-            $('#feerule-modal-title').text('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Modal.EditTitle")');
+            $('#feerule-modal-title').text($cfg.data('editTitle'));
             $('#feerule-id').val(id);
             // The fee type identifies the rule — changing it on edit would collide with the one-rule-per-type constraint
             $('#feerule-type').val(feeTypeId).prop('disabled', true);
@@ -199,13 +210,13 @@
         };
 
         window.deleteFeeRule = function (id) {
-            if (!confirm('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Delete.Confirm")')) return;
+            if (!confirm($cfg.data('deleteConfirm'))) return;
             var postData = { id: id, storeId: storeId };
             addAntiForgeryToken(postData);
             $.ajax({
                 cache: false, type: 'POST', url: deleteUrl, data: postData,
                 success: function (res) {
-                    if (res && res.error) { alert(res.error); return; }
+                    if (res && res.error) { display_nop_error(res); return; }
                     reloadFeeGrid();
                 }
             });
@@ -224,9 +235,9 @@
                     OperatorId: parseInt($('#feerule-operator').val(), 10),
                     UnitsQuantity: parseInt($('#feerule-qty').val(), 10) || 1
                 };
-                if (!(postData.Amount > 0)) { alert('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Validation.Amount")'); return; }
+                if (!(postData.Amount > 0)) { display_nop_error({ error: $cfg.data('amountRequired') }); return; }
                 if (postData.OperatorId === perUnitsOperatorId && postData.UnitsQuantity < 1) {
-                    alert('@T("Plugins.CW.Core.Admin.Exchanges.Fees.Validation.Qty")'); return;
+                    display_nop_error({ error: $cfg.data('qtyRequired') }); return;
                 }
                 addAntiForgeryToken(postData);
                 $.ajax({
@@ -234,7 +245,7 @@
                     url: id > 0 ? updateUrl : createUrl,
                     data: postData,
                     success: function (res) {
-                        if (res && res.error) { alert(res.error); return; }
+                        if (res && res.error) { display_nop_error(res); return; }
                         $('#feerule-modal').modal('hide');
                         reloadFeeGrid();
                     }

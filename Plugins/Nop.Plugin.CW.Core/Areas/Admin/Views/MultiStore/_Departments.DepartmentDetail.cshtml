@@ -47,7 +47,7 @@
                                 class="btn btn-danger btn-sm"
                                 id="btn-department-delete"
                                 data-id="@Model.Id"
-                                data-url="/Admin/MultiStore/DeleteDepartment">
+                                data-url="@Url.Action("DeleteDepartment", "MultiStore")">
                             <i class="fas fa-trash" aria-hidden="true"></i>
                             @T("Admin.Common.Delete")
                         </button>

@@ -86,7 +86,7 @@ public class PackNameService : IPackNameService
 
     #region Methods
 
-    #region Duplicated from customer service
+    #region Customer addresses
 
     /// <summary>
     /// Gets a address mapped to customer
@@ -138,27 +138,6 @@ public class PackNameService : IPackNameService
     public virtual async Task<IList<PackNameList>> GetPackNameListsByIdsAsync(int[] packNameListIds)
     {
         return await _packNameListRepository.GetByIdsAsync(packNameListIds);
-    }
-
-    /// <summary>
-    /// Gets packNameLists by branch identifier
-    /// </summary>
-    /// <param name="branchId">Branch identifier</param>
-    /// <returns>
-    /// A task that represents the asynchronous operation
-    /// The task result contains the packNameLists
-    /// </returns>
-    public async Task<IList<PackNameList>> GetPackNameListsByBranchAsync(int branchId)
-    {
-        if (branchId == 0)
-            return [];
-
-        var query = from pnl in _packNameListRepository.Table
-                    where pnl.BranchId == branchId && !pnl.Deleted
-                    orderby pnl.Name
-                    select pnl;
-
-        return await query.ToListAsync();
     }
 
     /// <summary>
@@ -239,12 +218,12 @@ public class PackNameService : IPackNameService
     }
 
     /// <summary>
-    /// Gets packaging name list by branch identifier
+    /// Gets the packname lists of a branch, deleted ones left out, in the order they were created
     /// </summary>
     /// <param name="branchId">Branch identifier</param>
     /// <returns>
     /// A task that represents the asynchronous operation
-    /// The task result contains the packNameLists
+    /// The task result contains the packname lists; the first active one is the fallback when a branch has no default
     /// </returns>
     public async Task<IList<PackNameList>> GetPackNameListsByBranchIdAsync(int branchId)
     {

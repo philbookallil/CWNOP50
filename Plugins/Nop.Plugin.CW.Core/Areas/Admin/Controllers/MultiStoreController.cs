@@ -619,6 +619,16 @@ public class MultiStoreController : BaseAdminController
     [CheckPermission(CWPermissionConfigManager.ADMIN_ACCESS_MULTISTORE)]
     public async Task<IActionResult> BranchDetail(int storeId, int? branchId, int? parentBranchId)
     {
+        //the branch, and the parent of a new one, must be live branches of this store: the panel offers the store's
+        //shipping methods and the save filters by them, so another store's branch would be edited against the wrong store
+        var branch = branchId.HasValue ? await _branchService.GetBranchByIdAsync(branchId.Value) : null;
+        if (branchId.HasValue && (branch == null || branch.Deleted || branch.StoreId != storeId))
+            return NotFound();
+
+        var parentBranch = parentBranchId.HasValue ? await _branchService.GetBranchByIdAsync(parentBranchId.Value) : null;
+        if (parentBranchId.HasValue && (parentBranch == null || parentBranch.Deleted || parentBranch.StoreId != storeId))
+            return NotFound();
+
         var model = await _branchModelFactory.PrepareBranchModelAsync(storeId, branchId, parentBranchId);
         return PartialView("_Branches.BranchDetail", model);
     }
@@ -780,10 +790,16 @@ public class MultiStoreController : BaseAdminController
         //try to get a branch with the specified id
         var branch = await _branchService.GetBranchByIdAsync(branchId);
 
-        if (branch == null)
+        if (branch == null || branch.Deleted)
             return AccessDeniedView();
 
-        var address = addressId.HasValue ? await _addressService.GetAddressByIdAsync(addressId.Value) : null;
+        //through the owner: by id alone any row of the shared Address table would load into the popup
+        var address = addressId.HasValue
+            ? await _branchService.GetBranchAddressAsync(branch.Id, addressId.Value)
+            : null;
+
+        if (addressId.HasValue && address == null)
+            return AccessDeniedView();
 
         //prepare model
         var model = await _cwAddressModelFactory.PrepareCWAddressModelAsync(new CWAddressModel(), branch, address);
@@ -798,7 +814,7 @@ public class MultiStoreController : BaseAdminController
     {
         //try to get a branch with the specified id
         var branch = await _branchService.GetBranchByIdAsync(model.EntityId);
-        if (branch == null)
+        if (branch == null || branch.Deleted)
             return AccessDeniedView();
 
         //THROUGH THE OWNER, never by id alone. GetBranchAddressAsync scopes the lookup to this
@@ -850,6 +866,12 @@ public class MultiStoreController : BaseAdminController
                 await _branchService.InsertBranchAddressAsync(branch, address);
             }
 
+            //activity log
+            await _customerActivityService.InsertActivityAsync("EditBranch",
+                string.Format(await _localizationService.GetResourceAsync(model.Address.Id > 0
+                    ? "Plugins.CW.Core.ActivityLog.EditBranchAddress"
+                    : "Plugins.CW.Core.ActivityLog.AddBranchAddress"), branch.Id, address.Id), branch);
+
             ViewBag.RefreshPage = true;
 
             return PartialView(new CWAddressModel());
@@ -877,8 +899,14 @@ public class MultiStoreController : BaseAdminController
             return Content(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Address.NotFound"));
 
         if (await _branchService.RemoveBranchAddressAsync(branch, address))
+        {
             //now delete the address record
             await _addressService.DeleteAddressAsync(address);
+
+            //activity log
+            await _customerActivityService.InsertActivityAsync("EditBranch",
+                string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.DeleteBranchAddress"), branch.Id, address.Id), branch);
+        }
 
         return new NullJsonResult();
     }
@@ -895,6 +923,10 @@ public class MultiStoreController : BaseAdminController
             return Json(new { success = false, error = await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Address.NotFound") });
 
         await _branchService.SetDefaultBranchAddressAsync(branch, address);
+
+        //activity log
+        await _customerActivityService.InsertActivityAsync("EditBranch",
+            string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.SetDefaultBranchAddress"), branch.Id, address.Id), branch);
 
         return Json(new { success = true });
     }
@@ -1086,7 +1118,7 @@ public class MultiStoreController : BaseAdminController
     [CheckCWFeature(CWFeature.PackName, StoreSource = CWFeatureStoreSource.Branch)]
     public virtual async Task<IActionResult> SetDefaultPackNameList(int listId, int branchId)
     {
-        var packNameLists = await _packNameService.GetPackNameListsByBranchAsync(branchId);
+        var packNameLists = await _packNameService.GetPackNameListsByBranchIdAsync(branchId);
 
         //The feature attribute gates on branchId; listId was never tied to it. An out-of-branch listId
         //matches nothing in the loop, so every list in branchId is set IsDefault = false and the branch
@@ -1141,7 +1173,7 @@ public class MultiStoreController : BaseAdminController
             return Json(new List<object>());
 
         //a switched-off list takes no new packnames, so it is not offered
-        var lists = (await _packNameService.GetPackNameListsByBranchAsync(branchId)).Where(list => list.Active).ToList();
+        var lists = (await _packNameService.GetPackNameListsByBranchIdAsync(branchId)).Where(list => list.Active).OrderBy(list => list.Name).ToList();
         var selectedId = (lists.FirstOrDefault(list => list.IsDefault) ?? lists.FirstOrDefault())?.Id;
 
         var result = lists.Any() ? (from l in lists
@@ -2145,6 +2177,12 @@ public class MultiStoreController : BaseAdminController
                 await _packNameService.InsertPackNameAddressAsync(packName, address);
             }
 
+            //activity log
+            await _customerActivityService.InsertActivityAsync("EditPackName",
+                string.Format(await _localizationService.GetResourceAsync(model.Address.Id > 0
+                    ? "Plugins.CW.Core.ActivityLog.EditPackNameAddress"
+                    : "Plugins.CW.Core.ActivityLog.AddPackNameAddress"), packName.Name, address.Id), packName);
+
             ViewBag.RefreshPage = true;
 
             return PartialView(new CWAddressModel());
@@ -2181,8 +2219,14 @@ public class MultiStoreController : BaseAdminController
             return Content(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Address.NotFound"));
 
         if (await _packNameService.RemovePackNameAddressAsync(packName, address))
+        {
             //now delete the address record
             await _addressService.DeleteAddressAsync(address);
+
+            //activity log
+            await _customerActivityService.InsertActivityAsync("EditPackName",
+                string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.DeletePackNameAddress"), packName.Name, address.Id), packName);
+        }
 
         return new NullJsonResult();
     }
@@ -2413,7 +2457,13 @@ public class MultiStoreController : BaseAdminController
         if (costCenter == null)
             return AccessDeniedView();
 
-        var address = addressId.HasValue ? await _addressService.GetAddressByIdAsync(addressId.Value) : null;
+        //through the owner: by id alone any row of the shared Address table would load into the popup
+        var address = addressId.HasValue
+            ? await _multiStoreService.GetCostCenterAddressAsync(costCenter.Id, addressId.Value)
+            : null;
+
+        if (addressId.HasValue && address == null)
+            return AccessDeniedView();
 
         //prepare model
         var model = await _cwAddressModelFactory.PrepareCWAddressModelAsync(new CWAddressModel(), costCenter, address);
@@ -2484,6 +2534,12 @@ public class MultiStoreController : BaseAdminController
                 await _multiStoreService.InsertCostCenterAddressAsync(costCenter, address);
             }
 
+            //activity log
+            await _customerActivityService.InsertActivityAsync("EditCostCenter",
+                string.Format(await _localizationService.GetResourceAsync(model.Address.Id > 0
+                    ? "Plugins.CW.Core.ActivityLog.EditCostCenterAddress"
+                    : "Plugins.CW.Core.ActivityLog.AddCostCenterAddress"), costCenter.Id, address.Id), costCenter);
+
             ViewBag.RefreshPage = true;
 
             return PartialView(new CWAddressModel());
@@ -2511,8 +2567,14 @@ public class MultiStoreController : BaseAdminController
             return Content(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Address.NotFound"));
 
         if (await _multiStoreService.RemoveCostCenterAddressAsync(costCenter, address))
+        {
             //now delete the address record
             await _addressService.DeleteAddressAsync(address);
+
+            //activity log
+            await _customerActivityService.InsertActivityAsync("EditCostCenter",
+                string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.DeleteCostCenterAddress"), costCenter.Id, address.Id), costCenter);
+        }
 
         return new NullJsonResult();
     }

@@ -404,11 +404,8 @@ Admin area follows: **Controller → ModelFactory → Model → View**
 
 - Permissions declared in classes implementing `IPermissionConfigManager`.
 - Applied to controller actions via `[CheckPermission("permission.key")]` attribute.
-- CW permissions defined in `CWPermissionConfigManager`:
-  - `CW.CORE.Admin.AccessBranch`
-  - `CW.CORE.Admin.AccessMultiStore`
-  - `CW.CORE.Admin.AccessMultiStoreSettings`
-  - `CW.CORE.Admin.AccessDefaultStoreSettings`
+- CW.Core's permissions are declared in three classes under `Services/Security/`: `CWPermissionConfigManager`,
+  `CreditNotesPermissionConfigManager` and `ExchangesPermissionConfigManager`. The full list is §18.
 
 ### 6.7 Events & Notifications
 
@@ -2076,6 +2073,14 @@ services with `_dataProvider.QueryAsync`, not through `ICWDatabaseService`.
 | `ADMIN_ACCESS_MULTISTORE` | `CW.CORE.Admin.AccessMultiStore` | Administrators |
 | `ADMIN_ACCESS_MULTISTORE_SETTINGS` | `CW.CORE.Admin.AccessMultiStoreSettings` | Administrators |
 | `ADMIN_ACCESS_DEFAULT_STORE_SETTINGS` | `CW.CORE.Admin.AccessDefaultStoreSettings` | Administrators |
+| `ADMIN_ACCESS_EXCHANGES` | `CW.CORE.Admin.AccessExchanges` | Administrators |
+| `ADMIN_ACCESS_CREDITNOTES` | `CW.CORE.Admin.AccessCreditNotes` | Administrators |
+| `ORDERS_ACCESS_PAYMENTS` | `Orders.AccessPayments` | Administrators |
+| `PUBLIC_ACCESS_BULKORDERING` | `CW.CORE.PublicStore.AccessBulkOrdering` | Registered, Administrators |
+| `CreditNotesPermissionConfigManager.ALLOW_MANUAL_CREDITNOTES` | `CW.Plugin.AllowManualCreditNotes` | Administrators |
+| `ExchangesPermissionConfigManager.ACCESS_EXCHANGES` | `CW.Plugin.AccessExchanges` | Administrators |
+
+The first eight are in `CWPermissionConfigManager` (`Services/Security/`).
 
 ---
 

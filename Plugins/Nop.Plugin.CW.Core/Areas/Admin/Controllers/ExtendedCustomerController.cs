@@ -11,6 +11,7 @@ using Nop.Core.Events;
 using Nop.Plugin.CW.Core.Areas.Admin.Factories;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Customers;
 using Nop.Plugin.CW.Core.Domain.Customers;
+using Nop.Plugin.CW.Core.Services.Branches;
 using Nop.Plugin.CW.Core.Services.Customers;
 using Nop.Plugin.CW.Core.Services.PackNames;
 using Nop.Services.Attributes;
@@ -63,6 +64,7 @@ public partial class ExtendedCustomerController : BaseAdminController
     protected readonly TaxSettings _taxSettings;
     protected readonly IPackNameLandingService _packNameLandingService;
     protected readonly IPackNameProvisioningService _packNameProvisioningService;
+    protected readonly IBranchService _branchService;
     private static readonly char[] _separator = [','];
 
     #endregion
@@ -93,7 +95,8 @@ public partial class ExtendedCustomerController : BaseAdminController
         OtpSettings otpSettings,
         TaxSettings taxSettings,
         IPackNameLandingService packNameLandingService,
-        IPackNameProvisioningService packNameProvisioningService)
+        IPackNameProvisioningService packNameProvisioningService,
+        IBranchService branchService)
     {
         _customerSettings = customerSettings;
         _dateTimeSettings = dateTimeSettings;
@@ -120,11 +123,34 @@ public partial class ExtendedCustomerController : BaseAdminController
         _taxSettings = taxSettings;
         _packNameLandingService = packNameLandingService;
         _packNameProvisioningService = packNameProvisioningService;
+        _branchService = branchService;
     }
 
     #endregion
 
     #region Utilities
+
+    /// <summary>
+    /// Adds a model error unless the branch is one the customer page offers: an active, not deleted branch of the store
+    /// </summary>
+    /// <param name="branchId">The posted branch identifier; 0 for no branch, which is always accepted</param>
+    /// <param name="storeId">The store whose branches the page offers</param>
+    /// <returns>A task that represents the asynchronous operation; the task result is true when the branch is accepted</returns>
+    protected virtual async Task<bool> ValidateBranchAsync(int branchId, int storeId)
+    {
+        if (branchId == 0)
+            return true;
+
+        var branch = await _branchService.GetBranchByIdAsync(branchId);
+
+        if (branch != null && !branch.Deleted && branch.Active && branch.StoreId == storeId)
+            return true;
+
+        ModelState.AddModelError(nameof(ExtendedCustomerModel.BranchId),
+            await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.NotAvailable"));
+
+        return false;
+    }
 
     protected virtual async Task<string> ValidateCustomerRolesAsync(IList<CustomerRole> customerRoles, IList<CustomerRole> existingCustomerRoles)
     {
@@ -388,6 +414,9 @@ public partial class ExtendedCustomerController : BaseAdminController
                 ModelState.AddModelError(string.Empty, error);
         }
 
+        //the branch must be one the page offers: the page lists the current store's branches for a new customer
+        await ValidateBranchAsync(model.BranchId, (await _storeContext.GetCurrentStoreAsync()).Id);
+
         //validate customer price lists
         var allCustomerPriceLists = await _priceListService.GetAllPriceListsAsync();
         var newCustomerPriceLists = new List<PriceList>();
@@ -619,8 +648,10 @@ public partial class ExtendedCustomerController : BaseAdminController
                 ModelState.AddModelError(string.Empty, error);
         }
 
-        //a customer's packname follows them to another branch: a change it cannot follow is refused
-        if (model.BranchId != ((await _customerService.GetCustomerBranchByIdAsync(customer.Id))?.BranchId ?? 0))
+        //a new branch must be one the page offers (the branches of the customer's store), and the customer's packname
+        //follows the customer into it: a change it cannot follow is refused
+        if (model.BranchId != ((await _customerService.GetCustomerBranchByIdAsync(customer.Id))?.BranchId ?? 0)
+            && await ValidateBranchAsync(model.BranchId, customer.RegisteredInStoreId))
         {
             var branchChangeError = await _packNameProvisioningService.CheckCustomerBranchChangeAsync(customer, model.BranchId);
 

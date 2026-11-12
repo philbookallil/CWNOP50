@@ -74,7 +74,9 @@
                                         <label for="termsofservice">@T("Checkout.TermsOfService.IAccept")</label>
                                         @if (Model.ShoppingCart.TermsOfServicePopup)
                                         {
-                                            <a class="read" id="read-terms" role="button" tabindex="0">@T("Checkout.TermsOfService.Read")</a>
+                                            <a class="read" id="read-terms" role="button" tabindex="0"
+                                               data-url="@Url.RouteUrl(NopRouteNames.Ajax.TOPIC_POPUP, new { SystemName = "conditionsofuse" })"
+                                               data-title="@T("Checkout.TermsOfService")">@T("Checkout.TermsOfService.Read")</a>
                                             <script asp-location="Footer">
                                                 $(function() {
                                                     $('#read-terms').on('click keyup', function(e) {
@@ -83,9 +85,7 @@
                                                         if (e.type == 'click' || (e.type == 'keydown' && e.key === 'Enter'))
                                                         {
                                                             $(this).trigger("blur");
-                                                            displayPopupContentFromUrl(
-                                                                '@Url.RouteUrl(NopRouteNames.Ajax.TOPIC_POPUP, new { SystemName = "conditionsofuse" })',
-                                                                '@T("Checkout.TermsOfService")');
+                                                            displayPopupContentFromUrl($(this).data('url'), $(this).data('title'));
                                                         }
                                                     });
                                                 });

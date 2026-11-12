@@ -78,6 +78,8 @@ To see the effect on the dev site: give a product a table in its description, sa
 
 **Status (2026-11-11):** sent to the manager. Until they answer, nop's 5.00.1 behaviour stays as it is (option 1 by default); nothing is changed.
 
+**Decided (2026-11-12, Eduardo):** option 2 for now — *Allow JavaScript in rich editor* (`AdminAreaSettings.RichEditorAllowJavaScript`) stays **on**, so admin saves keep descriptions as written. It is a setting, not code: it must be on in every environment (the dev site and, later, production). Revisit when the admins who edit products are known. This also keeps size charts written as tables safe (gap list G3).
+
 ## 5. Housekeeping on the dev database
 
 - **PunchOut is installed on `testnop50`.** It has no `UpdateAsync`, so its new resource keys and its

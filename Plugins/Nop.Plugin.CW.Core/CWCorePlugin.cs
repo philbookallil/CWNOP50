@@ -1170,6 +1170,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
 
             ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId"] = "Branch",
             ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.SelectBranch"] = "Select Branch",
+            ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.NotAvailable"] = "This branch cannot be chosen: choose an active branch of the customer's store.",
             ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameNeedsBranch"] = "The customer's packname {0} is in a branch, so the customer needs a branch too. Delete the packname or unlink it from the customer first.",
             ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameOtherStore"] = "The customer's packname {0} belongs to another store, so it cannot follow the customer to branch {1}.",
             ["Plugins.CW.Core.Admin.Customers.Customer.Fields.BranchId.PackNameNotCreated"] = "The customer was saved without a packname: the list {1} already has a packname named {0}. Rename one of them, or create the customer's packname on the store page.",
@@ -1526,6 +1527,11 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
 
             ["Plugins.CW.Core.Admin.Orders.Products.ShippingCost"] = "Shipping Cost",
             ["Plugins.CW.Core.Admin.Orders.Field.Phone"] = "Phone",
+            ["Plugins.CW.Core.Admin.Orders.Field.Branch"] = "Branch",
+            ["Plugins.CW.Core.Admin.Orders.Field.Department"] = "Department",
+            ["Plugins.CW.Core.Admin.Orders.Field.CostCenter"] = "Cost Centre",
+            ["Plugins.CW.Core.Admin.Orders.SharedShipping"] = "Shared",
+            ["Plugins.CW.Core.Admin.Orders.SharedShippingWith"] = "Shipping shared with: {0}",
 
             ["Plugins.CW.Core.Admin.Orders.ShippingDestinations"] = "Shipping destinations",
             ["Plugins.CW.Core.Admin.Orders.ShippingDestinations.Hint"] = "This order ships to more than one place. Each destination is shipped separately — a shipment cannot mix items going to different addresses.",
@@ -2157,6 +2163,10 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.ActivityLog.AddNewBranch"] = "Added a new branch (ID = {0})",
             ["Plugins.CW.Core.ActivityLog.EditBranch"] = "Edited a branch (ID = {0})",
             ["Plugins.CW.Core.ActivityLog.DeleteBranch"] = "Deleted a branch (ID = {0})",
+            ["Plugins.CW.Core.ActivityLog.AddBranchAddress"] = "Added an address to a branch (branch ID = {0}, address ID = {1})",
+            ["Plugins.CW.Core.ActivityLog.EditBranchAddress"] = "Edited an address of a branch (branch ID = {0}, address ID = {1})",
+            ["Plugins.CW.Core.ActivityLog.DeleteBranchAddress"] = "Deleted an address of a branch (branch ID = {0}, address ID = {1})",
+            ["Plugins.CW.Core.ActivityLog.SetDefaultBranchAddress"] = "Set the default address of a branch (branch ID = {0}, address ID = {1})",
 
             ["Plugins.CW.Core.ActivityLog.AddNewDepartment"] = "Added a new department (ID = {0})",
             ["Plugins.CW.Core.ActivityLog.EditDepartment"] = "Edited a department (ID = {0})",
@@ -2165,6 +2175,9 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.ActivityLog.AddNewCostCenter"] = "Added a new cost centre (ID = {0})",
             ["Plugins.CW.Core.ActivityLog.EditCostCenter"] = "Edited a cost centre (ID = {0})",
             ["Plugins.CW.Core.ActivityLog.DeleteCostCenter"] = "Deleted a cost centre (ID = {0})",
+            ["Plugins.CW.Core.ActivityLog.AddCostCenterAddress"] = "Added an address to a cost centre (cost centre ID = {0}, address ID = {1})",
+            ["Plugins.CW.Core.ActivityLog.EditCostCenterAddress"] = "Edited an address of a cost centre (cost centre ID = {0}, address ID = {1})",
+            ["Plugins.CW.Core.ActivityLog.DeleteCostCenterAddress"] = "Deleted an address of a cost centre (cost centre ID = {0}, address ID = {1})",
 
             ["Plugins.CW.Core.ActivityLog.AddNewPackNameList"] = "Added a new packaging name list ('{0}')",
             ["Plugins.CW.Core.ActivityLog.EditPackNameList"] = "Edited an packaging name list ('{0}')",
@@ -2174,6 +2187,9 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.ActivityLog.AddNewPackName"] = "Added a new packaging name ('{0}')",
             ["Plugins.CW.Core.ActivityLog.EditPackName"] = "Edited an packaging name ('{0}')",
             ["Plugins.CW.Core.ActivityLog.DeletePackName"] = "Deleted an packaging name ('{0}')",
+            ["Plugins.CW.Core.ActivityLog.AddPackNameAddress"] = "Added an address to a packname ('{0}', address ID = {1})",
+            ["Plugins.CW.Core.ActivityLog.EditPackNameAddress"] = "Edited an address of a packname ('{0}', address ID = {1})",
+            ["Plugins.CW.Core.ActivityLog.DeletePackNameAddress"] = "Deleted an address of a packname ('{0}', address ID = {1})",
 
             ["Plugins.CW.Core.ActivityLog.PackNameSelection.Started.Customer"] = "PackName selection by store owner (Email: {0}, ID = {1})",
             ["Plugins.CW.Core.ActivityLog.PackNameSelection.Started.Branch"] = "Started packaging name selection (Branch: {0}, ID = {1})",

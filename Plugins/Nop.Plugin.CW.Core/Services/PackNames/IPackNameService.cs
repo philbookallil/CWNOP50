@@ -36,16 +36,6 @@ namespace Nop.Plugin.CW.Core.Services.PackNames
         /// A task that represents the asynchronous operation
         /// The task result contains the packNameLists
         /// </returns>
-        Task<IList<PackNameList>> GetPackNameListsByBranchAsync(int branchId);
-
-        /// <summary>
-        /// Gets packNameLists by branch identifier
-        /// </summary>
-        /// <param name="branchId">Branch identifier</param>
-        /// <returns>
-        /// A task that represents the asynchronous operation
-        /// The task result contains the packNameLists
-        /// </returns>
         Task<IList<PackNameListDTO>> GetPackNameListDetailsByBranchAsync(int branchId);
 
         /// <summary>
@@ -69,12 +59,12 @@ namespace Nop.Plugin.CW.Core.Services.PackNames
         Task<IList<PackNameList>> GetActivePackNameListsByStoreIdAsync(int storeId);
 
         /// <summary>
-        /// Gets packaging name list by branch identifier
+        /// Gets the packname lists of a branch, deleted ones left out, in the order they were created
         /// </summary>
         /// <param name="branchId">Branch identifier</param>
         /// <returns>
         /// A task that represents the asynchronous operation
-        /// The task result contains the packNameLists
+        /// The task result contains the packname lists; the first active one is the fallback when a branch has no default
         /// </returns>
         Task<IList<PackNameList>> GetPackNameListsByBranchIdAsync(int branchId);
 

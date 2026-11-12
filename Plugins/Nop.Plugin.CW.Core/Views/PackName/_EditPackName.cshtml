@@ -17,6 +17,10 @@
         </form>
     </div>
 </div>
+<div id="edit-packname-config-@Model.Id"
+     data-error="@T("Common.Error")"
+     data-confirm="@T("Common.AreYouSure")"
+     style="display: none;"></div>
 <script asp-location="Footer">
     $(document).ready(function () {
         $('#dialog-edit-packName-@Model.Id').dialog("option", "position", { 
@@ -70,7 +74,7 @@
                 }
             },
             error: function () {
-                displayPopupNotification('@T("Common.Error")', 'error', false);
+                displayPopupNotification($('<span>').text($('#edit-packname-config-@Model.Id').data('error')).html(), 'error', false);
             }
         });
     }
@@ -78,7 +82,7 @@
     function deletePackName() {
         var id = @(Model.Id);
 
-        if (confirm('@T("Common.AreYouSure")')) {
+        if (confirm($('#edit-packname-config-@Model.Id').data('confirm'))) {
             var postData = {
                 id: id
             };
@@ -99,7 +103,7 @@
                     }
                 },
                 error: function () {
-                    displayPopupNotification('@T("Common.Error")', 'error', false);
+                    displayPopupNotification($('<span>').text($('#edit-packname-config-@Model.Id').data('error')).html(), 'error', false);
                 }
             });
         }

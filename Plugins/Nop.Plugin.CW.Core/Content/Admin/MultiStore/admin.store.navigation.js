@@ -1045,7 +1045,7 @@ Admin.StoreNav = (function () {
                     //would reload for an id that was never written, and the stamp would claim a save
                     //that did not happen.
                     if (result && result.success === false) {
-                        alert(result.error || result.message || res('common.serverError', 'A server error occurred. Please try again.'));
+                        display_nop_error({ error: result.error || result.message || res('common.serverError', 'A server error occurred. Please try again.') });
                         return;
                     }
                     watchForm($form);
@@ -1053,7 +1053,7 @@ Admin.StoreNav = (function () {
                 },
                 error: function() {
                     $btn.prop('disabled', false).text(res('common.save', 'Save'));
-                    alert(res('common.serverError', 'A server error occurred. Please try again.'));
+                    display_nop_error({ error: res('common.serverError', 'A server error occurred. Please try again.') });
                 }
             });
         });
@@ -1070,7 +1070,7 @@ Admin.StoreNav = (function () {
             $.post($(this).data('url'),
                 postData,
                 function(result) {
-                    if (!result.success) { alert(result.error || res('common.couldNotDelete', 'Could not delete.')); return; }
+                    if (!result.success) { display_nop_error({ error: result.error || res('common.couldNotDelete', 'Could not delete.') }); return; }
                     //The record is gone, so there is nothing left to save and nothing to ask about.
                     releaseForm($form);
                     exitFocusMode();

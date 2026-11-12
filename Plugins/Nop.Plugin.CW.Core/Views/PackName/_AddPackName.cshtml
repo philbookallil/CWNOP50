@@ -13,6 +13,7 @@
     </div>
 </div>
 
+<div id="add-packname-config" data-error="@T("Common.Error")" style="display: none;"></div>
 <script asp-location="Footer">
     $(document).ready(function () {
         $('#dialog-add-packName').dialog("option", "position", { 
@@ -66,7 +67,7 @@
                 }
             },
             error: function () {
-                displayPopupNotification('@T("Common.Error")', 'error', false);
+                displayPopupNotification($('<span>').text($('#add-packname-config').data('error')).html(), 'error', false);
             }
         });
     }

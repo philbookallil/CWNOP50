@@ -16,7 +16,7 @@ public class SubsidyVariationHistoryBuilder : NopEntityBuilder<SubsidyVariationH
     {
         table.WithColumn(nameof(SubsidyVariationHistory.Id)).AsInt32().PrimaryKey().Identity()
              .WithColumn(nameof(SubsidyVariationHistory.SubsidyVariationId)).AsInt32().ForeignKey<SubsidyVariation>(onDelete: Rule.None).NotNullable()
-             .WithColumn(nameof(SubsidyVariationHistory.Credit)).AsDecimal().Nullable()
+             .WithColumn(nameof(SubsidyVariationHistory.Credit)).AsDecimal(18, 4).Nullable()
              .WithColumn(nameof(SubsidyVariationHistory.DurationStart)).AsDate().Nullable()
              .WithColumn(nameof(SubsidyVariationHistory.DurationEnd)).AsDate().Nullable()
              .WithColumn(nameof(SubsidyVariationHistory.Reason)).AsString().Nullable()

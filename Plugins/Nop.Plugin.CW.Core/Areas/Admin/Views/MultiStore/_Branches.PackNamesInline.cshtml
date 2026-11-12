@@ -231,7 +231,7 @@
 
         $.post(deleteUrl, postData, function (result) {
             if (!result.success) {
-                alert(result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.'));
+                display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') });
                 return;
             }
             Admin.PackNameBulk.unselect(gridSel, postData.id);

@@ -16,7 +16,7 @@ public class SubsidyTopupHistoryBuilder : NopEntityBuilder<SubsidyTopupHistory>
     {
         table.WithColumn(nameof(SubsidyTopupHistory.Id)).AsInt32().PrimaryKey().Identity()
              .WithColumn(nameof(SubsidyTopupHistory.SubsidyTopupId)).AsInt32().ForeignKey<SubsidyTopup>(onDelete: Rule.None).NotNullable()
-             .WithColumn(nameof(SubsidyTopupHistory.Credit)).AsDecimal().NotNullable()
+             .WithColumn(nameof(SubsidyTopupHistory.Credit)).AsDecimal(18, 4).NotNullable()
              .WithColumn(nameof(SubsidyTopupHistory.Reason)).AsString().Nullable()
              .WithColumn(nameof(SubsidyTopupHistory.CreatorId)).AsInt32().NotNullable()
              .WithColumn(nameof(SubsidyTopupHistory.CreatedOnUtc)).AsDateTime2().NotNullable();

@@ -6,7 +6,6 @@ using Nop.Core;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Plugin.CW.Core.Controllers;
-using Nop.Plugin.CW.Core.Domain.Branches;
 using Nop.Plugin.CW.Core.Domain.PackNames;
 using Nop.Plugin.CW.Core.Domain.Settings;
 using Nop.Plugin.CW.Core.Factories;
@@ -51,7 +50,6 @@ public class PackNameControllerTests
 
         _packNameService = new Mock<IPackNameService>();
         _packNameService.Setup(service => service.GetPackNameByCustomerIdAsync(_customer.Id)).ReturnsAsync(_manager);
-        _packNameService.Setup(service => service.GetBranchByPackNameIdAsync(_manager.Id)).ReturnsAsync(new Branch { Id = 1, StoreId = StoreId });
         _packNameService.Setup(service => service.GetPackNameListByIdAsync(10)).ReturnsAsync(new PackNameList { Id = 10, StoreId = StoreId, BranchId = 1 });
         _packNameService.Setup(service => service.GetPackNameListByIdAsync(40)).ReturnsAsync(new PackNameList { Id = 40, StoreId = StoreId, BranchId = 4 });
 
@@ -61,6 +59,7 @@ public class PackNameControllerTests
 
         //the manager owns list 10; list 40 is one the selector offers through his departments
         _multiStoreService = new Mock<IMultiStoreService>();
+        _multiStoreService.Setup(service => service.GetManagerStoreIdAsync(_manager.Id)).ReturnsAsync(StoreId);
         _multiStoreService.Setup(service => service.GetPackNameListIdsByManagerIdAsync(_manager.Id, It.IsAny<bool>())).ReturnsAsync(new List<int> { 10 });
 
         _modelFactory = new Mock<IPackNameModelFactory>();

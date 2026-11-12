@@ -144,11 +144,12 @@ public class BranchController : BaseAdminController
     }
 
     [HttpGet]
+    [CheckPermission([CWPermissionConfigManager.ADMIN_ACCESS_BRANCH, CWPermissionConfigManager.ADMIN_ACCESS_MULTISTORE])]
     public async Task<IActionResult> SearchBranches(int storeId, string term, int page = 1)
     {
         const int pageSize = 20;
 
-        // Filtra tu entidad según el término buscado
+        //the store's branches whose name contains the term (deleted ones left out)
         var branches = await _branchService.GetBranchesByStoreIdAsync(
             storeId: storeId,
             branchName: term,
@@ -377,10 +378,15 @@ public class BranchController : BaseAdminController
         if (address == null)
             return Content(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Address.NotFound"));
 
-        await _branchService.RemoveBranchAddressAsync(branch, address);
+        if (await _branchService.RemoveBranchAddressAsync(branch, address))
+        {
+            //now delete the address record
+            await _addressService.DeleteAddressAsync(address);
 
-        //now delete the address record
-        await _addressService.DeleteAddressAsync(address);
+            //activity log
+            await _customerActivityService.InsertActivityAsync("EditBranch",
+                string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.DeleteBranchAddress"), branch.Id, address.Id), branch);
+        }
 
         return new NullJsonResult();
     }
@@ -390,7 +396,7 @@ public class BranchController : BaseAdminController
     {
         //try to get a branch with the specified id
         var branch = await _branchService.GetBranchByIdAsync(branchId);
-        if (branch == null)
+        if (branch == null || branch.Deleted)
             return RedirectToAction("List");
 
         //prepare model
@@ -405,7 +411,7 @@ public class BranchController : BaseAdminController
     {
         //try to get a branch with the specified id
         var branch = await _branchService.GetBranchByIdAsync(model.EntityId);
-        if (branch == null)
+        if (branch == null || branch.Deleted)
             return RedirectToAction("List");
 
         //custom address attributes
@@ -432,6 +438,10 @@ public class BranchController : BaseAdminController
 
             await _branchService.InsertBranchAddressAsync(branch, address);
 
+            //activity log
+            await _customerActivityService.InsertActivityAsync("EditBranch",
+                string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.AddBranchAddress"), branch.Id, address.Id), branch);
+
             _notificationService.SuccessNotification(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Addresses.Added"));
 
             return RedirectToAction("AddressEdit", new { addressId = address.Id, branchId = model.EntityId });
@@ -449,11 +459,11 @@ public class BranchController : BaseAdminController
     {
         //try to get a branch with the specified id
         var branch = await _branchService.GetBranchByIdAsync(branchId);
-        if (branch == null)
+        if (branch == null || branch.Deleted)
             return RedirectToAction("List");
 
-        //try to get an address with the specified id
-        var address = await _addressService.GetAddressByIdAsync(addressId);
+        //through the branch: by id alone any row of the shared Address table would load
+        var address = await _branchService.GetBranchAddressAsync(branch.Id, addressId);
         if (address == null)
             return RedirectToAction("Edit", new { id = branch.Id });
 
@@ -469,11 +479,11 @@ public class BranchController : BaseAdminController
     {
         //try to get a branch with the specified id
         var branch = await _branchService.GetBranchByIdAsync(model.EntityId);
-        if (branch == null)
+        if (branch == null || branch.Deleted)
             return RedirectToAction("List");
 
-        //try to get an address with the specified id
-        var address = await _addressService.GetAddressByIdAsync(model.Address.Id);
+        //through the branch: by id alone the save below would overwrite any row of the shared Address table
+        var address = await _branchService.GetBranchAddressAsync(branch.Id, model.Address.Id);
         if (address == null)
             return RedirectToAction("Edit", new { id = branch.Id });
 
@@ -490,6 +500,10 @@ public class BranchController : BaseAdminController
             address = model.Address.ToEntity(address);
             address.CustomAttributes = customAttributes;
             await _addressService.UpdateAddressAsync(address);
+
+            //activity log
+            await _customerActivityService.InsertActivityAsync("EditBranch",
+                string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.EditBranchAddress"), branch.Id, address.Id), branch);
 
             _notificationService.SuccessNotification(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Addresses.Updated"));
 
@@ -515,6 +529,10 @@ public class BranchController : BaseAdminController
             return Json(new { success = false, error = await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Address.NotFound") });
 
         await _branchService.SetDefaultBranchAddressAsync(branch, address);
+
+        //activity log
+        await _customerActivityService.InsertActivityAsync("EditBranch",
+            string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.SetDefaultBranchAddress"), branch.Id, address.Id), branch);
 
         return Json(new { success = true });
     }

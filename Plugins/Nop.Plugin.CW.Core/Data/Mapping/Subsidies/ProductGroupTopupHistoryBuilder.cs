@@ -17,7 +17,7 @@ public class ProductGroupTopupHistoryBuilder : NopEntityBuilder<ProductGroupTopu
         table.WithColumn(nameof(ProductGroupTopupHistory.Id)).AsInt32().PrimaryKey().Identity()
              .WithColumn(nameof(ProductGroupTopupHistory.ProductGroupTopupId)).AsInt32().ForeignKey<ProductGroupTopup>(onDelete: Rule.None).NotNullable()
              .WithColumn(nameof(ProductGroupTopupHistory.Quantity)).AsInt32().NotNullable()
-             .WithColumn(nameof(ProductGroupTopupHistory.Credit)).AsDecimal().NotNullable()
+             .WithColumn(nameof(ProductGroupTopupHistory.Credit)).AsDecimal(18, 4).NotNullable()
              .WithColumn(nameof(ProductGroupTopupHistory.Reason)).AsString().Nullable()
              .WithColumn(nameof(ProductGroupTopupHistory.CreatorId)).AsInt32().NotNullable()
              .WithColumn(nameof(ProductGroupTopupHistory.CreatedOnUtc)).AsDateTime2().NotNullable();

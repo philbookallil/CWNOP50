@@ -37,7 +37,8 @@
                     @T("Plugins.CW.Core.Admin.Branches.AddChildBranch")
                 </button>
                 <button type="button" class="btn btn-danger btn-sm"
-                        id="bd-delete-btn" data-id="@Model.Id">
+                        id="bd-delete-btn" data-id="@Model.Id"
+                        data-url="@Url.Action("DeleteBranch", "MultiStore")">
                     @T("Admin.Common.Delete")
                 </button>
             }
@@ -156,9 +157,16 @@
         </div>
     </div>
 </div>
+@* The texts the script shows, read back as plain text (an attribute round-trips them exactly) *@
+<div id="branch-detail-config"
+     data-saving-label="@T("Plugins.CW.Core.Admin.Saving")"
+     data-save-label="@T("Admin.Common.Save")"
+     data-delete-confirm="@T("Plugins.CW.Core.Admin.Branches.DeleteConfirmMessage")"
+     style="display: none;"></div>
 <script>
     (function () {
         const $form = $('#branch-detail-form');
+        const $cfg = $('#branch-detail-config');
         $.validator.unobtrusive.parse($form);
 
         //Baseline for the unsaved-edit gate. Every way out of this form - the tree, the breadcrumb,
@@ -206,11 +214,7 @@
         $('#bd-save-btn').on('click', function () {
             const $btn = $(this);
             if (!$form.valid()) return;
-            //Localised, not a bare string expression - as one it rendered the literal
-            //"Plugins.CW.Core.Admin.Saving.Text" onto the button. The resource
-            //itself was always there (CWCorePlugin.cs:504, "Saving…"). Note: Razor parses an at-sign
-            //inside a JS comment, so do not write one here even to describe the bug.
-            $btn.prop('disabled', true).text('@T("Plugins.CW.Core.Admin.Saving").Text');
+            $btn.prop('disabled', true).text($cfg.data('savingLabel'));
 
             $.ajax({
                 type: 'POST',
@@ -222,7 +226,7 @@
                         //Validation failed: the partial comes back with the messages. Re-enable first -
                         //the swap replaces this button's markup, and if the server ever returns the
                         //form without it the admin is left with a dead "Saving…" button.
-                        $btn.prop('disabled', false).text('@T("Admin.Common.Save").Text');
+                        $btn.prop('disabled', false).text($cfg.data('saveLabel'));
                         $('#branch-right-col').html(result);
                         //AFTER THE SWAP: this partial carries its own script, so inserting it runs
                         //watchForm again and re-baselines to the posted values - which would read as
@@ -238,8 +242,8 @@
                     //Re-enable BEFORE alerting - an alert blocks, and a disabled button behind it is
                     //what the admin is left looking at if they dismiss it and try again.
                     if (result && result.success === false) {
-                        $btn.prop('disabled', false).text('@T("Admin.Common.Save").Text');
-                        alert(result.error || result.message || Admin.StoreNav.res('branch.couldNotSave', 'Could not save the branch.'));
+                        $btn.prop('disabled', false).text($cfg.data('saveLabel'));
+                        display_nop_error({ error: result.error || result.message || Admin.StoreNav.res('branch.couldNotSave', 'Could not save the branch.') });
                         return;
                     }
                     //RESTORE THE BUTTON HERE, NOT IN THE TREE HELPER. updateNodeInTree used to own the
@@ -247,7 +251,7 @@
                     //successful save whose node is not currently rendered saved the branch and left the
                     //form dead on "Saving...". Every exit from this handler
                     //now restores the control it disabled, and the label stays the localised one.
-                    $btn.prop('disabled', false).text('@T("Admin.Common.Save").Text');
+                    $btn.prop('disabled', false).text($cfg.data('saveLabel'));
 
                     //RE-BASELINE BEFORE EITHER BRANCH. selectBranch() below is gated, and would
                     //otherwise ask the admin to discard the edits it has just saved.
@@ -268,24 +272,24 @@
                 },
                 error: function () {
                     $btn.prop('disabled', false)
-                        .text('@T("Admin.Common.Save").Text');
-                    alert(Admin.StoreNav.res('common.serverError', 'A server error occurred. Please try again.'));
+                        .text($cfg.data('saveLabel'));
+                    display_nop_error({ error: Admin.StoreNav.res('common.serverError', 'A server error occurred. Please try again.') });
                 }
             });
         });
 
         // Delete
         $('#bd-delete-btn').on('click', function () {
-            if (!confirm('@T("Plugins.CW.Core.Admin.Branches.DeleteConfirmMessage").Text')) return;
+            if (!confirm($cfg.data('deleteConfirm'))) return;
             const id = $(this).data('id');
 
             postData = { id };
             addAntiForgeryToken(postData);
 
-            $.post('/Admin/MultiStore/DeleteBranch',
+            $.post($(this).data('url'),
                 postData,
                 function (result) {
-                    if (!result.success) { alert(result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.')); return; }
+                    if (!result.success) { display_nop_error({ error: result.error || Admin.StoreNav.res('common.couldNotDelete', 'Could not delete.') }); return; }
                     $('[data-node-id="' + id + '"]').remove();
                     //The branch is gone, so there is nothing left to save and nothing to ask about.
                     Admin.StoreNav.releaseForm($form);

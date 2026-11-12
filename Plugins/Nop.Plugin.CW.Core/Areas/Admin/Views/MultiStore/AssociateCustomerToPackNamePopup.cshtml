@@ -154,14 +154,21 @@
                                 </button>
                             </div>
 
+                            @* The texts the script shows, read back as plain text (an attribute round-trips them exactly) *@
+                            <div id="associate-customer-config"
+                                 data-select-label="@T("Admin.Common.Select")"
+                                 data-already-has-packname="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.AlreadyHasPackName")"
+                                 style="display: none;"></div>
+
                             <script>
                                 function renderCustomerSelect(data, type, row, meta) {
-                                    return '<button onclick=\"selectAssociatedCustomer(' + data + ', ' + row.HasPackName + '); return false;\" class="btn btn-default">@T("Admin.Common.Select").Text</button>';
+                                    var selectLabel = $('<span>').text($('#associate-customer-config').data('selectLabel')).html();
+                                    return '<button onclick=\"selectAssociatedCustomer(' + data + ', ' + row.HasPackName + '); return false;\" class="btn btn-default">' + selectLabel + '</button>';
                                 }
 
                                 function selectAssociatedCustomer(customerid, hasPackName) {
                                     if (hasPackName) {
-                                        alert('@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.AlreadyHasPackName")');
+                                        display_nop_error({ error: $('#associate-customer-config').data('alreadyHasPackname') });
                                         return false;
                                     }
                                     $("#@Html.IdFor(model => model.AssociateCustomerToPackNameModel.AssociatedToCustomerId)").val(customerid);

@@ -168,9 +168,18 @@ else
                                     <i class="far fa-save"></i>
                                     @T("Admin.Common.Save")
                                 </button>
+                                @* The gender names the grid shows, read back as plain text (an attribute round-trips them exactly) *@
+                                <div id="manager-gender-config"
+                                     data-gender-i="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Mixed")"
+                                     data-gender-m="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Male")"
+                                     data-gender-f="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Female")"
+                                     data-gender-n="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Neutral")"
+                                     style="display: none;"></div>
                                 <script>
                                     function renderGender(data) {
-                                        return data == "I" ? '@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Mixed")' : (data == "M" ? '@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Male")' : (data == "F" ? '@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Female")' : (data == "N" ? '@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender.Neutral")' : "" )));
+                                        var $cfg = $('#manager-gender-config');
+                                        var name = data == "I" ? $cfg.data('genderI') : (data == "M" ? $cfg.data('genderM') : (data == "F" ? $cfg.data('genderF') : (data == "N" ? $cfg.data('genderN') : "")));
+                                        return $('<span>').text(name).html();
                                     }
                                 </script>
                             </div>

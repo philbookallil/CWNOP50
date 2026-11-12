@@ -19,7 +19,6 @@ public record PackNameModel : BaseNopEntityModel
         AvailableCostCenters = new List<SelectListItem>();
         CWAddressSearchModel = new CWAddressSearchModel();
         MultiStoreSettingsModel = new MultiStoreSettingsModel();
-        Warnings = new List<string>();
         Active = true;
     }
 
@@ -48,8 +47,6 @@ public record PackNameModel : BaseNopEntityModel
 
     [NopResourceDisplayName("Plugins.CW.Core.Admin.PackNames.PackName.Field.Colour")]
     public string Colour { get; set; }
-
-    public string ForeColor { get; set; }
 
     [NopResourceDisplayName("Plugins.CW.Core.Admin.PackNames.PackName.Field.Gender")]
     public string Gender { get; set; }
@@ -99,8 +96,6 @@ public record PackNameModel : BaseNopEntityModel
     public bool Active { get; set; }
 
     public bool IsNew { get; set; }
-
-    public IList<string> Warnings { get; set; }
 
     public CWAddressSearchModel CWAddressSearchModel { get; set; }
 

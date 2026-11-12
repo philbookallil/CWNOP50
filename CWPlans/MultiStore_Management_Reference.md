@@ -465,12 +465,15 @@ Four rules, settled in phase 2a. They apply to the storefront `PackNameControlle
    (`GetCurrentManagerPackNameAsync` on the controller); ownership alone is not authorisation.
    `POST /PackName/PackNames` leaked a branch roster to an ordinary employee for exactly this reason
    (U-29).
-3. **The store comes from the manager, never from the request.** `PackName` has no `StoreId`; it is
-   `list → branch → StoreId`. `MultiStoreSettings` is store-scoped and carries the authorisation gates
+3. **The store comes from the manager, never from the request.** `PackName` has no `StoreId`; it is the
+   `StoreId` of the manager's own list. `MultiStoreSettings` is store-scoped and carries the authorisation gates
    (`AllowManagersToAddPackNames`, `LimitAssignedBranches`), so loading them for a posted store id let
-   a manager pick the store whose settings suited them (U-25). The storefront controller resolves it
-   with `ResolveManagerStoreIdAsync`; `MultiStoreService.GetManagerStoreIdAsync` is the same lookup,
-   `protected`, and not on the interface.
+   a manager pick the store whose settings suited them (U-25). One method answers it everywhere,
+   `IMultiStoreService.GetManagerStoreIdAsync` (cached per manager, cleared on packname, list and branch changes):
+   no store when the packname, its list or the list's branch is deleted (a deleted branch's lists stay live —
+   Open Items 4.19). The storefront controller's `ResolveManagerStoreIdAsync`, the packname selector's
+   Add / Excel buttons, the manager's departments and the manager's branch tree all use it (R2-A / R2-B,
+   2026-11-12).
 4. **`LimitAssignedBranches` decides where a manager may ADD a packname inside the store, never across
    stores.** This is the add-reach rule, not the visibility rule of §7b.2: off means *any list in any branch of the
    manager's own store*; on means *only lists the manager owns, in that branch*. The cross-store check runs before

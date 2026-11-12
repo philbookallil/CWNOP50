@@ -51,7 +51,7 @@
                                 class="btn btn-danger btn-sm"
                                 id="btn-focus-delete"
                                 data-id="@Model.Id"
-                                data-url="/Admin/MultiStore/DeleteCostCenter"
+                                data-url="@Url.Action("DeleteCostCenter", "MultiStore")"
                                 data-confirm="@T("Plugins.CW.Core.Admin.CostCenters.DeleteConfirmMessage")">
                             <i class="fas fa-trash" aria-hidden="true"></i>
                             @T("Admin.Common.Delete")

@@ -566,6 +566,9 @@
     <None Update="Views\PackNameCheckout\PaymentHandoff.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Views\PackNameCheckout\_PackNameBoxSummary.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Views\PackNameCheckout\_CartByPackName.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

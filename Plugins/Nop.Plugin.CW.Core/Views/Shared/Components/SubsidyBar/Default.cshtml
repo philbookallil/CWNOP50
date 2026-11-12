@@ -109,7 +109,8 @@
                 <div class="subsidy-bar-legend">
                     @if (Model.CanEditSubsidyTopup)
                     {
-                        <button type="button" class="change-topup-btn" onclick="openSubsidyTopupDialog(this)">
+                        <button type="button" class="change-topup-btn" onclick="openSubsidyTopupDialog(this)"
+                                data-dialog-title="@T("Plugins.CW.Core.SubsidyBar.ChangeTopup.Title")">
                             @T("Plugins.CW.Core.SubsidyBar.ChangeTopup")
                         </button>
                         <script>
@@ -123,7 +124,7 @@
                                         modal:     true,
                                         width:     660,
                                         maxHeight: $(window).height() - 40,
-                                        title:     '@T("Plugins.CW.Core.SubsidyBar.ChangeTopup.Title")',
+                                        title:     $(triggerEl).data('dialogTitle'),
                                         resizable: false,
                                         draggable: true,
                                         close: function () {

@@ -16,7 +16,7 @@ public class SubsidyVariationBuilder : NopEntityBuilder<SubsidyVariation>
     {
         table.WithColumn(nameof(SubsidyVariation.Id)).AsInt32().PrimaryKey().Identity()
              .WithColumn(nameof(SubsidyVariation.SubsidyPackNameId)).AsInt32().ForeignKey<SubsidyPackName>(onDelete: Rule.None).NotNullable()
-             .WithColumn(nameof(SubsidyVariation.Credit)).AsDecimal().Nullable()
+             .WithColumn(nameof(SubsidyVariation.Credit)).AsDecimal(18, 4).Nullable()
              .WithColumn(nameof(SubsidyVariation.DurationStart)).AsDate().Nullable()
              .WithColumn(nameof(SubsidyVariation.DurationEnd)).AsDate().Nullable()
              .WithColumn(nameof(SubsidyVariation.CreatedOnUtc)).AsDateTime2().NotNullable()

@@ -145,12 +145,13 @@
     </script>
 </form>
 
+<div id="return-reasons-rules-config" data-link-actions="@T("Plugins.CW.Core.Admin.Exchanges.Rules.ReasonRules.LinkActions")" style="display: none;"></div>
 <script>
     // Render linked actions cell - shows the linked action names and opens the modal on click
     function renderLinkedActionsCell(data, type, row) {
         if (type === 'display')
         {
-            var texto = (row.LinkedActionsNames && row.LinkedActionsNames.length > 0) ? row.LinkedActionsNames : '@T("Plugins.CW.Core.Admin.Exchanges.Rules.ReasonRules.LinkActions").Text';
+            var texto = (row.LinkedActionsNames && row.LinkedActionsNames.length > 0) ? row.LinkedActionsNames : $('<span>').text($('#return-reasons-rules-config').data('linkActions')).html();
             var commButton = '<button onclick=\"javascript:OpenWindow(\'@Url.Content("~/Admin/ExchangesConfig/AddLinkedActionsPopup/")' + row.ReturnReasonId + '?storeId=' +row.StoreId +'&btnId=btnRefreshRequestReasons&formId=returnreason-form\', 800, 700, true); return false;\" class="btn btn-success">' + texto + '</button>';
 
             return commButton;

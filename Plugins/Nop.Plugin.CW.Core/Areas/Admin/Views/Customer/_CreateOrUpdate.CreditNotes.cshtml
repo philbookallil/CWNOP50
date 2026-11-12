@@ -169,8 +169,18 @@
     })
 </div>
 
+@* The texts the script shows, read back as plain text (an attribute round-trips them exactly) *@
+<div id="customer-creditnotes-config"
+     data-delete-label="@T("Admin.Common.Delete")"
+     data-delete-confirm="@T("Plugins.CW.Core.Admin.CreditNotes.Delete.Confirm")"
+     data-delete-error="@T("Plugins.CW.Core.Admin.CreditNotes.Delete.Error")"
+     data-select-order="@T("Plugins.CW.Core.Admin.CreditNotes.AddForm.SelectOrder")"
+     data-invalid-amount="@T("Plugins.CW.Core.Admin.CreditNotes.AddForm.InvalidAmount")"
+     style="display: none;"></div>
+
 <script asp-location="Footer">
     (function () {
+        var $cfg = $('#customer-creditnotes-config');
         var customerId = @customerId;
         var summaryUrl = '@Url.Action("GetCreditNotesSummary", "CreditNotes")';
         var ordersUrl = '@Url.Action("GetAvailableOrders", "CreditNotes")';
@@ -193,21 +203,21 @@
                 <text>return '';</text>
             }
             return '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCreditNote(' + data + ')">' +
-                '<i class="far fa-trash-can"></i> @T("Admin.Common.Delete")</button>';
+                '<i class="far fa-trash-can"></i> ' + $('<span>').text($cfg.data('deleteLabel')).html() + '</button>';
         };
 
         window.deleteCreditNote = function (id) {
-            if (!confirm('@T("Plugins.CW.Core.Admin.CreditNotes.Delete.Confirm")')) return;
+            if (!confirm($cfg.data('deleteConfirm'))) return;
             $.ajax({
                 cache: false,
                 type: 'POST',
                 url: deleteUrl,
                 data: { creditNoteId: id, __RequestVerificationToken: antiForgery() },
                 success: function (res) {
-                    if (res && res.success === false) { alert(res.message || res.error || '@T("Plugins.CW.Core.Admin.CreditNotes.Delete.Error")'); }
+                    if (res && res.success === false) { display_nop_error({ error: res.message || res.error || $cfg.data('deleteError') }); }
                     reloadGrid(); loadSummary();
                 },
-                error: function () { alert('@T("Plugins.CW.Core.Admin.CreditNotes.Delete.Error")'); }
+                error: function () { display_nop_error({ error: $cfg.data('deleteError') }); }
             });
         };
 
@@ -235,8 +245,8 @@
             $('#cn-add-button').on('click', function () {
                 var orderId = parseInt($('#cn-add-order').val(), 10);
                 var amount = parseFloat($('#cn-add-amount').val());
-                if (!orderId) { alert('@T("Plugins.CW.Core.Admin.CreditNotes.AddForm.SelectOrder")'); return; }
-                if (!(amount > 0)) { alert('@T("Plugins.CW.Core.Admin.CreditNotes.AddForm.InvalidAmount")'); return; }
+                if (!orderId) { display_nop_error({ error: $cfg.data('selectOrder') }); return; }
+                if (!(amount > 0)) { display_nop_error({ error: $cfg.data('invalidAmount') }); return; }
                 $.ajax({
                     cache: false, type: 'POST', url: saveUrl,
                     data: {
@@ -248,7 +258,7 @@
                         if (res.success) {
                             $('#cn-add-description').val(''); $('#cn-add-amount').val('0');
                             reloadGrid(); loadSummary();
-                        } else { alert(res.message || res.error); }
+                        } else { display_nop_error({ error: res.message || res.error }); }
                     }
                 });
             });

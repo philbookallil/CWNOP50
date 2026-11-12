@@ -104,8 +104,8 @@ public partial class PackNameSelectorViewComponent : NopViewComponent
 
         //the add and Excel buttons follow the settings of the manager's own store, as the actions behind them do
         var manager = await _packNameService.GetPackNameByCustomerIdAsync(customer.Id);
-        var managerBranch = manager == null ? null : await _packNameService.GetBranchByPackNameIdAsync(manager.Id);
-        var storeSettings = await _settingService.LoadSettingAsync<MultiStoreSettings>(managerBranch?.StoreId ?? store.Id);
+        var managerStoreId = manager == null ? null : await _multiStoreService.GetManagerStoreIdAsync(manager.Id);
+        var storeSettings = await _settingService.LoadSettingAsync<MultiStoreSettings>(managerStoreId ?? store.Id);
 
         model.CanAddPackNames = storeSettings.AllowManagersToAddPackNames;
         model.CanAddByExcel = storeSettings.AllowToAddByExcel;

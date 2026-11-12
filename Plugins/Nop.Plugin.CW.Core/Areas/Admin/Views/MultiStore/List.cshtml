@@ -103,10 +103,15 @@
                                 }
                             }
                        })
+                        @* The button text the grid shows, read back as plain text (an attribute round-trips it exactly) *@
+                        <div id="multistore-list-config"
+                             data-manage-store-label="@T("Plugins.CW.Core.Admin.MultiStores.Store.ManageStore")"
+                             style="display: none;"></div>
                         <script>
                             function renderManageStore(data, type, row, meta) {
+                                var manageStoreLabel = $('<span>').text($('#multistore-list-config').data('manageStoreLabel')).html();
                                 return '<div class="grid-actions">' +
-                                    '<a href="@Url.Content("~/Admin/MultiStore/Edit/")' + data + '" class="btn btn-default "><i class="fa fa-cogs"></i>@T("Plugins.CW.Core.Admin.MultiStores.Store.ManageStore")</a>' +
+                                    '<a href="@Url.Content("~/Admin/MultiStore/Edit/")' + data + '" class="btn btn-default "><i class="fa fa-cogs"></i>' + manageStoreLabel + '</a>' +
                                     '</div>';
                             }
                         </script>

@@ -35,7 +35,7 @@
 @* The selected path, so the script below reads it from the DOM instead of having it
    serialised into a script literal. *@
 <div class="btree-config"
-     data-selected-ids="@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SelectedIds))"
+     data-selected-ids="@System.Text.Json.JsonSerializer.Serialize(Model.SelectedIds)"
      style="display: none;"></div>
 
 <script>

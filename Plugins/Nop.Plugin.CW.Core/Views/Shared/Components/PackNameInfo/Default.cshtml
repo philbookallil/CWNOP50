@@ -83,9 +83,14 @@
 
 @if (Model.HasSubsidies)
 {
+    <div id="packname-subsidy-config"
+         data-flyout-url="@Url.Action("BarFlyout", "SubsidyCatalog")"
+         data-flyout-error="@T("Plugins.CW.Core.PackNameInfo.SubsidyFlyoutError")"
+         style="display: none;"></div>
     <script asp-location="Footer">
     (function () {
-        var flyoutUrl = '@Url.Action("BarFlyout", "SubsidyCatalog")';
+        var $cfg = $('#packname-subsidy-config');
+        var flyoutUrl = $cfg.data('flyoutUrl');
         var $trigger = $('#packname-subsidy-trigger');
         var $panel = $('#packname-subsidy-panel');
         var loaded = false;
@@ -133,7 +138,7 @@
                     stale  = false;
                 },
                 error: function () {
-                    $panel.html('<p class="packname-subsidy-panel-error">@T("Plugins.CW.Core.PackNameInfo.SubsidyFlyoutError")</p>');
+                    $panel.html($('<p class="packname-subsidy-panel-error">').text($cfg.data('flyoutError')));
                 }
             });
         }

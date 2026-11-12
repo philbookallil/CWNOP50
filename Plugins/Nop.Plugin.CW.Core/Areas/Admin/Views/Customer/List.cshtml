@@ -405,10 +405,11 @@
                                 });
                             }
                             @await Html.PartialAsync("Table", gridModel)
+                            <div id="customer-impersonate-config" data-label="@T("Plugins.CW.Core.Admin.Customers.List.Impersonate")" style="display: none;"></div>
                             <script>
                                 function renderImpersonate(data, type, row, meta) {
                                     return '<div class="grid-actions">' +
-                                        '<a href="@Url.Content("~/Admin/ExtendedCustomer/PlaceOrder/")' + data + '" class="btn btn-primary ">@T("Plugins.CW.Core.Admin.Customers.List.Impersonate")</a>' +
+                                        '<a href="@Url.Content("~/Admin/ExtendedCustomer/PlaceOrder/")' + data + '" class="btn btn-primary ">' + $('<span>').text($('#customer-impersonate-config').data('label')).html() + '</a>' +
                                         '</div>';
                                 }
                             </script>

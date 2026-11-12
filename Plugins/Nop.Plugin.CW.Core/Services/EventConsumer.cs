@@ -10,7 +10,6 @@ using Nop.Core.Domain.Shipping;
 using Nop.Core.Events;
 using Nop.Data;
 using Nop.Plugin.CW.Core.BusinessLogic;
-using Nop.Plugin.CW.Core.Domain.Orders;
 using Nop.Plugin.CW.Core.Domain.PackNames;
 using Nop.Plugin.CW.Core.Domain.Settings;
 using Nop.Plugin.CW.Core.Domain.Subsidies;
@@ -51,7 +50,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
     IConsumer<EntityUpdatedEvent<Product>>,
     IConsumer<EntityInsertedEvent<Product>>,
     IConsumer<CustomerLoggedinEvent>,
-    IConsumer<EntityUpdatedEvent<ShoppingCartItem>>,
     IConsumer<AdminMenuCreatedEvent>,
     IConsumer<AdditionalTokensAddedEvent>,
     IConsumer<EntityDeletedEvent<PackName>>,
@@ -72,8 +70,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
     protected readonly IHttpContextAccessor _httpContextAccessor;
     protected readonly IAclOverrideService _aclService;
     protected readonly IPackNameService _packNameService;
-    protected readonly IRepository<PackNameCartItem> _packNameCartItemRepository;
-    protected readonly IEventPublisher _eventPublisher;
     protected readonly IWorkContext _workContext;
     protected readonly IPackNameContext _packNameContext;
     protected readonly IRepository<SubsidyPackName> _subsidyPackNameRepository;
@@ -105,8 +101,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
         IPackNameService packNameService,
         IPackNameContext packNameContext,
         IWorkContext workContext,
-        IRepository<PackNameCartItem> packNameCartItemRepository,
-        IEventPublisher eventPublisher,
         IRepository<SubsidyPackName> subsidyPackNameRepository,
         ISubsidyService subsidyService,
         ISubsidyReportingService subsidyReportingService,
@@ -129,8 +123,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
         _httpContextAccessor = httpContextAccessor;
         _aclService = aclService;
         _packNameService = packNameService;
-        _packNameCartItemRepository = packNameCartItemRepository;
-        _eventPublisher = eventPublisher;
         _workContext = workContext;
         _packNameContext = packNameContext;
         _subsidyPackNameRepository = subsidyPackNameRepository;
@@ -703,29 +695,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
             return;
 
         await SetPackNameContext(eventMessage.Customer);
-    }
-
-    /// <summary>
-    /// Handle entity deleted event
-    /// </summary>
-    /// <param name="eventMessage">Event message</param>
-    /// <returns>A task that represents the asynchronous operation</returns>
-    public async Task HandleEventAsync(EntityUpdatedEvent<ShoppingCartItem> eventMessage)
-    {
-        if (eventMessage.Entity is null)
-            return;
-
-        var query = from item in _packNameCartItemRepository.Table
-                    where item.ShoppingCartItemId == eventMessage.Entity.Id
-                    select item;
-
-        var packNameCartItem = await query.FirstOrDefaultAsync();
-
-        if (packNameCartItem != null)
-        {
-            //event notification for cache management
-            await _eventPublisher.EntityUpdatedAsync(packNameCartItem);
-        }
     }
 
     public Task HandleEventAsync(AdditionalTokensAddedEvent eventMessage)

@@ -1253,8 +1253,9 @@ Order (NOP)
 1b. **Ledger column types.** The money columns of the subsidy, allocation, top-up, consumption, shipping and restore
    tables are `DECIMAL(18, 4)` (`AsDecimal(18, 4)` in their builders under `Data/Mapping/Subsidies/`), matching nop
    core and the 4-dp rounding in `RestoreSubsidyForReturnedItemAsync`; `SubsidyVariation.Credit` and the three history
-   tables' `Credit` keep the builder default `AsDecimal()` = `DECIMAL(19, 5)` — nothing is truncated
-   (`Subsidy_PackName_Open_Items.md` 3.15). Every subsidy (and branch, list, customer-branch) `CreatedOnUtc` is
+   tables' `Credit` declare `(18, 4)` too since 2026-11-12 (they had the builder default `DECIMAL(19, 5)`): a new
+   installation creates them that way; a database installed before keeps `(19, 5)`, which truncates nothing (no
+   migration while 5.00 is pre-production). Every subsidy (and branch, list, customer-branch) `CreatedOnUtc` is
    `datetime2` holding UTC (`AsDateTime2()`), the same as nop's own. In 5.00 these types come from the builders,
    which the one `Data/Migrations/SchemaMigration.cs` creates on install; in 4.9 the migrations `SubsidyPeriodIntegrity`
    and `CWTimestampsDateTime2` (2026-10-20) altered them in place. A bound handed to SQL must be UTC, and an absent

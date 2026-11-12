@@ -12,6 +12,7 @@
         <div class="row">
             <div class="col-md-4">
                 <nop-select asp-for="SelectedDepartmentIds" asp-items="Model.AvailableDepartments" asp-multiple="true" />
+                <div id="acl-departments-config" data-none-available="@T("Plugins.CW.Core.Admin.AclDepartment.NoDepartmentsAvailable")" style="display: none;"></div>
                 <script>
 					$(function() {
 						var departmentIdsInput = $('#@Html.IdFor(model => model.SelectedDepartmentIds)').select2({
@@ -20,7 +21,7 @@
                             {
                                 <text>
                                     disabled: true,
-                                    placeholder: '@T("Plugins.CW.Core.Admin.AclDepartment.NoDepartmentsAvailable")',
+                                    placeholder: $('#acl-departments-config').data('noneAvailable'),
                                 </text>
                             }
                         });

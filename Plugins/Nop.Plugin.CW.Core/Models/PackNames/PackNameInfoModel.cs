@@ -22,7 +22,7 @@ public record PackNameInfoModel
 
     public string POEntry { get; set; }
 
-    /// <summary>True when the PackName has at least one subsidy — controls flyout trigger visibility.</summary>
+    /// <summary>True when the packname has a subsidy in its ordering period and Subsidy is on for the store — controls flyout trigger visibility.</summary>
     public bool HasSubsidies { get; set; }
 
     /// <summary>False when the packname's subsidy ordering period has closed: the strip shows the notice.</summary>

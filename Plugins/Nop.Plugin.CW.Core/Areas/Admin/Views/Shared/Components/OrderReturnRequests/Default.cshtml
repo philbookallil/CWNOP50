@@ -82,14 +82,19 @@
 </div>
 @if (Model.ShowReturns)
 {
+    <div id="order-return-requests-config"
+         data-item-deleted="@T("Plugins.CW.Core.Admin.Exchanges.OrderReturns.ItemDeleted")"
+         data-edit-label="@T("Admin.Common.Edit")"
+         style="display: none;"></div>
     <script asp-location="Footer">
         (function () {
             var orderId = @Model.OrderId;
             var productEditBase = '@Url.Content("~/Admin/Product/Edit/")';
             var customerEditBase = '@Url.Content("~/Admin/Customer/Edit/")';
             var returnEditBase = '@Url.Content("~/Admin/ReturnRequest/Edit/")';
-            var deletedLabel = '@T("Plugins.CW.Core.Admin.Exchanges.OrderReturns.ItemDeleted")';
-            var editLabel = '@T("Admin.Common.Edit")';
+            var $cfg = $('#order-return-requests-config');
+            var deletedLabel = $('<span>').text($cfg.data('itemDeleted')).html();
+            var editLabel = $('<span>').text($cfg.data('editLabel')).html();
 
             window.renderOrderReturnProduct = function (data, type, row) {
                 if (!row.ProductId || row.ProductId <= 0)

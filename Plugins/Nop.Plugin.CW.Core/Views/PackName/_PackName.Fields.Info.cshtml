@@ -59,8 +59,16 @@
             <label asp-for="Group"></label>
             <input asp-for="Group" />
         </div>
+        <div id="packname-fields-config-@Model.Id"
+             data-group-name-label="@T("Plugins.CW.Core.PackNames.PackName.Field.GroupName")"
+             data-name-label="@T("Plugins.CW.Core.PackNames.PackName.Field.Name")"
+             data-group-title="@groupTitleText"
+             data-packname-title="@packNameTitleText"
+             style="display: none;"></div>
         <script asp-location="Footer">
             $(document).ready(function () {
+                var $cfg = $('#packname-fields-config-@Model.Id');
+
                 function updateTitleIcon() {
                     var $icon = $('.packname-register-title-icon');
                     var isGroup = $('#@Html.IdFor(model => model.Group)').is(':checked');
@@ -71,18 +79,18 @@
                     if (isGroup) {
                         $icon.addClass('packname-group');
                         $icon.removeClass('packname-customer packname-no-customer');
-                        $('#name-label').text('@T("Plugins.CW.Core.PackNames.PackName.Field.GroupName")');
-                        $('.packname-title-text').text('@groupTitleText');
+                        $('#name-label').text($cfg.data('groupNameLabel'));
+                        $('.packname-title-text').text($cfg.data('groupTitle'));
                     } else if (isCustomer) {
                         $icon.addClass('packname-customer');
                         $icon.removeClass('packname-no-customer packname-group');
-                        $('#name-label').text('@T("Plugins.CW.Core.PackNames.PackName.Field.Name")');
-                        $('.packname-title-text').text('@packNameTitleText');
+                        $('#name-label').text($cfg.data('nameLabel'));
+                        $('.packname-title-text').text($cfg.data('packnameTitle'));
                     } else {
                         $icon.addClass('packname-no-customer');
                         $icon.removeClass('packname-customer packname-group');
-                        $('#name-label').text('@T("Plugins.CW.Core.PackNames.PackName.Field.Name")');
-                        $('.packname-title-text').text('@packNameTitleText');
+                        $('#name-label').text($cfg.data('nameLabel'));
+                        $('.packname-title-text').text($cfg.data('packnameTitle'));
                     }
                 }
 

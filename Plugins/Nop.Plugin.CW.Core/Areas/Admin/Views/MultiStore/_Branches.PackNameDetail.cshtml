@@ -49,7 +49,7 @@
                                 class="btn btn-danger btn-sm"
                                 id="btn-focus-delete"
                                 data-id="@Model.Id"
-                                data-url="/Admin/MultiStore/DeletePackName"
+                                data-url="@Url.Action("DeletePackName", "MultiStore")"
                                 data-confirm="@T("Plugins.CW.Core.Admin.PackNames.DeleteConfirmMessage")">
                             <i class="fas fa-trash" aria-hidden="true"></i>
                             @T("Admin.Common.Delete")

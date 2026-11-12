@@ -23,20 +23,20 @@
                 <div class="col-md-4">
                     <table class="adminData">
                         <tr>
-                            <td class="adminTitle">Branch:</td>
+                            <td class="adminTitle">@T("Plugins.CW.Core.Admin.Orders.Field.Branch"):</td>
                             <td class="adminData">@group.Branch (@group.BranchCode)</td>
                         </tr>
                         @if (!string.IsNullOrEmpty(group.Department))
                         {
                             <tr>
-                                <td class="adminTitle">Department:</td>
+                                <td class="adminTitle">@T("Plugins.CW.Core.Admin.Orders.Field.Department"):</td>
                                 <td class="adminData">@group.Department</td>
                             </tr>
                         }
                         @if (!string.IsNullOrEmpty(group.CostCenter))
                         {
                             <tr>
-                                <td class="adminTitle">Cost Centre:</td>
+                                <td class="adminTitle">@T("Plugins.CW.Core.Admin.Orders.Field.CostCenter"):</td>
                                 <td class="adminData">@group.CostCenter</td>
                             </tr>
                         }
@@ -50,8 +50,8 @@
                                 @group.ShippingMethod
                                 @if (group.IsSharedShipping)
                                 {
-                                    <span class="badge badge-info ml-1" title="Shared with @string.Join(", ", group.SharedWithPackNames)">
-                                        <i class="fas fa-share-alt"></i> Shared
+                                    <span class="badge badge-info ml-1" title="@string.Format(T("Plugins.CW.Core.Admin.Orders.SharedShippingWith").Text, string.Join(", ", group.SharedWithPackNames))">
+                                        <i class="fas fa-share-alt"></i> @T("Plugins.CW.Core.Admin.Orders.SharedShipping")
                                     </span>
                                 }
                             </td>
@@ -112,7 +112,7 @@
                     {
                         <div class="mt-2 text-muted small">
                             <i class="fas fa-share-alt"></i>
-                            Shipping shared with: @string.Join(", ", group.SharedWithPackNames)
+                            @string.Format(T("Plugins.CW.Core.Admin.Orders.SharedShippingWith").Text, string.Join(", ", group.SharedWithPackNames))
                         </div>
                     }
                 </div>

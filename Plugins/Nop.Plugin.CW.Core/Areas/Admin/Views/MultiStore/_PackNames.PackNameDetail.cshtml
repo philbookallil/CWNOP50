@@ -47,7 +47,7 @@
                                 class="btn btn-danger btn-sm"
                                 id="btn-packname-delete"
                                 data-id="@Model.Id"
-                                data-url="/Admin/MultiStore/DeletePackName"
+                                data-url="@Url.Action("DeletePackName", "MultiStore")"
                                 data-confirm="@T("Plugins.CW.Core.Admin.PackNames.DeleteConfirmMessage")">
                             <i class="fas fa-trash" aria-hidden="true"></i>
                             @T("Admin.Common.Delete")
@@ -70,10 +70,11 @@
                                     <span asp-validation-for="BranchId"></span>
                                 </div>
                             </div>
+                            <div id="packname-branch-config" data-placeholder="@T("Admin.Common.Search")" style="display: none;"></div>
                             <script>
                                 $(function() {
                                     $('#packname-branch-field').select2({
-                                        placeholder: '@T("Admin.Common.Search").Text',
+                                        placeholder: $('#packname-branch-config').data('placeholder'),
                                         allowClear: true,
                                         minimumInputLength: 2,
                                         delay: 300,
@@ -290,12 +291,13 @@
                                   stored in ModelState and rendered nowhere: the form came back unchanged
                                   and the admin was told nothing.*@
                                 <span asp-validation-for="CustomerId"></span>
+                                <div id="packname-customer-config" data-select-branch="@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.Alert.SelectBranch")" style="display: none;"></div>
                                 <script>
                                     $(function() {
                                         $('#associate-customer-btn').click(function () {
                                             var branchId = $('#packname-branch-field').val();
                                             if (!branchId) {
-                                                alert('@T("Plugins.CW.Core.Admin.PackNames.PackName.Field.Customer.Alert.SelectBranch")');
+                                                display_nop_error({ error: $('#packname-customer-config').data('selectBranch') });
                                                 return false;
                                             }
                                             var url = '@Url.Action("AssociateCustomerToPackNamePopup", "MultiStore")'

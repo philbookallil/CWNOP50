@@ -90,6 +90,10 @@
     }
 </div>
 
+<div id="change-topup-config"
+     data-subsidy-title="@T("Plugins.CW.Core.ChangeTopup.SubsidyTopup.DialogTitle")"
+     data-product-group-title="@T("Plugins.CW.Core.ChangeTopup.ProductGroupTopup.DialogTitle")"
+     style="display: none;"></div>
 <script>
     // ── AJAX refresh after save ────────────────────────────────
 
@@ -186,7 +190,7 @@
 
         var $d = $('<div id="dialog-change-subsidy-topup"><div class="cw-dialog-loading"><div class="cw-loading-spinner"></div></div></div>')
             .dialog({
-                title:     '@T("Plugins.CW.Core.ChangeTopup.SubsidyTopup.DialogTitle")',
+                title:     $('#change-topup-config').data('subsidyTitle'),
                 modal:     false,  // parent is already modal
                 draggable: true,
                 resizable: false,
@@ -212,7 +216,7 @@
 
         var $d = $('<div id="dialog-change-pg-topup"><div class="cw-dialog-loading"><div class="cw-loading-spinner"></div></div></div>')
             .dialog({
-                title:     '@T("Plugins.CW.Core.ChangeTopup.ProductGroupTopup.DialogTitle")',
+                title:     $('#change-topup-config').data('productGroupTitle'),
                 modal:     false,
                 draggable: true,
                 resizable: false,

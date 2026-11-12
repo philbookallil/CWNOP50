@@ -199,33 +199,27 @@
                                     }
                                 </div>
                             }
-                            @await Html.PartialAsync("_PackNameBox", row.Box)
+                            @* read-only: a packname's shipping is chosen in the by-packname view, where its box appears once *@
+                            <div class="pack-name-panel pack-name-panel-@row.Box.Item.PackNameModel.Id">
+                                <div class="pack-name-panel-header">
+                                    @await Html.PartialAsync("_PackNameBoxSummary", row.Box)
+                                </div>
+                                @if (row.Box.ShippingData.ShippingMethod.Warnings.Count > 0)
+                                {
+                                    <div class="pack-name-panel-errors message-error">
+                                        <ul>
+                                            @foreach (var warning in row.Box.ShippingData.ShippingMethod.Warnings)
+                                            {
+                                                <li>@warning</li>
+                                            }
+                                        </ul>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     }
                 </div>
             </div>
         }
     }
-
-    <div id="packname-address-dialog" style="display: none;"></div>
 </div>
-<script>
-    $(document).ready(function () {
-        $('.pack-name-panel-header').click(function () {
-            let $container = $(this).parent();
-
-            if (!$container.hasClass("with-errors")) {
-                $container.find('.pack-name-panel-body').slideToggle();
-
-                if ($(this).hasClass('collapsed')) {
-                    $(this).addClass('expanded');
-                    $(this).removeClass('collapsed');
-                }
-                else {
-                    $(this).addClass('collapsed');
-                    $(this).removeClass('expanded');
-                }
-            }
-        });
-    });
-</script>

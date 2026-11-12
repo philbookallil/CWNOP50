@@ -495,7 +495,7 @@
             }
 
             if (!validateProductForm(productId)) {
-                alert(textOf('selectAllOptions'));
+                showPickerError(textOf('selectAllOptions'));
                 return;
             }
 
@@ -823,7 +823,7 @@
 
                 if ($('#exchange_mode').val() === String(options.exchangeMode.exchange) && missing) {
                     e.preventDefault();
-                    alert(missing);
+                    displayBarNotification(missing, 'error', 3500);
                 }
             });
 

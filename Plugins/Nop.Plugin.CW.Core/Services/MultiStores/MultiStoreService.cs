@@ -89,22 +89,6 @@ public class MultiStoreService : IMultiStoreService
 
     #region Utilities
 
-    protected virtual async Task<int?> GetManagerStoreIdAsync(int managerId)
-    {
-        var key = _staticCacheManager.PrepareKeyForDefaultCache(
-            BranchServicesDefaults.ManagerStoreIdCacheKey, managerId);
-
-        return await _staticCacheManager.GetAsync(key, async () =>
-            await (
-                from pn in _packNameRepository.Table
-                join pnl in _packNameListRepository.Table on pn.PackNameListId equals pnl.Id
-                join b in _branchRepository.Table on pnl.BranchId equals b.Id
-                where pn.Id == managerId
-                select (int?)b.StoreId
-            ).FirstOrDefaultAsync()
-        );
-    }
-
     /// <summary>
     /// Whether a selector entry holds at least one packname this manager can see.
     /// </summary>
@@ -649,6 +633,32 @@ public class MultiStoreService : IMultiStoreService
     #endregion
 
     #region PackNames
+
+    /// <summary>
+    /// Gets the store of a manager: the store of the list their own packname is in. Store-scoped settings and
+    /// lookups for a manager take the store from here, never from the request
+    /// </summary>
+    /// <param name="managerId">The manager's packname identifier</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the store identifier; null when the packname, its list or the list's branch is
+    /// missing or deleted (deleting a branch leaves its lists in place, and their managers lose their store with it)
+    /// </returns>
+    public virtual async Task<int?> GetManagerStoreIdAsync(int managerId)
+    {
+        var key = _staticCacheManager.PrepareKeyForDefaultCache(
+            BranchServicesDefaults.ManagerStoreIdCacheKey, managerId);
+
+        return await _staticCacheManager.GetAsync(key, async () =>
+            await (
+                from pn in _packNameRepository.Table
+                join pnl in _packNameListRepository.Table on pn.PackNameListId equals pnl.Id
+                where pn.Id == managerId && !pn.Deleted && !pnl.Deleted
+                    && (pnl.BranchId == null || _branchRepository.Table.Any(branch => branch.Id == pnl.BranchId && !branch.Deleted))
+                select (int?)pnl.StoreId
+            ).FirstOrDefaultAsync()
+        );
+    }
 
     public async Task<IPagedList<PackNameDTO>> GetPackNameManagersByStoreAsync(int storeId, int branchId, int packNameListId = 0, string name = null, bool fromOtherBrances = false,
         int pageIndex = 0, int pageSize = int.MaxValue)

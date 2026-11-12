@@ -115,8 +115,9 @@ public class PackNameModelFactory : IPackNameModelFactory
         if (branchId == 0)
             return listId;
 
-        var packNameLists = (await _packNameService.GetPackNameListsByBranchAsync(branchId))
+        var packNameLists = (await _packNameService.GetPackNameListsByBranchIdAsync(branchId))
             .Where(packNameList => packNameList.Active || packNameList.Id == listId)
+            .OrderBy(packNameList => packNameList.Name)
             .ToList();
         var activeLists = packNameLists.Where(packNameList => packNameList.Active).ToList();
         var selectedId = packNameLists.Any(packNameList => packNameList.Id == listId)
