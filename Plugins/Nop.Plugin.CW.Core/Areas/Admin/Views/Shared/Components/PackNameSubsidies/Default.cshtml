@@ -13,6 +13,8 @@
      data-prefix="@Model.Prefix"
      data-load-url="@Url.Action("PackNameSubsidies", "Subsidy")"
      data-edit-label="@T("Admin.Common.Edit")"
+     data-closed-label="@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.Topup.Closed")"
+     data-closed-hint="@T("Plugins.CW.Core.Admin.Subsidies.Subsidy.Topup.PeriodClosed")"
      data-loading-label="@T("Plugins.CW.Core.Admin.StoreNav.Common.Loading")"
      data-load-error="@T("Plugins.CW.Core.Admin.StoreNav.Common.FailedToLoad")"
      data-retry-label="@T("Plugins.CW.Core.Admin.StoreNav.Common.Retry")"
@@ -24,7 +26,10 @@
     //namespace of their own. The namespace is declared once however many panels a page renders.
     window.CW = window.CW || {};
     CW.PackNameSubsidies = CW.PackNameSubsidies || (function () {
-        var editLabel = $('.pns-panel-config').last().data('editLabel');
+        var $config = $('.pns-panel-config').last();
+        var editLabel = $config.data('editLabel');
+        var closedLabel = $config.data('closedLabel');
+        var closedHint = $config.data('closedHint');
 
         var render = {
             productGroupIcon: function (data, type, row) {
@@ -36,7 +41,12 @@
 
             //DATA ATTRIBUTES ONLY: the delegated handler below builds the popup URL. The refresh
             //button's id is the panel prefix plus the subsidy id, which is how the popup finds it.
+            //No button once no topup can be made (a non-annual period that has ended), as on the money row.
             productGroupTopupEdit: function (data, type, row) {
+                if (!row.TopupOpen) {
+                    return $('<span class="text-muted"></span>').attr('title', closedHint).text(closedLabel).prop('outerHTML');
+                }
+
                 return '<button type="button" class="btn btn-default btn-pns-pg-topup"'
                     + ' data-subsidy-pack-name-id="' + row.SubsidyPackNameId + '"'
                     + ' data-product-group-id="' + row.ProductGroupId + '"'

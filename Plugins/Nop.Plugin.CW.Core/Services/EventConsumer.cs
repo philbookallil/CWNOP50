@@ -74,7 +74,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
     protected readonly IPackNameContext _packNameContext;
     protected readonly IRepository<SubsidyPackName> _subsidyPackNameRepository;
     protected readonly ISubsidyService _subsidyService;
-    protected readonly ISubsidyReportingService _subsidyReportingService;
     protected readonly ICWFeatureService _cwFeatureService;
     protected readonly ICreditNotesService _creditNotesService;
     protected readonly ICWOrderService _cwOrderService;
@@ -103,7 +102,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
         IWorkContext workContext,
         IRepository<SubsidyPackName> subsidyPackNameRepository,
         ISubsidyService subsidyService,
-        ISubsidyReportingService subsidyReportingService,
         ICWFeatureService cwFeatureService,
         ICreditNotesService creditNotesService,
         ICWOrderService cwOrderService,
@@ -127,7 +125,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
         _packNameContext = packNameContext;
         _subsidyPackNameRepository = subsidyPackNameRepository;
         _subsidyService = subsidyService;
-        _subsidyReportingService = subsidyReportingService;
         _cwFeatureService = cwFeatureService;
         _creditNotesService = creditNotesService;
         _cwOrderService = cwOrderService;
@@ -423,6 +420,26 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
 
 
     /// <summary>
+    /// Whether a packname has an active subsidy actively assigned to it, from the cached assignment and subsidy reads
+    /// </summary>
+    /// <param name="packNameId">Packaging name identifier</param>
+    /// <returns>A task that represents the asynchronous operation. The task result is true when there is one</returns>
+    protected async Task<bool> HasActiveSubsidyAssignmentAsync(int packNameId)
+    {
+        var assignments = await _subsidyService.GetAllSubsidyPackNamesByPackNameIdAsync(packNameId);
+
+        foreach (var assignment in assignments.Where(assignment => assignment.Active))
+        {
+            var subsidy = await _subsidyService.GetSubsidyByIdAsync(assignment.SubsidyId);
+
+            if (subsidy is { Active: true, Deleted: false })
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Credit notes and subsidies each add an entry to the My Account menu, both positioned after Orders.
     /// Extracted from the ModelPrepared handler when that became a dispatch; the body is unchanged, and the
     /// two lines that opened it — the type test and its early return — are now the `case` that reaches here.
@@ -456,10 +473,10 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
         if (packName == null || packName.Id == 0)
             return;
 
-        //the menu item shows when the page has a subsidy to list: an active subsidy, actively assigned to the packname
-        var assignments = await _subsidyReportingService.GetSubsidyDetailsByPackNameIdAsync(packName.Id, inOrderingPeriodOnly: false);
-
-        if (!assignments.Any(assignment => assignment.Active && assignment.AssignmentActive))
+        //the menu item shows when the page has a subsidy to list: an active subsidy, actively assigned to the packname.
+        //Every My Account page renders this menu, so it reads the cached assignments and subsidies and never the
+        //credit views
+        if (!await HasActiveSubsidyAssignmentAsync(packName.Id))
             return;
 
         navigationModel.CustomerNavigationItems.Insert(position++, new()

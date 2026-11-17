@@ -146,6 +146,23 @@ public partial class SubsidyService : ISubsidyService
         return SubsidyPeriodHelper.GetTopupSearchWindow(now, subsidy.AnnualRecurrence, durationEnd, _dateTimeHelper.DefaultStoreTimeZone);
     }
 
+    /// <summary>
+    /// The window a topup made now would be recorded in, or null when no period is open for topups (only a
+    /// non-annual subsidy whose period has ended). The window is not the ordering period: a topup made before
+    /// a period opens is recorded for that period.
+    /// </summary>
+    protected async Task<(DateTime? windowStart, DateTime? windowEnd)?> GetOpenTopupWindowAsync(int subsidyPackNameId, Subsidy subsidy)
+    {
+        var now = DateTime.UtcNow;
+
+        var (windowStart, windowEnd) = await GetTopupSearchWindowAsync(now, subsidyPackNameId, subsidy);
+
+        var isOpen = (windowStart == null || now > windowStart.Value)
+            && (windowEnd == null || now <= windowEnd.Value);
+
+        return isOpen ? (windowStart, windowEnd) : null;
+    }
+
     #endregion
 
     #region Methods
@@ -986,11 +1003,12 @@ public partial class SubsidyService : ISubsidyService
     #region Subsidy Topup
 
     /// <summary>
-    /// Whether a topup posted now for this assignment would land inside its current ordering period.
+    /// Whether a topup posted now for this assignment would be recorded for a period that can still be used.
     /// </summary>
     /// <remarks>
     /// The same window the two <c>Save*ForPeriodAsync</c> methods enforce by throwing; asked first so a
-    /// screen can refuse with a message. For an annual subsidy some occurrence is always open, so this
+    /// screen can refuse with a message. The window is wider than the ordering period: a topup made before a
+    /// period opens counts for that period, and for an annual subsidy some occurrence is always open, so this
     /// only ever answers false for a non-annual season that has closed.
     /// </remarks>
     /// <param name="subsidyPackNameId">Subsidy - packaging name mapping identifier</param>
@@ -1001,12 +1019,83 @@ public partial class SubsidyService : ISubsidyService
     /// </returns>
     public async Task<bool> IsTopupPeriodOpenAsync(int subsidyPackNameId, Subsidy subsidy)
     {
-        var now = DateTime.UtcNow;
+        return await GetOpenTopupWindowAsync(subsidyPackNameId, subsidy) != null;
+    }
 
-        var (windowStart, windowEnd) = await GetTopupSearchWindowAsync(now, subsidyPackNameId, subsidy);
+    /// <summary>
+    /// Gets whether a topup can be made now and the general credit already topped up for the period it would join
+    /// </summary>
+    /// <param name="subsidyPackNameId">Subsidy - packaging name mapping identifier</param>
+    /// <param name="subsidy">The assignment's subsidy</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains whether the window is open and the sum of the topups' credit in it
+    /// </returns>
+    public async Task<(bool IsOpen, decimal Credit)> GetOpenPeriodSubsidyTopupCreditAsync(int subsidyPackNameId, Subsidy subsidy)
+    {
+        var window = await GetOpenTopupWindowAsync(subsidyPackNameId, subsidy);
 
-        return (windowStart == null || now > windowStart.Value)
-            && (windowEnd == null || now <= windowEnd.Value);
+        if (window == null)
+            return (false, decimal.Zero);
+
+        var (windowStart, windowEnd) = window.Value;
+
+        var query = _subsidyTopupRepository.Table.Where(topup => topup.SubsidyPackNameId == subsidyPackNameId);
+
+        //an absent bound is omitted, never replaced by a sentinel date
+        if (windowStart.HasValue)
+        {
+            var after = windowStart.Value;
+            query = query.Where(topup => topup.CreatedOnUtc > after);
+        }
+
+        if (windowEnd.HasValue)
+        {
+            var upTo = windowEnd.Value;
+            query = query.Where(topup => topup.CreatedOnUtc <= upTo);
+        }
+
+        return (true, await query.SumAsync(topup => (decimal?)topup.Credit) ?? decimal.Zero);
+    }
+
+    /// <summary>
+    /// Gets the product-group topups already recorded for the period a topup made now would join, per product group
+    /// </summary>
+    /// <param name="subsidyPackNameId">Subsidy - packaging name mapping identifier</param>
+    /// <param name="subsidy">The assignment's subsidy</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the summed quantity and credit, keyed by product group identifier
+    /// </returns>
+    public async Task<IDictionary<int, (int Quantity, decimal Credit)>> GetOpenPeriodProductGroupTopupsAsync(int subsidyPackNameId, Subsidy subsidy)
+    {
+        var window = await GetOpenTopupWindowAsync(subsidyPackNameId, subsidy);
+
+        if (window == null)
+            return new Dictionary<int, (int Quantity, decimal Credit)>();
+
+        var (windowStart, windowEnd) = window.Value;
+
+        var query = _productGroupTopupRepository.Table.Where(topup => topup.SubsidyPackNameId == subsidyPackNameId);
+
+        //an absent bound is omitted, never replaced by a sentinel date
+        if (windowStart.HasValue)
+        {
+            var after = windowStart.Value;
+            query = query.Where(topup => topup.CreatedOnUtc > after);
+        }
+
+        if (windowEnd.HasValue)
+        {
+            var upTo = windowEnd.Value;
+            query = query.Where(topup => topup.CreatedOnUtc <= upTo);
+        }
+
+        var topups = await query.ToListAsync();
+
+        return topups
+            .GroupBy(topup => topup.ProductGroupId)
+            .ToDictionary(group => group.Key, group => (group.Sum(topup => topup.Quantity), group.Sum(topup => topup.Credit)));
     }
 
     /// <summary>

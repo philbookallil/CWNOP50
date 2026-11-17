@@ -7,7 +7,8 @@ namespace Nop.Plugin.CW.Core.Services.Subsidies;
 /// <summary>
 /// Read-side queries for the subsidy screens. Every assignment query here starts from the ASSIGNMENT table
 /// and left-joins the period views, so an assignment outside its ordering period is still returned, with
-/// zero period figures and <c>InOrderingPeriod = false</c>. Callers that only want the live season say so.
+/// zero usage, the topups already made for the coming period, and <c>InOrderingPeriod = false</c>. Callers that
+/// only want the live season say so.
 /// </summary>
 public interface ISubsidyReportingService
 {
@@ -49,7 +50,7 @@ public interface ISubsidyReportingService
 
     /// <summary>
     /// Gets the product groups a subsidy allocates, with this assignment's current-period topups and usage
-    /// per group (zero when the assignment is out of period)
+    /// per group (out of period: no usage, and the topups already made for the coming period)
     /// </summary>
     /// <param name="subsidyPackNameId">Subsidy packaging name identifier</param>
     /// <param name="subsidyId">Subsidy identifier</param>

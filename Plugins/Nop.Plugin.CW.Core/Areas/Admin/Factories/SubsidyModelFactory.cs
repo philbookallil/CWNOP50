@@ -209,8 +209,9 @@ public class SubsidyModelFactory : ISubsidyModelFactory
     /// <returns>Subsidy models</returns>
     /// <remarks>
     /// Every live assignment is listed, in period or not: an admin sets a season up before it opens and
-    /// reviews it after it closes. The period figures of an assignment outside its period are zero and
-    /// its top-up buttons are disabled by the view.
+    /// reviews it after it closes. Outside its period an assignment has no usage, its topups are the ones made
+    /// for the coming period, and the view offers the topup buttons while a topup can still be made (only a
+    /// non-annual period that has ended closes them).
     /// </remarks>
     protected virtual async Task<PackNameSubsidiesModel> PreparePackNameSubsidiesModelAsync(PackNameSubsidiesModel model, int packNameId)
     {
@@ -268,6 +269,7 @@ public class SubsidyModelFactory : ISubsidyModelFactory
                     ? FormatUsedPercent(totalCredit, usedCredit, totalQuantity, usedQuantity)
                     : FormatUsedPercent(0, 0, 0, 0),
                 InOrderingPeriod = packNameSubsidy.InOrderingPeriod,
+                TopupOpen = packNameSubsidy.TopupOpen,
                 PackNameSubsidyProductGroupSearchModel = new PackNameSubsidyProductGroupSearchModel { SubsidyPackNameId = packNameSubsidy.Id }
             };
 
@@ -1077,6 +1079,10 @@ public class SubsidyModelFactory : ISubsidyModelFactory
         var details = await _subsidyReportingService.GetSubsidyPackNameProductGroupDetailsAsync(searchModel.SubsidyPackNameId, subsidyPackName.SubsidyId);
         var productGroups = new PagedList<SubsidyProductGroupDTO>(details, searchModel.Page - 1, searchModel.PageSize);
 
+        //the same test the topup save applies, so the grid never offers a topup the popup refuses
+        var subsidy = await _subsidyService.GetSubsidyByIdAsync(subsidyPackName.SubsidyId);
+        var topupOpen = subsidy != null && await _subsidyService.IsTopupPeriodOpenAsync(subsidyPackName.Id, subsidy);
+
         //prepare grid model
         var model = new PackNameSubsidyProductGroupListModel().PrepareToGrid(searchModel, productGroups, () =>
         {
@@ -1099,6 +1105,7 @@ public class SubsidyModelFactory : ISubsidyModelFactory
                     Icon = productGroup.Icon,
                     Colour = productGroup.Colour,
                     DisplayOrder = productGroup.DisplayOrder,
+                    TopupOpen = topupOpen,
                 };
 
                 return productGroupModel;

@@ -54,6 +54,11 @@ public record PackNameSubsidyModel : BaseNopEntityModel
     public bool InOrderingPeriod { get; set; }
 
     /// <summary>
+    /// Whether a topup can be made now: in the period, before it opens and between two periods of an annual subsidy
+    /// </summary>
+    public bool TopupOpen { get; set; }
+
+    /// <summary>
     /// Credit plus every top-up in the current window (money). Used and Remaining follow it.
     /// </summary>
     public decimal TotalCredit { get; set; }

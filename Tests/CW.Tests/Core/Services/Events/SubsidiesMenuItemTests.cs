@@ -7,7 +7,7 @@ using Nop.Core.Domain.Customers;
 using Nop.Plugin.CW.Core;
 using Nop.Plugin.CW.Core.Domain.PackNames;
 using Nop.Plugin.CW.Core.Domain.Settings;
-using Nop.Plugin.CW.Core.Domain.Subsidies.DTOs;
+using Nop.Plugin.CW.Core.Domain.Subsidies;
 using Nop.Plugin.CW.Core.Services;
 using Nop.Plugin.CW.Core.Services.CreditNotes;
 using Nop.Plugin.CW.Core.Services.PackNames;
@@ -26,7 +26,7 @@ namespace CW.Tests.Core.Services.Events;
 [TestFixture]
 public class SubsidiesMenuItemTests
 {
-    private Mock<ISubsidyReportingService> _reportingService = null!;
+    private Mock<ISubsidyService> _subsidyService = null!;
     private EventConsumer _consumer = null!;
 
     [SetUp]
@@ -38,7 +38,7 @@ public class SubsidiesMenuItemTests
         featureService.Setup(service => service.GetFeaturesAsync(null)).ReturnsAsync(new CWFeatureSet(true, true, false, false, false));
         var packNameContext = new Mock<IPackNameContext>();
         packNameContext.Setup(context => context.GetCurrentPackNameAsync(It.IsAny<Customer>())).ReturnsAsync(new PackName { Id = 9 });
-        _reportingService = new Mock<ISubsidyReportingService>();
+        _subsidyService = new Mock<ISubsidyService>();
         var localizationService = new Mock<ILocalizationService>();
         localizationService.Setup(service => service.GetResourceAsync(It.IsAny<string>())).ReturnsAsync((string key) => key);
 
@@ -47,16 +47,26 @@ public class SubsidiesMenuItemTests
         SetField("_cwFeatureService", featureService.Object);
         SetField("_creditNotesService", new Mock<ICreditNotesService>().Object);
         SetField("_packNameContext", packNameContext.Object);
-        SetField("_subsidyReportingService", _reportingService.Object);
+        SetField("_subsidyService", _subsidyService.Object);
         SetField("_localizationService", localizationService.Object);
     }
 
     private void SetField(string name, object value) =>
         typeof(EventConsumer).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_consumer, value);
 
-    private async Task<IList<int>> MenuTabsAsync(params SubsidyPackNameDTO[] assignments)
+    private async Task<IList<int>> MenuTabsAsync(params (Subsidy Subsidy, bool AssignmentActive)[] assignments)
     {
-        _reportingService.Setup(service => service.GetSubsidyDetailsByPackNameIdAsync(9, false)).ReturnsAsync(assignments.ToList());
+        _subsidyService.Setup(service => service.GetAllSubsidyPackNamesByPackNameIdAsync(9))
+            .ReturnsAsync(assignments.Select(assignment => new SubsidyPackName
+            {
+                PackNameId = 9,
+                SubsidyId = assignment.Subsidy.Id,
+                Active = assignment.AssignmentActive
+            }).ToList());
+
+        foreach (var (subsidy, _) in assignments)
+            _subsidyService.Setup(service => service.GetSubsidyByIdAsync(subsidy.Id)).ReturnsAsync(subsidy);
+
         var navigation = new CustomerNavigationModel();
         var method = typeof(EventConsumer).GetMethod("AddCustomerNavigationItemsAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
         await (Task)method.Invoke(_consumer, [navigation])!;
@@ -67,14 +77,21 @@ public class SubsidiesMenuItemTests
     [Test]
     public async Task An_active_subsidy_actively_assigned_shows_the_item()
     {
-        (await MenuTabsAsync(new SubsidyPackNameDTO { Active = true, AssignmentActive = true }))
+        (await MenuTabsAsync((new Subsidy { Id = 1, Active = true }, true)))
             .Should().Contain(CWCoreDefaults.CustomerSubsidiesMenuTab);
     }
 
     [Test]
     public async Task Only_inactive_subsidies_or_assignments_show_no_item()
     {
-        (await MenuTabsAsync(new SubsidyPackNameDTO { Active = false, AssignmentActive = true }, new SubsidyPackNameDTO { Active = true, AssignmentActive = false }))
+        (await MenuTabsAsync((new Subsidy { Id = 1, Active = false }, true), (new Subsidy { Id = 2, Active = true }, false)))
+            .Should().NotContain(CWCoreDefaults.CustomerSubsidiesMenuTab);
+    }
+
+    [Test]
+    public async Task A_deleted_subsidy_shows_no_item()
+    {
+        (await MenuTabsAsync((new Subsidy { Id = 1, Active = true, Deleted = true }, true)))
             .Should().NotContain(CWCoreDefaults.CustomerSubsidiesMenuTab);
     }
 }

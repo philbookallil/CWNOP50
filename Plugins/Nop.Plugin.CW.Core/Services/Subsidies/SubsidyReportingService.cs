@@ -24,6 +24,7 @@ public class SubsidyReportingService : ISubsidyReportingService
     protected readonly IRepository<ProductGroup> _productGroupRepository;
     protected readonly IRepository<StoreSubsidyVariationSetting> _storeSubsidyVariationSettingRepository;
     protected readonly INopDataProvider _dataProvider;
+    protected readonly ISubsidyService _subsidyService;
 
     #endregion
 
@@ -40,7 +41,8 @@ public class SubsidyReportingService : ISubsidyReportingService
         IRepository<ProductGroupPackNameCredit> productGroupPackNameCreditRepository,
         IRepository<ProductGroup> productGroupRepository,
         IRepository<StoreSubsidyVariationSetting> storeSubsidyVariationSettingRepository,
-        INopDataProvider dataProvider)
+        INopDataProvider dataProvider,
+        ISubsidyService subsidyService)
     {
         _subsidyPackNameCreditRepository = subsidyPackNameCreditRepository;
         _subsidyRepository = subsidyRepository;
@@ -54,6 +56,7 @@ public class SubsidyReportingService : ISubsidyReportingService
         _productGroupRepository = productGroupRepository;
         _storeSubsidyVariationSettingRepository = storeSubsidyVariationSettingRepository;
         _dataProvider = dataProvider;
+        _subsidyService = subsidyService;
     }
 
     #endregion
@@ -69,7 +72,8 @@ public class SubsidyReportingService : ISubsidyReportingService
     /// inside their ordering period, so reading it directly hid a season that had not opened yet, an
     /// inactive subsidy, and everything the admin needs to set up before the first order - and the
     /// variation popup dereferenced the missing row. Here an out-of-period assignment is a row with zero
-    /// period figures and <c>InOrderingPeriod = false</c>; the caller decides what to do with it.
+    /// period figures and <c>InOrderingPeriod = false</c> (<see cref="CompleteTopupFiguresAsync"/> then adds the
+    /// topups made ahead of the coming period); the caller decides what to do with it.
     /// </para>
     /// <para>
     /// The effective credit and dates are computed here with the same rule the view applies - the
@@ -131,11 +135,41 @@ public class SubsidyReportingService : ISubsidyReportingService
                    UsedCredit = sc != null ? sc.UsedCredit : 0,
                    UsedCreditTopup = sc != null ? sc.UsedCreditTopup : 0,
                    InOrderingPeriod = varordering != null ? varordering.InOrderingPeriod : (inordering != null ? inordering.InOrderingPeriod : false),
+                   HasPeriodFigures = sc != null,
                    ProductGroupsCount = Gspg.Count(),
                    VariationCredit = sv != null ? sv.Credit : null,
                    VariationDurationStart = sv != null ? sv.DurationStart : null,
                    VariationDurationEnd = sv != null ? sv.DurationEnd : null,
                };
+    }
+
+    /// <summary>
+    /// Completes assignment rows with what the views cannot know: whether a topup can be made now, and - for a row
+    /// the credit view has no figures for - the topups already made for the coming period.
+    /// </summary>
+    /// <remarks>
+    /// A topup made before a period opens counts for that period, but the credit views carry only the period that is
+    /// open today, so out of period the screens would show none of it. The window is the one the topup saves use.
+    /// </remarks>
+    /// <param name="assignments">The rows to complete</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    protected virtual async Task CompleteTopupFiguresAsync(IEnumerable<SubsidyPackNameDTO> assignments)
+    {
+        foreach (var assignment in assignments)
+        {
+            var subsidy = await _subsidyService.GetSubsidyByIdAsync(assignment.SubsidyId);
+
+            if (subsidy == null)
+                continue;
+
+            if (assignment.HasPeriodFigures)
+            {
+                assignment.TopupOpen = await _subsidyService.IsTopupPeriodOpenAsync(assignment.Id, subsidy);
+                continue;
+            }
+
+            (assignment.TopupOpen, assignment.TopupCredit) = await _subsidyService.GetOpenPeriodSubsidyTopupCreditAsync(assignment.Id, subsidy);
+        }
     }
 
     #endregion
@@ -152,9 +186,14 @@ public class SubsidyReportingService : ISubsidyReportingService
     /// </returns>
     public virtual async Task<SubsidyPackNameDTO> GetSubsidyPackNameDetailsByIdAsync(int subsidyPackNameId)
     {
-        return await AssignmentDetailsQuery()
+        var assignment = await AssignmentDetailsQuery()
             .Where(dto => dto.Id == subsidyPackNameId)
             .FirstOrDefaultAsync();
+
+        if (assignment != null)
+            await CompleteTopupFiguresAsync(new[] { assignment });
+
+        return assignment;
     }
 
     /// <summary>
@@ -203,12 +242,16 @@ public class SubsidyReportingService : ISubsidyReportingService
         if (inOrderingPeriodOnly)
             query = query.Where(dto => dto.InOrderingPeriod);
 
-        return await query.OrderBy(dto => dto.Subsidy).ToListAsync();
+        var assignments = await query.OrderBy(dto => dto.Subsidy).ToListAsync();
+
+        await CompleteTopupFiguresAsync(assignments);
+
+        return assignments;
     }
 
     /// <summary>
     /// Gets the product groups a subsidy allocates, with this assignment's current-period topups and usage
-    /// per group (zero when the assignment is out of period)
+    /// per group (out of period: no usage, and the topups already made for the coming period)
     /// </summary>
     /// <remarks>
     /// Starts from the ALLOCATION and left-joins the product-group credit view, for the same reason
@@ -250,10 +293,34 @@ public class SubsidyReportingService : ISubsidyReportingService
                         UsedQuantity = pgc != null ? pgc.UsedQuantity : 0,
                         UsedQuantityTopup = pgc != null ? pgc.UsedQuantityTopup : 0,
                         UsedCredit = pgc != null ? pgc.UsedCredit : 0,
-                        UsedCreditTopup = pgc != null ? pgc.UsedCreditTopup : 0
+                        UsedCreditTopup = pgc != null ? pgc.UsedCreditTopup : 0,
+                        HasPeriodFigures = pgc != null
                     };
 
-        return await query.ToListAsync();
+        var productGroups = await query.ToListAsync();
+
+        //a group the view has nothing for (out of period, or an inactive group) shows the topups made for the period a
+        //topup made now would join, read the way the topup saves file them
+        if (productGroups.Any(productGroup => !productGroup.HasPeriodFigures))
+        {
+            var subsidy = await _subsidyService.GetSubsidyByIdAsync(subsidyId);
+
+            if (subsidy != null)
+            {
+                var topups = await _subsidyService.GetOpenPeriodProductGroupTopupsAsync(subsidyPackNameId, subsidy);
+
+                foreach (var productGroup in productGroups.Where(productGroup => !productGroup.HasPeriodFigures))
+                {
+                    if (!topups.TryGetValue(productGroup.ProductGroupId, out var topup))
+                        continue;
+
+                    productGroup.TopupQuantity = topup.Quantity;
+                    productGroup.TopupCredit = topup.Credit;
+                }
+            }
+        }
+
+        return productGroups;
     }
 
     /// <summary>

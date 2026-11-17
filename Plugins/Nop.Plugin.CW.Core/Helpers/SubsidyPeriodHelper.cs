@@ -169,12 +169,19 @@ public static class SubsidyPeriodHelper
     /// ahead of UTC. The columns are <c>datetime2</c> holding UTC now. Both real bounds below come from
     /// <see cref="TimeZoneInfo.ConvertTimeToUtc(DateTime, TimeZoneInfo)"/>, which returns kind
     /// <see cref="DateTimeKind.Utc"/>, so they are exact on either column type.
+    ///
+    /// A topup made BEFORE a period opens belongs to the first period that closes after it: a non-annual
+    /// subsidy has one period, so every earlier topup is its; an annual one counts it towards its next
+    /// occurrence. An annual subsidy whose first occurrence has not closed yet keeps every topup up to that
+    /// close - the stored end date is the first occurrence's - so a topup made more than a year ahead of the
+    /// first season is not filed under an occurrence that never runs. <c>[dbo].[subsidy_topup_period_end]</c>
+    /// applies the same floor.
     /// </remarks>
     /// <param name="nowUtc">The instant the question is asked</param>
     /// <param name="annualRecurrence">Whether the period repeats every year</param>
     /// <param name="durationEnd">The period's effective end date — see <see cref="EffectiveDurationEnd"/></param>
     /// <param name="storeTimeZone">The store's time zone — the frame the period is expressed in</param>
-    /// <returns>The exclusive lower bound (null for a non-annual period, which has none) and the inclusive upper bound</returns>
+    /// <returns>The exclusive lower bound (null for a non-annual period, and for an annual one before its first close) and the inclusive upper bound</returns>
     public static (DateTime? WindowStart, DateTime? WindowEnd) GetTopupSearchWindow(DateTime nowUtc, bool annualRecurrence, DateTime durationEnd, TimeZoneInfo storeTimeZone)
     {
         //A single fixed period. The bound is the END of the closing day IN THE STORE'S ZONE: a topup added
@@ -185,6 +192,11 @@ public static class SubsidyPeriodHelper
         //The YEAR is the store's, not UTC's. At 22:00 UTC on 31 December a UTC+10 store is already in January.
         var nowLocal = ToStoreLocal(nowUtc, storeTimeZone);
         var thisYearEndLocal = EndOfLocalDay(Anniversary(durationEnd, nowLocal.Year));
+
+        //Before the first occurrence closes there is no earlier occurrence: everything up to that close is its.
+        var firstEndLocal = EndOfLocalDay(durationEnd);
+        if (nowLocal <= firstEndLocal)
+            return (null, ToUtc(firstEndLocal, storeTimeZone));
 
         //Past this year's close - the open period is next year's.
         if (thisYearEndLocal < nowLocal)

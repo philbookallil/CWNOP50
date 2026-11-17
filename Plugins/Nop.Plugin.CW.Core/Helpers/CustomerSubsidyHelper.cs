@@ -20,8 +20,8 @@ public static class CustomerSubsidyHelper
 {
     /// <summary>
     /// The season a customer is looking at today: for an annual subsidy the first anniversary season that has
-    /// not ended yet (this year's while it runs, next year's once it has ended); for a one-off subsidy its only
-    /// period.
+    /// not ended yet (this year's while it runs, next year's once it has ended) - and, until its first season has
+    /// ended, that first season, its stored dates, however far ahead it is; for a one-off subsidy its only period.
     /// </summary>
     /// <param name="durationStart">The period's effective start date</param>
     /// <param name="durationEnd">The period's effective end date</param>
@@ -34,6 +34,10 @@ public static class CustomerSubsidyHelper
         var end = durationEnd.Date;
 
         if (!annualRecurrence)
+            return (start, end);
+
+        //the stored dates are the first season's: before it has ended, no earlier anniversary ever runs
+        if (today.Date <= end)
             return (start, end);
 
         var yearSpan = end.Year - start.Year;

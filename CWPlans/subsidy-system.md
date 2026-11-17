@@ -13,7 +13,9 @@ Migrated to nopCommerce 5.00 on 2026-10-31: checked against the 5.00 code; the 4
 > (by season), the top-up saves (one transaction each) and the bar before the checkout (§8.2); the SQL in
 > `CWDatabaseService` is unchanged. How the port went is `CWCore_Port_Reference.md`. The items still open are in
 > `Subsidy_PackName_Open_Items.md`; the 4.9 gap analysis is history (`LegacyVersions/Subsidy_PackName_Gap_Analysis_And_Known_Issues.md`).
-> Added 2026-11-10: expiry reminders (§15).
+> Added 2026-11-10: expiry reminders (§15). Re-checked against the code on 2026-11-17 while writing the functional guide
+> (`CWDocs/Subsidy_Functional_Guide.md`): §2.5, §2.6, §2.10, §2.11, §3, §6, §8.1–§8.3, §8.7, §9, §11, §12, §14 and
+> §15 corrected where they had drifted.
 > Where this document and the code disagree, the code wins and this document is the bug — 4.9 lesson #27
 > (`tasks/lessons-4.9.md`).
 >
@@ -41,8 +43,9 @@ and every packname `CanOrder`. The two **credit** views do not read the switch �
 every C# reader of credit is gated itself (`SubsidySettlementSource.IsEnabledAsync`, the cart service's cap and
 allocation, the catalogue, the admin panel); a new reader of `ISubsidyCreditService` must check `ICWFeatureService` too.
 Switching takes effect at once: any `multistoresettings.*` write clears the feature cache and the cached
-subsidy ordering results (in-ordering subsidies, ordering block, allocated products, credit) —
-`SettingCacheEventConsumer`. The rule, and where each reader is switched off, is `Feature_Toggles_Reference.md` §1.5. **Any new reader
+subsidy ordering results (in-ordering subsidies, ordering block, allocated products, subsidies by packname, active
+subsidies by store, has-active-product-groups, next status change; credit is not statically cached) —
+`SettingCacheEventConsumer`, which also fires on a `datetimesettings.defaultstoretimezoneid` write. The rule, and where each reader is switched off, is `Feature_Toggles_Reference.md` §1.5. **Any new reader
 of subsidy data — C#, view, function or script — is checked against it before it is written.**
 
 ---
@@ -145,7 +148,7 @@ Whether variations are applied is controlled by two store-level settings (`Multi
 - **`PackNamesOwnStartAndFinishDates`** — when `true`, a PackName's ordering period is
   determined by the variation's `DurationStart`/`DurationEnd` instead of the subsidy's dates.
 
-**Critical: both settings are enforced entirely at the SQL view level — not in C# service code.**
+**The money and the period come from the SQL views; the screens read the settings to decide what to show or accept.**
 
 `PackNamesOwnGlobalValue` is enforced in `vw_CORE_SUB_SubsidyPackNameCredit`:
 ```sql
@@ -164,9 +167,14 @@ INNER JOIN vw_CORE_SUB_StoreSubsidyVariationSetting vset
         ON s.StoreId = vset.StoreId
        AND vset.PackNamesOwnStartAndFinishDates = 1
 ```
-When the setting is OFF, this view returns **no rows**. Callers that LEFT JOIN against it
-automatically fall back to the base subsidy period. This means the date-override behaviour is
-completely transparent to the C# layer — it sees the right period regardless of the setting.
+When the setting is OFF, this view returns **no rows**, so the C# ordering queries that join it fall back to the base
+subsidy period. The two credit views apply the same rule themselves (their `eff` `CROSS APPLY` takes a variation's dates
+only with the setting on) rather than joining this view.
+
+C# reads the two settings where it decides what to show or accept: the top-up window (`SubsidyService.
+GetTopupSearchWindowAsync`, `SubsidyPeriodHelper.EffectiveDurationEnd`), the reminders, the Excel import (the credit
+column only with `PackNamesOwnGlobalValue`, the date columns only with `PackNamesOwnStartAndFinishDates`), the admin
+variation popup (Credit with the first, the dates with the second) and the panel's *Change* links.
 
 The settings are surfaced as a SQL view (`vw_CORE_SUB_StoreSubsidyVariationSetting`,
 entity: `StoreSubsidyVariationSetting`) that is joined into the credit and ordering-period views.
@@ -205,10 +213,41 @@ time `T` belongs to (`[dbo].[subsidy_topup_period_end]`, §3):
 zone>`), so a topup added at 10:00 on the day a period closes belongs to the period closing that day. See §3 for the
 arithmetic and the two implementations that must agree.
 
-**A top-up outside the current occurrence's window is refused, not stored.** `ISubsidyService.IsTopupPeriodOpenAsync`
-is asked first by the admin popups and the storefront dialog, and the save itself throws if the moment is outside the
-window. There is no pre-loading of credit for a season that has not opened: a top-up is an addition to the season that
-is running.
+**The top-up window — top-ups ahead of a period are allowed by design** (business decision of 2026-11-17).
+`ISubsidyService.IsTopupPeriodOpenAsync` is asked first by every screen, and the save itself throws if the moment is
+outside the window (`SubsidyPeriodHelper.GetTopupSearchWindow`). The window is wider than the ordering period:
+
+- a **non-annual** subsidy has no lower bound — a top-up made **before** the period opens counts for it; the only
+  refusal is after the period has ended;
+- an **annual** subsidy always has an open window: a top-up made **between two seasons** counts for the next one, and
+  a top-up made before the **first** season — however far ahead — counts for the first season: the window and
+  `subsidy_topup_period_end` never file a top-up under a close earlier than the first one (the end of the stored
+  `DurationEnd`'s day, which is the first occurrence's end).
+
+**The year of an annual subsidy's dates matters** (business decision of 2026-11-17, accepted rather than refused at
+save). The first close is the end of the stored `DurationEnd`'s day, so moving a running annual subsidy's dates (or a
+variation's) a year later makes every top-up since the old first close fall before the new first close, and they count
+again in the new first season. An annual subsidy repeats on its own and its dates need not move forward; the
+functional guide (§2.8) tells administrators to keep the first season's year, or to create a new subsidy.
+
+The screens follow the window, not the ordering period: `SubsidyPackNameDTO.TopupOpen` (filled by
+`SubsidyReportingService.CompleteTopupFiguresAsync`) shows the admin panel's *Change* and the product-group grid's
+*Edit* (both read "closed" only after a non-annual period has ended), and the storefront *Manage Topup* dialog lists
+every active assignment whose window is open (`SubsidyCatalogModelFactory.PreparePackNameTopupModelAsync`).
+
+**Top-ups made ahead are shown before the period opens.** Out of period the credit views have no row for the
+assignment, so `SubsidyReportingService` fills `TopupCredit` (and the product groups' `TopupQuantity` / `TopupCredit`)
+from the top-up rows inside the open window (`ISubsidyService.GetOpenPeriodSubsidyTopupCreditAsync`,
+`GetOpenPeriodProductGroupTopupsAsync`) — the admin panel, the *Manage Topup* dialog, *My Subsidies* ("Opens …") and
+the welcome e-mail all show them. Usage stays zero until the period opens.
+
+**What it costs.** `TopupOpen` reads the subsidy, the store settings and the variation, all cached, so an in-period row
+costs no query. An out-of-period row costs one indexed query on its top-up rows (`SubsidyPackNameId` is indexed by its
+foreign key), and the product-group details one more when a group has no period figures. These reads serve the pages
+above only, never the bar or the catalogue, which read the credit views. The *My Subsidies* menu entry, drawn on every
+My Account page, does not call `GetSubsidyDetailsByPackNameIdAsync`: it checks the cached assignments and subsidies
+(`EventConsumer.HasActiveSubsidyAssignmentAsync`). The change to `subsidy_topup_period_end` adds one date expression
+to an inline function and reads no table.
 
 ### 2.7 ProductGroupTopup (`CORE_SUB_ProductGroupTopup`)
 
@@ -268,7 +307,7 @@ history read.
 |---|---|---|
 | `SubsidyTopupId` | int | FK to the `SubsidyTopup` row this save wrote |
 | `Credit` | decimal | The amount that was added in this operation |
-| `Reason` | string | Optional free-text reason supplied by the manager |
+| `Reason` | string | Required free-text reason (at most 255 characters — `SubsidyTopupValidator.MaximumReasonLength`) |
 | `CreatorId` | int | `CustomerId` of the manager who performed the topup |
 | `CreatedOnUtc` | DateTime | UTC timestamp of the operation |
 
@@ -281,7 +320,7 @@ Immutable audit log for product-group topup changes, parallel to §2.10.
 | `ProductGroupTopupId` | int | FK to the `ProductGroupTopup` record that was changed |
 | `Quantity` | int | Quantity amount added in this operation |
 | `Credit` | decimal | Credit amount added in this operation |
-| `Reason` | string | Optional free-text reason supplied by the manager |
+| `Reason` | string | Required free-text reason (at most 255 characters — `SubsidyTopupValidator.MaximumReasonLength`) |
 | `CreatorId` | int | `CustomerId` of the manager who performed the topup |
 | `CreatedOnUtc` | DateTime | UTC timestamp of the operation |
 
@@ -330,7 +369,7 @@ They are dropped: SQL Server before 2019 cannot inline a scalar UDF, and the dep
 | | Decides |
 |---|---|
 | `[dbo].[subsidy_current_period]` (iTVF) | `PeriodStart` / `PeriodEnd` of the occurrence current at `@AsOf`. The views test the store's today against it (in ordering period) and an order's local date against it (consumption resets) |
-| `[dbo].[subsidy_topup_period_end]` (iTVF) | The close (23:59:59 store time) of the occurrence a topup created at a local time belongs to. It rolls **forward**: a topup added after this year's close belongs to next year's |
+| `[dbo].[subsidy_topup_period_end]` (iTVF) | The close (23:59:59 store time) of the occurrence a topup created at a local time belongs to. It rolls **forward**: a topup added after this year's close belongs to next year's — and never earlier than the first close (`FirstClose`, the end of `@DurationEnd`'s day), so a topup made before an annual subsidy's first season belongs to that season |
 | `Helpers/SubsidyPeriodHelper` (C#) | The same arithmetic for the admin topup screens, unit-tested in `Tests/CW.Tests/Core/Helpers/SubsidyPeriodHelperTests.cs` |
 
 **The SQL decides what a packname may spend; the C# decides which topup row the admin screen adds
@@ -354,7 +393,8 @@ admin grid does not show them. A variation has **both** dates or **neither**, en
 **A top-up outside the window is refused, not stored.** `ISubsidyService.IsTopupPeriodOpenAsync` is
 asked first by the admin popups and the storefront dialog; outside the window the admin popup shows the
 reason in its validation summary and the storefront answers with a message in nop's notification bar.
-Before 2026-09-29 such a top-up was written and never counted.
+Before 2026-09-29 such a top-up was written and never counted. The window is wider than the ordering period: it
+refuses only after a non-annual period has ended, and a top-up made ahead of a period counts for it (§2.6).
 
 > **One known divergence, harmless today.** The C# reads the *instance* store zone where the
 > SQL reads the *per-store* setting — identical for a single-zone estate and for any manager
@@ -638,7 +678,13 @@ catalogue — §5.1).
 ## 6. Credit Consumption Order
 
 When a PackName places an order, subsidy credit is consumed in a strict priority sequence.
-This applies per order item and is recorded in `SubsidyOrderItem`.
+This applies per order item, line by line in cart order, and is recorded in `SubsidyOrderItem`. With one subsidy the
+sequence below is the whole rule. With **several subsidies** (`SubsidyAllocationService.AllocateGoodsAsync`):
+`ApplyPackNameSubsidyQuantity` first takes units across **every** subsidy's groups (base, then top-up); then
+`ApplyPackNameSubsidyCredit` goes **subsidy by subsidy** — that subsidy's group credit (base, then top-up), then its
+global credit (base, then top-up), then the next subsidy. So subsidy A's global credit is spent before subsidy B's group
+credit. Global credit is **not** used for a product outside the groups of a subsidy whose `OnlyAllocatedProducts`
+applies (`SubsidyCreditService.cs:324`).
 
 ```
 1. Product-group base Quantity       (SubsidyProductGroup.Quantity)
@@ -776,10 +822,13 @@ gift cards − reward points + exchange fees = payable, exactly, unless a discou
 Managers can adjust subsidy topups for their PackNames directly from the public store subsidy
 bar, without going into the admin area.
 
-**Gate conditions** (both must be true for the button to appear):
+**Gate conditions** (all must be true for the button to appear; it is shown on the subsidy catalogue's bar only, never in the flyout):
 - `MultiStoreSettings.AllowEditSubsidyTopup = true`
+- `MultiStoreSettings.AllowSubsidySelection = true` (the settings screens nest *Allow Edit Topup* under it, so the
+  parent switches the child off too)
 - `MultiStoreSettings.AllowManagersToAddPackNames = true`
 - The current customer must be a **manager PackName** (`PackName.Manager = true`)
+- The manager owns the context packname (`IsPackNameOwnedByManagerId`)
 
 **Target**: The topup is applied to the **currently selected employee PackName** (the PackName
 the manager has selected in the PackName selector), not the manager's own PackName.
@@ -802,17 +851,18 @@ after checking the settings and verifying the current customer is a manager.
 **Server-side enforcement.** `CanEditSubsidyTopup` decides whether the button renders; it decides nothing about
 whether a request is honoured. Both endpoints resolve their target through
 `SubsidyCatalogController.ValidateTopupAccessAsync(subsidyPackNameId)`, which requires a packname context, a
-**manager** caller, both settings for the current store, ownership of the context packname
+**manager** caller, the three settings for the current store, ownership of the context packname
 (`IsPackNameOwnedByManagerId`), an assignment that belongs to that context packname and is **active** and not
-deleted, and a subsidy that is active, not deleted and in the current store; then the ordering period must be open
-(`IsTopupPeriodOpenAsync`, else `Plugins.CW.Core.ChangeTopup.PeriodClosed` in nop's notification bar). A
+deleted, and a subsidy that is active, not deleted and in the current store; then the top-up window must be open — the
+period, or before it opens (`IsTopupPeriodOpenAsync`, else `Plugins.CW.Core.ChangeTopup.PeriodClosed` in nop's notification bar). A
 product-group topup also checks the group belongs to that subsidy (`IsProductGroupInSubsidyAsync`). The mutation
 always uses the guard's resolved mapping (`mapping.Id`), never a posted id; a refusal answers
 `{ success: false, message }` and the dialog shows the message. The dialogs are jQuery UI sub-dialogs opened from the
 bar (`Views/SubsidyCatalog/ChangeTopup*.cshtml`, `Content/SubsidyCatalog/change-topup.css`, the shared
 `Content/Common/cw-dialog.css`); the `packNameId` is never a URL parameter — the context packname is the target. The
-same per-store settings are enforced in the SQL views (`vw_CORE_SUB_StoreSubsidyVariationSetting`), so a manager
-cannot top up what the store does not allow.
+settings are enforced by `ValidateTopupAccessAsync`; `CanEditSubsidyTopup` applies the same test so the button never
+opens a dialog that refuses to load. The dialog lists every active assignment whose top-up window is open, including
+one whose period has not opened yet (§2.6).
 
 ### 8.2 Per-Item Subsidy Breakdown at Checkout
 
@@ -830,7 +880,7 @@ subsidy allocation **within the budget the plan gave subsidy** (`plan.BudgetFor(
 per-line rows add up to the "Subsidy" row of the totals. **Before the packname checkout has given every packname a
 shipping address and method**, shipping cannot be rated, so there is no settleable amount and no plan: the breakdown
 then allocates the goods' subsidy with no money budget (`budgetInclTax: null`) and leaves shipping's share out until
-it can be rated. This is what the subsidy bar shows on the catalogue and cart pages before the checkout is opened
+it can be rated. This is what the subsidy bar (subsidy catalogue) and the info-strip flyout show before the checkout is opened
 (fixed in the port's part 5b; 4.9 showed an empty cart side and logged "Cart settlement skipped" on every page). The
 checkout's totals and placement are unchanged. `AllocateAsync` takes a `SubsidyAllocationRequest` (the
 customer, the store, the cart lines, the shipping prices per packname and the money budget incl. tax — `null` budget
@@ -913,7 +963,7 @@ employee selected reads that employee's page, headed with the packname's name an
 packname selected the page is refused. The *Subsidies* item in the account menu shows only when the page has a
 subsidy to list: an active subsidy, actively assigned to the selected packname (`EventConsumer`, customer
 navigation). All amounts are converted from the primary store currency to the customer's working currency. One card
-per live assignment (`SubsidyPackNameDTO`, in period or not):
+per live assignment whose subsidy and assignment are both active (`SubsidyPackNameDTO`, in period or not):
 
 - **Status** from `CustomerSubsidyHelper.StatusFor`: *Open until <season end>* (with "resets every year" on an
   annual subsidy), *Opens <season start>* for a season that has not begun, *Closed since <season end>*. The season
@@ -924,7 +974,11 @@ per live assignment (`SubsidyPackNameDTO`, in period or not):
   what it will give / gave instead of a bar.
 - **Product groups**: units left / used / total and credit left / used / total per group, "—" where a group does
   not allocate that kind. Inactive product groups are left off (`GetSubsidyPackNameProductGroupDetailsAsync(…,
-  activeOnly: true)`); the catalogue and the bar still list them.
+  activeOnly: true)`). The storefront leaves them off too, and more: `vw_CORE_SUB_ProductGroupPackNameCredit` filters
+  `pg.Active = 1`, so an inactive group **grants nothing** — bar, catalogue, flyout, allocation, cap and placement all
+  read that view. Only the admin panel still lists it (`activeOnly: false`), with top-ups and used amounts at 0.
+- **The big figure is the subsidy's global credit** (credit + top-up, or the variation's); group credit is only in the
+  product-group table. The admin panel's *Used / Remaining Credit* and *% Used* are the same global figures.
 - **History by season** (changed in the port's part 5f): each `SubsidyHistory` row as a sentence (order placed,
   returned, top-up by whom with the reason, assigned, variation, …), units and credit signed. The whole history is
   read (no page limit) and sorted into seasons (`CustomerSubsidiesModelFactory.HistoryBySeason`,
@@ -1015,7 +1069,8 @@ needs no clean-up because `PackNameContext` replaces a stale one on read.
 `Content/PackName/packname-info.css`) draws one strip under the header for the selected packname: branch, department,
 cost centre and PO as chips (`@Html.CWIcon("cw-icon-…")` from `Content/icons/cw-icons.svg`), a subsidy trigger when the
 packname has an **in-ordering** assignment (`GetInOrderingSubsidyPackNamesByPackNameIdAsync` — "has subsidies" means
-"has a season running", not "has ever been assigned"), and two notices: *ordering closed* (`CanOrder = 0`) and *no
+"has a season running", not "has ever been assigned" — an `OrderOutsidePeriod` subsidy outside its season also
+counts), and two notices: *ordering closed* (`CanOrder = 0`) and *no
 delivery address* (`PackNameHasShippingAddressAsync` — none on its branch and, with `AllowHomeDelivery`, none of its
 own or its customer's; the same sources as the checkout's `IsAddressValidForCheckoutAsync`), text
 `Plugins.CW.Core.PackNameInfo.NoShippingAddress`. The component makes no feature check of its own: `PackNameContext`
@@ -1070,7 +1125,8 @@ impossible, because a topup's period is derived, not a column, and so cannot be 
 index. (A *variation* can, and is: `UX_CORE_SUB_SubsidyVariation_SubsidyPackNameId`, filtered on
 `Deleted = 0`.)
 
-Both credit views also require `s.Active = 1` and exclude soft-deleted orders (`o.Deleted = 0`) as well as cancelled
+Both credit views also require `s.Active = 1` (the product-group view also `spg.Deleted = 0`, `pg.Deleted = 0` and
+`pg.Active = 1`) and exclude soft-deleted orders (`o.Deleted = 0`) as well as cancelled
 ones (`OrderStatusId <> 40`) — an inactive subsidy grants nothing, and a cancelled order releases its credit. The two
 are different states: nop's `DeleteOrderAsync` sets `Deleted` and leaves the status, so the views test both.
 
@@ -1084,8 +1140,8 @@ INNER JOIN vw_CORE_SUB_StoreSubsidyVariationSetting vset
        AND vset.PackNamesOwnStartAndFinishDates = 1
 ```
 
-**Consequence**: C# service code never needs to check these settings directly. The views
-always return the correct effective credit and period for each PackName.
+**Consequence**: the money and period figures come from the views. C# reads the settings only to decide what a screen
+shows or accepts (§2.5).
 
 ### Important distinction: SubsidyPackNameCredit vs SubsidyPackNameCanOrder
 
@@ -1129,10 +1185,13 @@ Subsidies menu entry.
 
 Every money and quantity input is validated: subsidy credit and allocation / variation credit `0 … 1,000,000`
 (`SubsidyTopupValidator.MaximumTopupCredit`), a top-up `> 0` and `≤` the same ceiling, a product-group top-up with at
-least one of quantity / credit `> 0` and neither negative; a variation has both dates or neither, end after start. The
+least one of quantity / credit `> 0` and neither negative; a variation has both dates or neither, end after start. Allocation quantity and product-group top-up quantity are
+`0 … 100,000` (`ProductGroupTopupValidator.MaximumTopupQuantity`), an allocation's display order `≥ 0`; a subsidy's start
+and end are both required, end after start. Every top-up and variation needs a reason. Names and colours have no
+length rule (Open Items 4.22). The
 Excel import reuses the same ceiling. An overflow or a negative is a validation message, never a 500.
 
-On the subsidy grid, *Total credit* is the **allocation** (`Credit` × assigned packnames), not the sum of in-period
+On the subsidy grid, *$Value* (`TotalCredit`) is the **allocation** (`Credit` × assigned packnames), not the sum of in-period
 usage rows — a season not yet open would otherwise read 0.
 
 The PackName editing screen (Manage Store › PackNames, and the customer edit page's Subsidies card — shown only to a
@@ -1152,11 +1211,12 @@ group's colour.
 
 The packname subsidies panel (store page and customer page) lists **every live assignment, in period or
 not** — a season is set up before it opens — with Total / Used / Remaining credit, and units when any
-product group allocates them. **One percentage rule** serves the panel and both grids: used ÷ total credit
-when there is credit, otherwise used ÷ total units, otherwise "-". The storefront bar and catalogue list in-period
+product group allocates them. Out of period the top-ups shown are the ones already made for the coming period (§2.6),
+and the top-up *Change* / *Edit* follow `TopupOpen`, not the ordering period. **One percentage rule** serves the panel and both grids: used ÷ total credit
+when there is credit, otherwise used ÷ total units, otherwise "—". The storefront bar and catalogue list in-period
 assignments only (a subsidy whose season has not started is not shown unless `OrderOutsidePeriod`); *My Subsidies*
 (§8.3) lists every live assignment with its status. On the panel and the grids an assignment outside its ordering
-period reads "—" for *% Used*, with the tooltip "Not in its ordering period" (phase 7, decision J).
+period reads "—" for *% Used*; on the panel only, with the tooltip "Not in its ordering period" (phase 7, decision J).
 
 **Deleting a store** soft-deletes, never removes, everything this plugin keeps for it — packname lists
 (and their packnames and those packnames' subsidy assignments), branches, departments, cost centres,
@@ -1175,8 +1235,10 @@ the returned values already account for `PackNamesOwnGlobalValue` and period-win
 
 | Method | Returns | Use When |
 |---|---|---|
-| `GetSubsidyDetailsByPackNameIdAsync(packNameId, inOrderingPeriodOnly)` | `IList<SubsidyPackNameDTO>` — one entry per **live assignment** (assignment-driven, not view-driven) | The one source for the admin panel and grids (`inOrderingPeriodOnly: false` — a season being set up is listed), *My Subsidies* (`false`) and the storefront bar / catalogue (`true`). Never lists a deleted variation; applies the variation's credit and dates only where the store's `PackNamesOwn*` settings let it; a missing assignment is an exception, not a null. **Use this instead of calling `GetSubsidyByIdAsync` and reading `.Credit`** — the latter gives the raw base credit, bypassing variations. |
-| `GetSubsidyPackNameProductGroupDetailsAsync(subsidyPackNameId, subsidyId, activeOnly = false)` | `IList<SubsidyProductGroupDTO>` — product groups with their base and topup amounts, used and available | The single per-group source for the admin panel, the storefront bar and *My Subsidies* (which passes `activeOnly: true`). |
+| `GetSubsidyDetailsByPackNameIdAsync(packNameId, inOrderingPeriodOnly)` | `IList<SubsidyPackNameDTO>` — one entry per **live assignment** (assignment-driven, not view-driven) | The one source for the admin panel and grids (`inOrderingPeriodOnly: false` — a season being set up is listed), *My Subsidies* (`false`) and the storefront Change Topup dialog (`false`, then filtered on `TopupOpen` and the two
+active flags). Every row also carries `TopupOpen` and, out of period, the top-ups made for the coming period
+(`CompleteTopupFiguresAsync`, §2.6). The bar and the catalogue read `ISubsidyCreditService` (the credit views) instead. Never lists a deleted variation; applies the variation's credit and dates only where the store's `PackNamesOwn*` settings let it; a missing assignment is an exception, not a null. **Use this instead of calling `GetSubsidyByIdAsync` and reading `.Credit`** — the latter gives the raw base credit, bypassing variations. |
+| `GetSubsidyPackNameProductGroupDetailsAsync(subsidyPackNameId, subsidyId, activeOnly = false)` | `IList<SubsidyProductGroupDTO>` — product groups with their base and topup amounts, used and available | The per-group source for the admin panel and grid, *My Subsidies* (which passes `activeOnly: true`), the welcome e-mail and the top-up dialog. The bar reads the credit views. |
 | `GetSubsidyPackNameDetailsByIdAsync(subsidyPackNameId)` | Single `SubsidyPackNameDTO` | Load a single assignment's details (e.g. for a topup form header). |
 | `GetSubsidyPackNameBasicInformationByIdAsync(subsidyPackNameId)` | Single `SubsidyPackNameDTO` (lightweight, no credit computation) | Retrieve name/ID for display only — cheaper than the full details query. |
 | `GetSubsidyUsageBySubsidyIdsAsync(subsidyIds)` | `IList<SubsidyPackNameUsageDTO>` | The subsidy grid's used / remaining columns, one query for a page of subsidies. |
@@ -1304,17 +1366,18 @@ Order (NOP)
    filtered on `Deleted = 0`), as are the assignment and the allocation (§2.3, §2.4).
 
 10. A topup outside the current occurrence's window is **refused, not stored** — by the guard
-    (`IsTopupPeriodOpenAsync`) and by the save itself. There is no pre-loading of credit for a season that has not
-    opened.
+    (`IsTopupPeriodOpenAsync`) and by the save itself. The window refuses only after a non-annual period has ended: a
+    top-up made before a period opens, or between two annual seasons, is accepted **by design** and counts for the
+    coming period, and the screens show it before that period opens (§2.6).
 
 11. **Every top-up save inserts a row** (`SubsidyTopup`, `ProductGroupTopup`) plus its history row; nothing reads or
     updates an existing top-up, and the views `SUM` the rows of the current occurrence. The dialog's *Topup Credit*
     field is an **amount to add** and always opens at zero (`PrepareSubsidyTopupModelAsync` builds a blank model) —
     it is not a balance, and its reading zero says nothing about whether top-ups exist.
 
-12. `PackNamesOwnGlobalValue` and `PackNamesOwnStartAndFinishDates` are enforced **at the SQL
-    view level only** — C# service code never checks these settings directly. When OFF, the
-    views silently return base credit / base period as if no variation exists. (`SubsidyPeriodHelper` follows the
+12. `PackNamesOwnGlobalValue` and `PackNamesOwnStartAndFinishDates` decide the **money and the period in the SQL
+    views**: when OFF, the views return base credit / base period as if no variation exists. C# reads them only to
+    decide what a screen shows or accepts (§2.5). (`SubsidyPeriodHelper` follows the
     same settings for the top-up window and the smart TTL — §3.)
 
 13. Never call `ISubsidyService.GetSubsidyByIdAsync(id).Credit` to display a PackName's credit.
@@ -1325,8 +1388,8 @@ Order (NOP)
     with the amount entered, never an absolute value. Enforced by the service methods; the validators refuse `≤ 0`
     and cap the amount.
 
-15. The public store Change Topup button is only visible to manager PackNames and requires both
-    `AllowEditSubsidyTopup` and `AllowManagersToAddPackNames` settings to be enabled. Topups
+15. The public store Change Topup button is only visible to manager PackNames and requires the
+    `AllowEditSubsidyTopup`, `AllowSubsidySelection` and `AllowManagersToAddPackNames` settings to be enabled. Topups
     are always applied to the currently selected **employee** PackName, never the manager's own.
 
 16. **Subsidy is consumed before credit notes** (decision 15). The pipeline order is data
@@ -1395,8 +1458,8 @@ Order (NOP)
 
 ## 15. Expiry Reminders
 
-Added 2026-11-10 (`2026_11_09_DATA_0.2`). A fourth card on **Promotions › Reminders**, below nop's three: **Subsidy
-expiry reminders**, laid out like nop's (a switch overridable per store, a start date, and three follow-ups, each with
+Added 2026-11-10 (`2026_11_09_DATA_0.2`). A fourth card on **Promotions › Reminders**, below nop's three (no heading of its own: an info callout,
+then **Subsidy expiry reminders enabled**), laid out like nop's (a switch overridable per store, a start date, and three follow-ups, each with
 an amount and Hours / Days). Each follow-up is e-mailed **that long before the subsidy's ordering period ends**: #1 the
 earliest (default 30 days), #3 the latest (default 1 day).
 
@@ -1404,7 +1467,7 @@ earliest (default 30 days), #3 the latest (default 1 day).
 
 | Rule | How |
 |---|---|
-| **Only a packname with its own customer account** (active, not deleted, with an e-mail) | Managers are not reminded: a manager can have many packnames and a packname many managers. The packname's list must have a live branch (`CORE_Branch.Deleted = 0`) |
+| **Only a packname with its own customer account** (active, not deleted, with an e-mail); the packname, the subsidy and the assignment active and not deleted | Managers are not reminded: a manager can have many packnames and a packname many managers. The packname's list must have a live branch (`CORE_Branch.Deleted = 0`) |
 | **Only while something is left to spend** | The season's credit (subsidy + product groups, top-ups included) or items, as `vw_CORE_SUB_SubsidyPackNameCredit` / `vw_CORE_SUB_ProductGroupPackNameCredit` count them (`SubsidyExpiryReminderHelper.RemainingToSpend`). The view also has the last word on "in period": no row, no reminder. The admin is told in the switch's tooltip and the card's info callout |
 | **One e-mail per customer** | Every season of the customer with a follow-up due in the same run goes in one e-mail, each listed with subsidy, packname, last day, days left and what is left. The wording is the template of the **latest** follow-up among them |
 | **`OrderOutsidePeriod` subsidies are reminded too** | Nothing filters them out. After the end such a packname may still order but the subsidy no longer pays (§3.1, §5.3) — exactly what the reminder warns about |

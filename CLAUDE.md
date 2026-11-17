@@ -1825,6 +1825,10 @@ When a PackName orders, credits are consumed in this sequence:
 5. Global Subsidy `Credit` (`Subsidy.Credit`)
 6. Subsidy topup `Credit` (`SubsidyTopup.Credit`)
 
+Per cart line, in cart order. With several subsidies, units come first across every subsidy's groups; then credit
+goes subsidy by subsidy (its group credit, then its global credit). Global credit does not pay for a product outside
+the groups of a subsidy whose `OnlyAllocatedProducts` applies (`subsidy-system.md` §6).
+
 **Subsidy is consumed before credit notes** (business decision 15, 2026-09-10): `SubsidySettlementSource`
 is settlement priority 1 and `CreditNoteSettlementSource` priority 2. Return fees are added after both.
 
@@ -1969,7 +1973,7 @@ is saved, so a new store starts with bulk ordering off. The `BulkOrder*` group i
 | `AllowManagersToAddPackNames` | Store managers may add, edit and delete packnames on the storefront; also a precondition of the manager's Excel import and of top-up editing |
 | `AllowToAddCustomerToPackName` | Managers may create a customer account with a new packname on the storefront add form (never for a Group packname); the account columns of a **manager's** Excel template (an administrator's always has them) |
 | `AllowSubsidySelection` | Subsidy checkboxes on the manager's add / edit packname form and the subsidy columns of a manager's Excel template (Subsidy feature on). Managers only: an administrator's import assigns subsidies whatever it says (`PackNameRegistration.ByAdministrator`) |
-| `AllowEditSubsidyTopup` | Managers can edit top-ups (also needs `AllowManagersToAddPackNames`) |
+| `AllowEditSubsidyTopup` | Managers can edit top-ups (also needs `AllowSubsidySelection`, under which the screens nest it, and `AllowManagersToAddPackNames`). A top-up made before a period opens counts for that period (`subsidy-system.md` §2.6) |
 | `AllowToAddByExcel` / `AllowSubsidyCountByExcel` | The manager's Excel import (the selector's Excel icon and `PackName/ImportPackNames`, with `AllowManagersToAddPackNames`) and the number of subsidy column groups in its template (1–10, validated where the settings screens show it) |
 | `LimitAssignedBranches` | Limit managers to adding packnames to the branches they are assigned to (the add form and the Excel template offer only branches where the manager owns a list). Managers only: an administrator's import offers every active branch |
 | `PackNamesOwnGlobalValue` / `PackNamesOwnStartAndFinishDates` | Packnames may carry their own subsidy credit value / dates |

@@ -548,8 +548,11 @@ public class CWDatabaseService : ICWDatabaseService
     //against a July-September annual subsidy belongs to NEXT year's close, because it is a top-up for the
     //coming season. subsidy_current_period would answer "this year's July-September". Both are needed.
     //A non-annual subsidy has one period for ever, so every topup maps to its one close and still counts
-    //whether it was created before or after the season. An inline TVF for the same reason as
-    //subsidy_current_period; EOMONTH clamps 29 February to the 28th in a non-leap year.
+    //whether it was created before or after the season. An annual subsidy never maps a topup to a close before
+    //its FIRST one (the end of @DurationEnd's own day, the first occurrence's end): a topup made more than a year
+    //ahead of the first season belongs to that season, not to an occurrence that never runs. The same floor as
+    //SubsidyPeriodHelper.GetTopupSearchWindow. An inline TVF for the same reason as subsidy_current_period;
+    //EOMONTH clamps 29 February to the 28th in a non-leap year.
     private static readonly string CreateFunctionSubsidyTopupPeriodEndSql =
         $@"CREATE OR ALTER FUNCTION [dbo].[subsidy_topup_period_end]
 			(
@@ -577,13 +580,15 @@ public class CWDatabaseService : ICWDatabaseService
 						NextClose = DATEADD(second, -1, DATEADD(day, 1, CAST(
 										CASE WHEN DAY(@DurationEnd) > DAY(EOMONTH(f.NextFirst))
 											 THEN EOMONTH(f.NextFirst)
-											 ELSE DATEADD(day, DAY(@DurationEnd) - 1, f.NextFirst) END AS datetime2)))
+											 ELSE DATEADD(day, DAY(@DurationEnd) - 1, f.NextFirst) END AS datetime2))),
+						FirstClose = DATEADD(second, -1, DATEADD(day, 1, CAST(@DurationEnd AS datetime2)))
 					FROM firsts f
 				)
 				SELECT
 					PeriodEnd =
 						CASE
-							WHEN @AnnualRecurrence = 0          THEN DATEADD(second, -1, DATEADD(day, 1, CAST(@DurationEnd AS datetime2)))
+							WHEN @AnnualRecurrence = 0          THEN c.FirstClose
+							WHEN c.FirstClose >= @CreatedOnLocal THEN c.FirstClose
 							WHEN c.ThisClose >= @CreatedOnLocal THEN c.ThisClose
 							ELSE c.NextClose
 						END

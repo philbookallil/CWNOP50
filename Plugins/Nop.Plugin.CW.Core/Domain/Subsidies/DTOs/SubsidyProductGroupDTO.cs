@@ -33,4 +33,9 @@ public class SubsidyProductGroupDTO : BaseEntity
     public decimal UsedCredit { get; set; }
 
     public decimal UsedCreditTopup { get; set; }
+
+    /// <summary>
+    /// Whether the product-group credit view has a row for the group, which is where the period figures come from
+    /// </summary>
+    public bool HasPeriodFigures { get; set; }
 }

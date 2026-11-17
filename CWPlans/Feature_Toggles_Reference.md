@@ -745,7 +745,9 @@ settings did. Three are now enforced where it counts:
   read it, so with the setting off a manager could still permanently delete an employee's packname and
   its subsidy history (gap analysis U-03, U-33).
 - **`AllowEditSubsidyTopup`** (with `AllowManagersToAddPackNames`) gates both storefront topup
-  endpoints inside `ValidateTopupAccessAsync`, not merely the *Change* button (S-05).
+  endpoints inside `ValidateTopupAccessAsync`, not merely the *Change* button (S-05). The screens nest it under
+  `AllowSubsidySelection` (§3.1), and the server reads both: unticking Subsidy Selection switches top-ups off too,
+  whatever Edit Topup holds (`ValidateTopupAccessAsync`, `SubsidyCatalogModelFactory.CanEditSubsidyTopup`).
 - **`CWFeature.PackName`** now gates the order-placement guard and the recurring-payment override as
   well as the checkout filter. That symmetry matters: the filter and the guard disagreeing about the
   toggle left a customer with packname cart items bounced between nop's checkout and a packname

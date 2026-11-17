@@ -339,6 +339,7 @@ public class SubsidyCatalogModelFactory : ISubsidyCatalogModelFactory
         //opens a dialog that refuses to load
         model.CanEditSubsidyTopup = !flyout
                                     && settings.AllowEditSubsidyTopup
+                                    && settings.AllowSubsidySelection
                                     && settings.AllowManagersToAddPackNames
                                     && (manager?.Manager ?? false)
                                     && await _multiStoreService.IsPackNameOwnedByManagerId(manager.Id, packName.Id);
@@ -424,10 +425,13 @@ public class SubsidyCatalogModelFactory : ISubsidyCatalogModelFactory
             PackNameName = packName.Name,
         };
 
-        // The manager tops up the season being ordered in, so only assignments whose ordering period
-        // is open today are listed. Credit and dates come back already effective - the variation
-        // applied where the store lets it apply.
-        var subsidyPackNames = await _subsidyReportingService.GetSubsidyDetailsByPackNameIdAsync(packName.Id, inOrderingPeriodOnly: true);
+        // Every assignment a topup can be made for is listed: in its period, before it opens and between two
+        // periods of an annual subsidy (a topup made ahead counts for the coming period) - the assignments the
+        // topup guard accepts. Credit and dates come back already effective - the variation applied where the
+        // store lets it apply - and out of period the topups are the ones made for the coming period.
+        var subsidyPackNames = (await _subsidyReportingService.GetSubsidyDetailsByPackNameIdAsync(packName.Id, inOrderingPeriodOnly: false))
+            .Where(subsidyPackName => subsidyPackName.Active && subsidyPackName.AssignmentActive && subsidyPackName.TopupOpen)
+            .ToList();
 
         foreach (var subsidyPackName in subsidyPackNames)
         {
@@ -440,7 +444,7 @@ public class SubsidyCatalogModelFactory : ISubsidyCatalogModelFactory
                 // dto.Credit is ALREADY the effective credit (variation applied if setting ON).
                 Credit = subsidyPackName.Credit,
                 CreditFormatted = await _priceFormatter.FormatPriceAsync(subsidyPackName.Credit, true, currency, languageId, true, false),
-                // dto.TopupCredit is ALREADY period-windowed by the SQL view.
+                // dto.TopupCredit is ALREADY period-windowed: the view's in period, the coming period's out of it.
                 TopupCredit = subsidyPackName.TopupCredit,
                 TopupCreditFormatted = await _priceFormatter.FormatPriceAsync(subsidyPackName.TopupCredit, true, currency, languageId, true, false),
             };
@@ -484,8 +488,10 @@ public class SubsidyCatalogModelFactory : ISubsidyCatalogModelFactory
         var currency = await _workContext.GetWorkingCurrencyAsync();
         var languageId = (await _workContext.GetWorkingLanguageAsync()).Id;
 
-        // Same source as PreparePackNameTopupModelAsync: the live season only.
-        var subsidyPackNames = await _subsidyReportingService.GetSubsidyDetailsByPackNameIdAsync(packNameId, inOrderingPeriodOnly: true);
+        // Same source and filter as PreparePackNameTopupModelAsync.
+        var subsidyPackNames = (await _subsidyReportingService.GetSubsidyDetailsByPackNameIdAsync(packNameId, inOrderingPeriodOnly: false))
+            .Where(subsidyPackName => subsidyPackName.Active && subsidyPackName.AssignmentActive && subsidyPackName.TopupOpen)
+            .ToList();
 
         foreach (var subsidyPackName in subsidyPackNames)
         {

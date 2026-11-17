@@ -46,5 +46,10 @@ public partial record PackNameSubsidyProductGroupModel : BaseNopEntityModel
     [NopResourceDisplayName("Plugins.CW.Core.Admin.ProductGroups.ProductGroup.Field.DisplayOrder")]
     public int DisplayOrder { get; set; }
 
+    /// <summary>
+    /// Whether a topup can be made now: in the period, before it opens and between two periods of an annual subsidy
+    /// </summary>
+    public bool TopupOpen { get; set; }
+
     #endregion
 }

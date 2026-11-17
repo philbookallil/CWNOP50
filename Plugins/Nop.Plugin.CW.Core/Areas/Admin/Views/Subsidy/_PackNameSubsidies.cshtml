@@ -51,7 +51,7 @@ else
                             <span>@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.TopupCredit")</span>
                             <div class="subsidy-topup">
                                 <span>@subsidy.TopupCreditFormatted</span>
-                                @if (subsidy.InOrderingPeriod)
+                                @if (subsidy.TopupOpen)
                                 {
                                     <a title="@T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.Topup.Change.Hint")" onclick="javascript:OpenWindow('@(Url.Action("SubsidyTopupEditPopup", "Subsidy", new {subsidyPackNameId = subsidy.Id, btnRefreshId = Model.Prefix + "-btnRefreshSubsidyTopupInfo"}))', 600, 400, true); return false;" class="btn-change-topup">
                                         @T("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.Topup.Change")

@@ -5,9 +5,9 @@ namespace Nop.Plugin.CW.Core.Domain.Subsidies.DTOs;
 /// <summary>
 /// One subsidy assignment as a screen shows it: the packname, the subsidy, the EFFECTIVE credit and dates
 /// (the variation's where the store lets a packname own them, else the subsidy's), and the figures for the
-/// current period. The period figures are zero when the assignment is not in its ordering period — the
-/// row is still returned, because an admin must be able to see, top up and vary an assignment before its
-/// season opens.
+/// current period. When the assignment is not in its ordering period the used figures are zero and the
+/// topup figure is what has been topped up ahead of the coming period — the row is still returned, because an
+/// admin must be able to see, top up and vary an assignment before its season opens.
 /// </summary>
 public class SubsidyPackNameDTO : BaseEntity
 {
@@ -72,7 +72,10 @@ public class SubsidyPackNameDTO : BaseEntity
     /// <summary>Effective credit: the variation's when the store allows it and one is set, else the subsidy's.</summary>
     public decimal Credit { get; set; }
 
-    /// <summary>Topups in the current period; zero out of period.</summary>
+    /// <summary>
+    /// Topups in the current period; out of period, the topups already made for the coming period (zero when no
+    /// period is open for topups).
+    /// </summary>
     public decimal TopupCredit { get; set; }
 
     /// <summary>Consumed from the allocation in the current period; zero out of period.</summary>
@@ -85,6 +88,15 @@ public class SubsidyPackNameDTO : BaseEntity
 
     /// <summary>Whether the assignment is in its ordering period today, by the store's clock.</summary>
     public bool InOrderingPeriod { get; set; }
+
+    /// <summary>Whether the credit view has a row for the assignment, which is where the period figures come from.</summary>
+    public bool HasPeriodFigures { get; set; }
+
+    /// <summary>
+    /// Whether a topup made now would be recorded for a period that can still be used: true in the period, before it
+    /// opens and between two periods of an annual subsidy; false only after a non-annual period has ended.
+    /// </summary>
+    public bool TopupOpen { get; set; }
 
     public decimal? VariationCredit { get; set; }
 

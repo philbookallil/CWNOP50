@@ -423,6 +423,43 @@ public class SubsidyPeriodHelperTests
         nextStart.Should().Be(thisEnd!.Value);
     }
 
+    /// <summary>
+    /// A topup made before an annual subsidy's first season counts for that season. The first season of a July-June
+    /// subsidy closes 30 June 2027; a topup in November 2025, more than a year ahead, would otherwise be filed under the
+    /// occurrence closing 30 June 2026, which never runs.
+    /// </summary>
+    [Test]
+    public void TopupWindow_Annual_BeforeTheFirstClose_KeepsEverythingUpToTheFirstClose()
+    {
+        var (start, end) = SubsidyPeriodHelper.GetTopupSearchWindow(Utc(2025, 11, 10), annualRecurrence: true, durationEnd: PeriodDate(2027, 6, 30), StoreZone);
+
+        start.Should().BeNull();
+        end.Should().Be(Utc(2027, 6, 30, 13, 59, 59));
+    }
+
+    [Test]
+    public void TopupWindow_Annual_DuringTheFirstSeason_StillHasNoLowerBound()
+    {
+        //November 2026, inside the first season (1 July 2026 - 30 June 2027): a topup made before the season opened
+        //is still that season's
+        var (start, end) = SubsidyPeriodHelper.GetTopupSearchWindow(Utc(2026, 11, 10), annualRecurrence: true, durationEnd: PeriodDate(2027, 6, 30), StoreZone);
+
+        start.Should().BeNull();
+        end.Should().Be(Utc(2027, 6, 30, 13, 59, 59));
+    }
+
+    [Test]
+    public void TopupWindow_Annual_AfterTheFirstClose_RollsOnAsBefore()
+    {
+        var firstEnd = PeriodDate(2027, 6, 30);
+
+        var (_, firstWindowEnd) = SubsidyPeriodHelper.GetTopupSearchWindow(Utc(2027, 6, 10), annualRecurrence: true, durationEnd: firstEnd, StoreZone);
+        var (secondStart, secondEnd) = SubsidyPeriodHelper.GetTopupSearchWindow(Utc(2027, 8, 10), annualRecurrence: true, durationEnd: firstEnd, StoreZone);
+
+        secondStart.Should().Be(firstWindowEnd!.Value);
+        secondEnd.Should().Be(Utc(2028, 6, 30, 13, 59, 59));
+    }
+
     [Test]
     public void TopupWindow_Annual_Feb29End_InNonLeapYear_DoesNotThrowAndClamps()
     {

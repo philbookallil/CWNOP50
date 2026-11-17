@@ -406,12 +406,13 @@ public interface ISubsidyService
     Task<SubsidyTopup> SaveSubsidyTopupForPeriodAsync(int subsidyPackNameId, decimal creditToAdd, Subsidy subsidy, int creatorId, string reason);
 
     /// <summary>
-    /// Whether a topup posted now for this assignment would land inside its current ordering period.
+    /// Whether a topup posted now for this assignment would be recorded for a period that can still be used.
     /// </summary>
     /// <remarks>
-    /// The two <c>Save*ForPeriodAsync</c> methods throw outside the period - that is the invariant, kept
+    /// The two <c>Save*ForPeriodAsync</c> methods throw outside the window - that is the invariant, kept
     /// where the money is written. This is the question a screen asks first so it can refuse with a
-    /// message instead of a 500: a closed non-annual season has no open period at all.
+    /// message instead of a 500. The window is wider than the ordering period: a topup made before a period
+    /// opens counts for that period; only a closed non-annual season has no open window at all.
     /// </remarks>
     /// <param name="subsidyPackNameId">Subsidy - packaging name mapping identifier</param>
     /// <param name="subsidy">The assignment's subsidy</param>
@@ -420,6 +421,37 @@ public interface ISubsidyService
     /// The task result is true when a topup can be recorded now
     /// </returns>
     Task<bool> IsTopupPeriodOpenAsync(int subsidyPackNameId, Subsidy subsidy);
+
+    /// <summary>
+    /// Gets whether a topup can be made now and the general credit already topped up for the period it would join
+    /// </summary>
+    /// <remarks>
+    /// Outside its ordering period an assignment has no row in the credit views, so this is how a screen
+    /// shows the topups made ahead of a period that has not opened yet. Not open, and zero, when no period is
+    /// open for topups (a non-annual subsidy whose period has ended).
+    /// </remarks>
+    /// <param name="subsidyPackNameId">Subsidy - packaging name mapping identifier</param>
+    /// <param name="subsidy">The assignment's subsidy</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains whether the window is open and the sum of the topups' credit in it
+    /// </returns>
+    Task<(bool IsOpen, decimal Credit)> GetOpenPeriodSubsidyTopupCreditAsync(int subsidyPackNameId, Subsidy subsidy);
+
+    /// <summary>
+    /// Gets the product-group topups already recorded for the period a topup made now would join, per product group
+    /// </summary>
+    /// <remarks>
+    /// The product-group counterpart of <see cref="GetOpenPeriodSubsidyTopupCreditAsync"/>. Empty when no period is
+    /// open for topups.
+    /// </remarks>
+    /// <param name="subsidyPackNameId">Subsidy - packaging name mapping identifier</param>
+    /// <param name="subsidy">The assignment's subsidy</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the summed quantity and credit, keyed by product group identifier
+    /// </returns>
+    Task<IDictionary<int, (int Quantity, decimal Credit)>> GetOpenPeriodProductGroupTopupsAsync(int subsidyPackNameId, Subsidy subsidy);
 
     #endregion
 

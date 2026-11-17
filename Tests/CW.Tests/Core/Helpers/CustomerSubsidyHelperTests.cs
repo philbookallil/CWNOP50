@@ -39,6 +39,21 @@ public class CustomerSubsidyHelperTests
             .Should().Be((new DateTime(2028, 3, 1), new DateTime(2028, 5, 31)));
     }
 
+    /// <summary>
+    /// Before an annual subsidy's first season has ended, the season shown is that first season: no earlier anniversary
+    /// ever runs, so a July-June subsidy first starting in July 2026 shows July 2026 - June 2027 in November 2025, not
+    /// July 2025 - June 2026.
+    /// </summary>
+    [Test]
+    public void An_annual_period_before_its_first_season_shows_the_first_season()
+    {
+        var start = new DateTime(2026, 7, 1);
+        var end = new DateTime(2027, 6, 30);
+
+        CustomerSubsidyHelper.SeasonFor(start, end, annualRecurrence: true, today: new DateTime(2025, 11, 10))
+            .Should().Be((start, end));
+    }
+
     [Test]
     public void An_annual_period_that_straddles_the_new_year_keeps_its_year_span()
     {

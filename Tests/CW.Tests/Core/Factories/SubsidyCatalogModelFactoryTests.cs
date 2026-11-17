@@ -33,6 +33,7 @@ public class SubsidyCatalogModelFactoryTests
     private Mock<IMultiStoreService> _multiStoreService = null!;
     private Mock<ISubsidyCatalogCartService> _cartService = null!;
     private SubsidyCatalogModelFactory _factory = null!;
+    private MultiStoreSettings _settings = null!;
 
     private readonly PackName _manager = new() { Id = 100, Manager = true, PackNameListId = 10 };
     private readonly PackName _employee = new() { Id = 200, PackNameListId = 10 };
@@ -52,9 +53,10 @@ public class SubsidyCatalogModelFactoryTests
         packNameService.Setup(service => service.GetPackNameByCustomerIdAsync(7)).ReturnsAsync(_manager);
         packNameService.Setup(service => service.GetPackNameListByIdAsync(10)).ReturnsAsync(new PackNameList { Id = 10, StoreId = 1, BranchId = 1 });
 
+        _settings = new MultiStoreSettings { AllowEditSubsidyTopup = true, AllowSubsidySelection = true, AllowManagersToAddPackNames = true };
+
         var settingService = new Mock<ISettingService>();
-        settingService.Setup(service => service.LoadSettingAsync<MultiStoreSettings>(1))
-            .ReturnsAsync(new MultiStoreSettings { AllowEditSubsidyTopup = true, AllowManagersToAddPackNames = true });
+        settingService.Setup(service => service.LoadSettingAsync<MultiStoreSettings>(1)).ReturnsAsync(() => _settings);
 
         _multiStoreService = new Mock<IMultiStoreService>();
 
@@ -96,6 +98,21 @@ public class SubsidyCatalogModelFactoryTests
         _multiStoreService.Setup(service => service.IsPackNameOwnedByManagerId(_manager.Id, _manager.Id)).ReturnsAsync(false);
 
         var model = await _factory.PrepareSubsidyBarModelAsync(_manager, flyout: false);
+
+        model.CanEditSubsidyTopup.Should().BeFalse();
+    }
+
+    /// <summary>
+    /// Allow Edit Topup is nested under Allow Subsidy Selection on the settings screens: with the parent off the child is
+    /// hidden there, and it must not stay in force behind it.
+    /// </summary>
+    [Test]
+    public async Task The_top_up_button_is_hidden_when_subsidy_selection_is_off()
+    {
+        _multiStoreService.Setup(service => service.IsPackNameOwnedByManagerId(_manager.Id, _employee.Id)).ReturnsAsync(true);
+        _settings.AllowSubsidySelection = false;
+
+        var model = await _factory.PrepareSubsidyBarModelAsync(_employee, flyout: false);
 
         model.CanEditSubsidyTopup.Should().BeFalse();
     }

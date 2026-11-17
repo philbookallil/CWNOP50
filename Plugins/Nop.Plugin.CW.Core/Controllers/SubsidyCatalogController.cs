@@ -101,7 +101,9 @@ public class SubsidyCatalogController : BasePublicController
 
         //No feature test here: the class-level [CheckCWFeature] already blocks every action on this
         //controller when Subsidy is off for the current store.
-        if (!settings.AllowEditSubsidyTopup || !settings.AllowManagersToAddPackNames)
+        //Allow Edit Topup is nested under Allow Subsidy Selection on the settings screens, so both must be on:
+        //unticking the parent hides the child and must switch it off too.
+        if (!settings.AllowEditSubsidyTopup || !settings.AllowSubsidySelection || !settings.AllowManagersToAddPackNames)
             return (packName, false);
 
         // ...and the context packname must be one this manager actually controls.
