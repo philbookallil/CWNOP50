@@ -350,6 +350,26 @@ public class MessageTokenProviderOverride : MessageTokenProvider, IMessageTokenP
                     CWTokenGroupNames.ExchangeReturnsTokens,
                     CWTokenGroupNames.ReturnPackNameTokens
                 };
+            case CWMessageTemplateSystemNames.ReturnRejectedCustomer:
+                return new[]
+                {
+                    TokenGroupNames.StoreTokens,
+                    TokenGroupNames.OrderTokens,
+                    TokenGroupNames.CustomerTokens,
+                    TokenGroupNames.ReturnRequestTokens,
+                    CWTokenGroupNames.ReturnRejectionTokens,
+                    CWTokenGroupNames.ReturnPackNameTokens
+                };
+            case CWMessageTemplateSystemNames.ReturnAuthorisedCreditCustomer:
+                return new[]
+                {
+                    TokenGroupNames.StoreTokens,
+                    TokenGroupNames.OrderTokens,
+                    TokenGroupNames.CustomerTokens,
+                    TokenGroupNames.ReturnRequestTokens,
+                    CWTokenGroupNames.ReturnCreditTokens,
+                    CWTokenGroupNames.ReturnPackNameTokens
+                };
             case CWMessageTemplateSystemNames.CustomerRegistrationImport:
                 return new[]
                 {
@@ -754,6 +774,37 @@ public class MessageTokenProviderOverride : MessageTokenProvider, IMessageTokenP
         var packNameOrderItem = orderItem == null ? null : await _cwOrderService.GetPackNameOrderItemAsync(orderItem.Id);
 
         tokens.Add(new Token("PackName.Name", packNameOrderItem?.PackName ?? string.Empty));
+    }
+
+    /// <summary>
+    /// Adds the tokens of a rejected or cancelled return: the decision note staff recorded
+    /// </summary>
+    /// <param name="tokens">List of already added tokens</param>
+    /// <param name="decisionNote">The decision note; empty when there is none</param>
+    public void AddReturnRejectionTokens(IList<Token> tokens, string decisionNote)
+    {
+        //encoded here so the note keeps its line breaks in the e-mail
+        var noteHtml = WebUtility.HtmlEncode(decisionNote ?? string.Empty).ReplaceLineEndings("<br />");
+        tokens.Add(new Token("ReturnRequest.DecisionNote", noteHtml, true));
+        //a bool, so a template's %if% can test it whatever the note holds
+        tokens.Add(new Token("ReturnRequest.HasDecisionNote", !string.IsNullOrWhiteSpace(decisionNote)));
+    }
+
+    /// <summary>
+    /// Adds the tokens of a return authorised without a replacement: the store credit raised and whether the subsidy
+    /// was given back
+    /// </summary>
+    /// <param name="tokens">List of already added tokens</param>
+    /// <param name="creditNoteAmount">The amount of the credit note raised; zero when none was</param>
+    /// <param name="returnedToSubsidy">Whether what the subsidy paid for the item was given back</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    public async Task AddReturnCreditTokensAsync(IList<Token> tokens, decimal creditNoteAmount, bool returnedToSubsidy)
+    {
+        //a credit note is kept in the primary store currency, whoever's working currency is active
+        var primaryCurrency = await _currencyService.GetCurrencyByIdAsync(_currencySettings.PrimaryStoreCurrencyId);
+        tokens.Add(new Token("ReturnRequest.CreditNoteAmount", await _priceFormatter.FormatPriceAsync(creditNoteAmount, true, primaryCurrency)));
+        tokens.Add(new Token("ReturnRequest.HasCreditNote", creditNoteAmount > decimal.Zero));
+        tokens.Add(new Token("ReturnRequest.ReturnedToSubsidy", returnedToSubsidy));
     }
 
     #endregion

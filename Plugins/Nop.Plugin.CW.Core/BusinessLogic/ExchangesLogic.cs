@@ -217,9 +217,10 @@ public class ExchangesLogic : IExchangesLogic
     /// <returns>
     /// <c>noteCreated</c> is true only when a note was actually written. <c>feesNotDeductible</c> is
     /// true for a Credit-Note-mode line that carried fees but had no money to deduct them from — the
-    /// caller surfaces it so Sales Support can adjust the fee quantities.
+    /// caller surfaces it so Sales Support can adjust the fee quantities. <c>noteAmount</c> is the
+    /// amount of the note written, zero when none was.
     /// </returns>
-    protected async Task<(bool noteCreated, bool feesNotDeductible)> ExecuteCreditNoteWorkflowAsync(ReturnRequest returnRequest,
+    protected async Task<(bool noteCreated, bool feesNotDeductible, decimal noteAmount)> ExecuteCreditNoteWorkflowAsync(ReturnRequest returnRequest,
         ReturnRequestItem returnRequestItem,
         SubsidyRestoreResult restored)
     {
@@ -264,13 +265,13 @@ public class ExchangesLogic : IExchangesLogic
                 $"(returned value {returnedValue}, subsidy restored in kind {restored.MoneyEquivalent}) for order {order?.Id} (customer {order?.CustomerId}).");
             await _creditNotesService.CreateCreditNotesForOrderAsync(order, creditNoteAmount, reason, returnRequest.Id, actingCustomer?.Id);
 
-            return (true, feesNotDeductible);
+            return (true, feesNotDeductible, creditNoteAmount);
         }
 
         await _logger.InformationAsync($"[Exchanges] RR {returnRequest.Id}: no Credit Note raised — returned value {returnedValue}, " +
             $"subsidy restored in kind {restored.MoneyEquivalent}, computed note {creditNoteAmount}.");
 
-        return (false, feesNotDeductible);
+        return (false, feesNotDeductible, decimal.Zero);
     }
 
     #endregion
@@ -315,6 +316,39 @@ public class ExchangesLogic : IExchangesLogic
 
         returnRequestItem.ApprovalQueuedEmailId = null;
         await _exchangeService.UpdateReturnRequestItemAsync(returnRequestItem);
+    }
+
+    /// <summary>
+    /// Tells the customer what an approved return without a replacement gave back: the store credit raised, the
+    /// subsidy given back, or both; nothing is sent when nothing came back. The id of the queued e-mail is kept so an
+    /// undo can withdraw it.
+    /// </summary>
+    /// <remarks>
+    /// The credit note and the restored subsidy are already written when this runs, so a failure here is logged and
+    /// never undoes the approval: only the e-mail is missing.
+    /// </remarks>
+    /// <param name="returnRequest">The approved return request</param>
+    /// <param name="returnRequestItem">The approved line</param>
+    /// <param name="orderItem">The returned order item</param>
+    /// <param name="creditNoteAmount">The amount of the credit note raised; zero when none was</param>
+    /// <param name="returnedToSubsidy">Whether what the subsidy paid for the item was given back</param>
+    protected virtual async Task SendCreditApprovalEmailAsync(ReturnRequest returnRequest, ReturnRequestItem returnRequestItem,
+        OrderItem orderItem, decimal creditNoteAmount, bool returnedToSubsidy)
+    {
+        //nothing came back (the fees took the whole note and no subsidy was paid): there is nothing to tell
+        if (creditNoteAmount <= decimal.Zero && !returnedToSubsidy)
+            return;
+
+        try
+        {
+            var queuedEmailIds = await _exchangeWorkflowMessageService.SendReturnRequestCreditCustomerNotificationAsync(returnRequest, orderItem,
+                creditNoteAmount, returnedToSubsidy);
+            await RecordApprovalEmailAsync(returnRequestItem, queuedEmailIds);
+        }
+        catch (Exception ex)
+        {
+            await _logger.ErrorAsync($"[Exchanges] RR {returnRequest.Id}: the return was approved, but the e-mail telling the customer could not be queued.", ex);
+        }
     }
 
     /// <summary>
@@ -563,11 +597,13 @@ public class ExchangesLogic : IExchangesLogic
                 return false;
             }
 
+            //addRequiredProducts: false - a replacement is not a sale, so the products it requires are not added
+            //with it (the customer has them from the original order, and an unconfigured one fails the whole add)
             var warnings = sourcePackName != null
                 ? await _shoppingCartService.AddToCartAsync(customer, product, ShoppingCartType.ShoppingCart, returnRequest.StoreId,
-                    sourcePackName.PackNameId, template.AttributesXml, quantity: template.Quantity)
+                    sourcePackName.PackNameId, template.AttributesXml, quantity: template.Quantity, addRequiredProducts: false)
                 : await _shoppingCartService.AddToCartAsync(customer, product, ShoppingCartType.ShoppingCart, returnRequest.StoreId,
-                    template.AttributesXml, quantity: template.Quantity);
+                    template.AttributesXml, quantity: template.Quantity, addRequiredProducts: false);
 
             if (warnings.Any())
             {
@@ -778,6 +814,9 @@ public class ExchangesLogic : IExchangesLogic
         var reasonRule = await _exchangeService.GetReturnReasonRuleByReasonIdAsync(selectedReason.Id, storeId);
         var actionRule = await _exchangeService.GetReturnActionRuleByActionIdAsync(selectedAction.Id, storeId);
 
+        //Decided before anything below can stop the workflow: the goods have come back whatever the rules give for them
+        workflowResult.ReturnToStock = ExchangesHelper.IsBackInStock(statusRule, reasonRule, actionRule);
+
         // Decided first, because the credit-note decision depends on it: an exchange must never charge the
         // customer again for value they have already paid.
         var exchangeNeeded = returnRequestItem.ExchangeMode == ExchangeReturnMode.Exchange
@@ -802,14 +841,17 @@ public class ExchangesLogic : IExchangesLogic
 
         // 2. The money the customer put in comes back as a credit note — returned value minus what went
         //    back in kind, minus the fees in Credit-Note mode.
+        var creditNoteAmount = decimal.Zero;
+
         if (creditNoteNeeded)
         {
             //Not "true because we tried". A zero-or-negative amount writes nothing — a fully subsidised
             //line raises no note at all — and the cleanup below only undoes a note that exists.
-            var (noteCreated, feesNotDeductible) = await ExecuteCreditNoteWorkflowAsync(returnRequest, returnRequestItem, restored);
+            var (noteCreated, feesNotDeductible, noteAmount) = await ExecuteCreditNoteWorkflowAsync(returnRequest, returnRequestItem, restored);
 
             workflowResult.CreditNoteWasCreated = noteCreated;
             workflowResult.FeesNotDeductible = feesNotDeductible;
+            creditNoteAmount = noteAmount;
         }
 
         // 3. The replacement — placed outright or put in the cart, where the ordinary pipeline settles it
@@ -831,6 +873,8 @@ public class ExchangesLogic : IExchangesLogic
             // re-opened when a decision changes, so a line left with neither flag would raise a second
             // credit note.
             await _exchangeService.SetExchangeRequestCompletedAsync(returnRequestItem);
+
+            await SendCreditApprovalEmailAsync(returnRequest, returnRequestItem, orderItem, creditNoteAmount, restored.RestoredAnything);
         }
 
         return workflowResult;
@@ -998,6 +1042,19 @@ public class ExchangesLogic : IExchangesLogic
     #endregion
 
     #region Notifications
+
+    public virtual async Task<IList<int>> SendReturnRejectedNotificationAsync(ReturnRequest returnRequest, string decisionNote)
+    {
+        ArgumentNullException.ThrowIfNull(returnRequest);
+
+        //an old return whose order item is gone has no item to name in the e-mail
+        var orderItem = await _orderService.GetOrderItemByIdAsync(returnRequest.OrderItemId);
+
+        if (orderItem == null)
+            return new List<int>();
+
+        return await _exchangeWorkflowMessageService.SendReturnRequestRejectedCustomerNotificationAsync(returnRequest, orderItem, decisionNote);
+    }
 
     public virtual async Task<IList<int>> SendCompletionRequiredNotificationAsync(ReturnRequest returnRequest)
     {

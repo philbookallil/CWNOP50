@@ -502,6 +502,25 @@ public class OrderTotalCalculationOverrideService : OrderTotalCalculationService
         return await _settlementPipeline.QuoteAsync(context, settleableAmount);
     }
 
+    /// <summary>
+    /// Whether every line of a cart is an exchange replacement
+    /// </summary>
+    /// <remarks>
+    /// A line not saved yet (no id) is never counted as one: a return order's own cart is built in memory and is
+    /// handled by GetShoppingCartShippingTotalAsync.
+    /// </remarks>
+    /// <param name="cart">Cart, or the lines of one packname destination</param>
+    /// <returns>True when the cart has lines and all of them are exchange replacements</returns>
+    protected virtual async Task<bool> IsReplacementOnlyCartAsync(IList<ShoppingCartItem> cart)
+    {
+        if (cart == null || cart.Count == 0 || cart.Any(item => item.Id <= 0))
+            return false;
+
+        var replacements = await _exchangeService.GetCartReturnRequestItemsAsync(cart[0].CustomerId);
+
+        return cart.All(item => replacements.ContainsKey(item.Id));
+    }
+
     #endregion
 
     #region Overrides
@@ -563,6 +582,24 @@ public class OrderTotalCalculationOverrideService : OrderTotalCalculationService
             return (null, taxRate, appliedDiscounts);
 
         return (totals.shippingTotal.Sum(x => x.Price.Value), totals.taxRate, totals.appliedDiscounts);
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether shipping is free
+    /// </summary>
+    /// <remarks>
+    /// A cart, or a packname destination, that holds only exchange replacements ships free: the return's redelivery
+    /// fee is the delivery charge of a replacement. A cart with other goods is rated as nop rates it.
+    /// </remarks>
+    /// <param name="cart">Cart</param>
+    /// <param name="subTotal">Subtotal amount; pass null to calculate subtotal</param>
+    /// <returns>A task that represents the asynchronous operation; the task result contains a value indicating whether shipping is free</returns>
+    public override async Task<bool> IsFreeShippingAsync(IList<ShoppingCartItem> cart, decimal? subTotal = null)
+    {
+        if (await IsReplacementOnlyCartAsync(cart))
+            return true;
+
+        return await base.IsFreeShippingAsync(cart, subTotal);
     }
 
     #endregion

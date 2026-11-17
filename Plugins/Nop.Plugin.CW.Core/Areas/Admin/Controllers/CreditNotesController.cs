@@ -6,6 +6,7 @@ using Nop.Plugin.CW.Core.Filters;
 using Nop.Plugin.CW.Core.Services.CreditNotes;
 using Nop.Plugin.CW.Core.Services.Security;
 using Nop.Services.Customers;
+using Nop.Services.Localization;
 using Nop.Services.Security;
 using Nop.Web.Areas.Admin.Controllers;
 using Nop.Web.Framework.Mvc.Filters;
@@ -21,6 +22,7 @@ public class CreditNotesController : BaseAdminController
     protected readonly ICreditNotesModelFactory _creditNotesModelFactory;
     protected readonly ICustomerService _customerService;
     protected readonly ICWFeatureGuard _cwFeatureGuard;
+    protected readonly ILocalizationService _localizationService;
 
     #endregion
 
@@ -30,13 +32,15 @@ public class CreditNotesController : BaseAdminController
         IPermissionService permissionService,
         ICreditNotesModelFactory creditNotesModelFactory,
         ICustomerService customerService,
-        ICWFeatureGuard cwFeatureGuard)
+        ICWFeatureGuard cwFeatureGuard,
+        ILocalizationService localizationService)
     {
         _creditNotesService = creditNotesService;
         _permissionService = permissionService;
         _creditNotesModelFactory = creditNotesModelFactory;
         _customerService = customerService;
         _cwFeatureGuard = cwFeatureGuard;
+        _localizationService = localizationService;
     }
 
     #endregion
@@ -124,14 +128,19 @@ public class CreditNotesController : BaseAdminController
         var creditNote = await _creditNotesService.GetCreditNoteByIdAsync(creditNoteId);
 
         if (creditNote == null)
-            return Json(new { success = false, message = $"Cannot delete Credit Note with StoreId {creditNoteId}: Credit Note does not exist" });
+            return Json(new { success = false, message = $"Cannot delete Credit Note {creditNoteId}: Credit Note does not exist" });
 
         if (await _cwFeatureGuard.BlockIfDisabledAsync(CWFeature.CreditNotes, creditNote.StoreId, Request) is IActionResult blocked)
             return blocked;
 
+        //A note that has paid for an order is part of that order's settlement: deleting it would take away the
+        //record of the money that paid, so only a note never applied to an order can be deleted
+        if (await _creditNotesService.CreditNoteHasHistoryAsync(creditNote.Id))
+            return Json(new { success = false, message = await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.CreditNotes.Delete.Spent") });
+
         await _creditNotesService.DeleteCreditNoteAsync(creditNote);
 
-        return Json(new { success = true, message = $"Credit Note with StoreId {creditNoteId} deleted successfully!" });
+        return Json(new { success = true, message = $"Credit Note {creditNoteId} deleted successfully!" });
     }
 
     #endregion

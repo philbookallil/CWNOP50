@@ -296,17 +296,18 @@ public class ShoppingCartOverrideService : ShoppingCartService, IShoppingCartOve
     /// </remarks>
     /// <param name="customerId">Identifier of the customer whose cart holds the line</param>
     /// <param name="shoppingCartItemId">Shopping cart item identifier; 0 for a line not yet saved</param>
-    /// <param name="storeId">Store identifier</param>
     /// <returns>
     /// A task that represents the asynchronous operation
     /// The task result contains the exchange type; null when the line is not a replacement
     /// </returns>
-    protected virtual async Task<ExchangeType?> GetCartLineReplacementAsync(int customerId, int shoppingCartItemId, int storeId)
+    protected virtual async Task<ExchangeType?> GetCartLineReplacementAsync(int customerId, int shoppingCartItemId)
     {
         if (ExchangeReplacementScope.IsActive)
             return ExchangeReplacementScope.Current.ExchangeType;
 
-        if (shoppingCartItemId <= 0 || !await _cwFeatureService.IsEnabledAsync(CWFeature.Exchanges, storeId))
+        //not gated by the Exchanges switch: a replacement already in a cart is work in progress and is checked out
+        //whatever the switch says
+        if (shoppingCartItemId <= 0)
             return null;
 
         var cartReturnRequestItems = await _exchangeService.Value.GetCartReturnRequestItemsAsync(customerId);
@@ -319,19 +320,16 @@ public class ShoppingCartOverrideService : ShoppingCartService, IShoppingCartOve
     /// one already sitting in the cart with its link recorded.
     /// </summary>
     /// <remarks>
-    /// Ordered so ordinary shopping pays almost nothing: the scope is a field read, the id test rules out
-    /// every not-yet-saved row, and the feature flag is cached per request. Only a saved row on a store
-    /// with exchanges switched on reaches the cart's return request items, which are read once per request.
+    /// Ordered so ordinary shopping pays almost nothing: the scope is a field read and the id test rules out
+    /// every not-yet-saved row. Only a saved row reaches the cart's return request items, which are read once per
+    /// request. Not gated by the Exchanges switch: a replacement already in a cart is work in progress.
     /// </remarks>
-    protected virtual async Task<bool> IsExchangeReplacementAsync(int customerId, int shoppingCartItemId, int storeId)
+    protected virtual async Task<bool> IsExchangeReplacementAsync(int customerId, int shoppingCartItemId)
     {
         if (ExchangeReplacementScope.IsActive)
             return true;
 
         if (shoppingCartItemId <= 0)
-            return false;
-
-        if (!await _cwFeatureService.IsEnabledAsync(CWFeature.Exchanges, storeId))
             return false;
 
         return (await _exchangeService.Value.GetCartReturnRequestItemsAsync(customerId)).ContainsKey(shoppingCartItemId);
@@ -574,10 +572,10 @@ public class ShoppingCartOverrideService : ShoppingCartService, IShoppingCartOve
         //Opened here, in the method whose callees must see it - not inside an awaited helper: what an async
         //method sets on an AsyncLocal is undone when it returns.
         var linePackName = await GetCartLinePackNameAsync(customer, product, shoppingCartItemId, storeId);
-        var lineReplacement = linePackName == null ? null : await GetCartLineReplacementAsync(customer.Id, shoppingCartItemId, storeId);
+        var lineReplacement = linePackName == null ? null : await GetCartLineReplacementAsync(customer.Id, shoppingCartItemId);
         using var catalogScope = linePackName == null ? null : PackNameCatalogScope.Begin(linePackName, lineReplacement);
 
-        if (product == null || quantity <= 0 || customer == null || !await IsExchangeReplacementAsync(customer.Id, shoppingCartItemId, storeId))
+        if (product == null || quantity <= 0 || customer == null || !await IsExchangeReplacementAsync(customer.Id, shoppingCartItemId))
             return await base.GetStandardWarningsAsync(customer, shoppingCartType, product, attributesXml,
                 customerEnteredPrice, quantity, shoppingCartItemId, storeId);
 
@@ -606,6 +604,25 @@ public class ShoppingCartOverrideService : ShoppingCartService, IShoppingCartOve
 
         return await base.GetStandardWarningsAsync(customer, shoppingCartType, product, attributesXml,
             customerEnteredPrice, effectiveQuantity, shoppingCartItemId, storeId);
+    }
+
+    /// <summary>
+    /// Required-product warnings, not applied to an exchange replacement.
+    /// </summary>
+    /// <remarks>
+    /// A product that requires others is sold with them; a replacement is not a sale. The customer already has the
+    /// required products from the original order, and an exchange swaps one item. Without this the approval cannot put
+    /// the replacement in the cart (or place its order), and nop's own required-product rule would add products the
+    /// customer never asked for. As with the selling quantities, the exemption follows the row: the scope while the
+    /// replacement is added, the recorded link afterwards.
+    /// </remarks>
+    protected override async Task<IList<string>> GetRequiredProductWarningsAsync(Customer customer, ShoppingCartType shoppingCartType, Product product,
+        int storeId, int quantity, bool addRequiredProducts, int shoppingCartItemId)
+    {
+        if (customer != null && await IsExchangeReplacementAsync(customer.Id, shoppingCartItemId))
+            return new List<string>();
+
+        return await base.GetRequiredProductWarningsAsync(customer, shoppingCartType, product, storeId, quantity, addRequiredProducts, shoppingCartItemId);
     }
 
     /// <summary>
@@ -1149,7 +1166,7 @@ public class ShoppingCartOverrideService : ShoppingCartService, IShoppingCartOve
         foreach (var item in packNameCart)
         {
             //An exchange replacement is not a purchase: the returned units went back to the allocation.
-            if (await IsExchangeReplacementAsync(customer.Id, item.Id, item.StoreId))
+            if (await IsExchangeReplacementAsync(customer.Id, item.Id))
                 continue;
 
             //The line's own units are left out of the cart that is counted, so "left" is what this line may take.

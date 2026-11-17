@@ -124,6 +124,7 @@ public class NopStartupTests
     [TestCase("MessageTokenProviderOverride", "IMessageTokenProvider", "IMessageTokenProviderOverride")]
     [TestCase("ProductOverrideService", "IProductService", null)]
     [TestCase("ShipmentOverrideService", "IShipmentService", null)]
+    [TestCase("ReturnRequestOverrideService", "IReturnRequestService", null)]
     [TestCase("PdfOverrideService", "IPdfService", null)]
     [TestCase("OrderReportOverrideService", "IOrderReportService", null)]
     [TestCase("PluginOverrideService", "IPluginService", null)]

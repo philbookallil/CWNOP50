@@ -259,4 +259,40 @@ public class ExchangesHelperTests
     }
 
     #endregion
+
+    #region Rejected statuses and Back in stock
+
+    /// <summary>Rejected and Cancelled close a return with nothing credited, exchanged or charged.</summary>
+    [TestCase(ReturnRequestStatus.RequestRejected, true)]
+    [TestCase(ReturnRequestStatus.Cancelled, true)]
+    [TestCase(ReturnRequestStatus.Pending, false)]
+    [TestCase(ReturnRequestStatus.Received, false)]
+    [TestCase(ReturnRequestStatus.ReturnAuthorized, false)]
+    [TestCase(ReturnRequestStatus.ItemsRepaired, false)]
+    [TestCase(ReturnRequestStatus.ItemsRefunded, false)]
+    public void IsRejectedReturnRequestStatus_OnlyRejectedAndCancelled(ReturnRequestStatus status, bool expected)
+    {
+        ExchangesHelper.IsRejectedReturnRequestStatus(status).Should().Be(expected);
+    }
+
+    /// <summary>The goods go back to stock only when the reason, the action and the status rules all say so.</summary>
+    [TestCase(true, true, true, true)]
+    [TestCase(false, true, true, false)]
+    [TestCase(true, false, true, false)]
+    [TestCase(true, true, false, false)]
+    public void IsBackInStock_NeedsAllThreeRules(bool status, bool reason, bool action, bool expected)
+    {
+        ExchangesHelper.IsBackInStock(new ReturnStatusRule { BackInStock = status }, new ReturnReasonRule { BackInStock = reason },
+            new ReturnActionRule { BackInStock = action }).Should().Be(expected);
+    }
+
+    /// <summary>A rule the store has not set up is not a yes.</summary>
+    [Test]
+    public void IsBackInStock_AMissingRule_IsNo()
+    {
+        ExchangesHelper.IsBackInStock(new ReturnStatusRule { BackInStock = true }, null!, new ReturnActionRule { BackInStock = true })
+            .Should().BeFalse();
+    }
+
+    #endregion
 }

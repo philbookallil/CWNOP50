@@ -1064,7 +1064,7 @@ public partial class SubsidyService : ISubsidyService
     #region Product Group Topup
 
     /// <summary>
-    /// Records an addition to a packname's product-group allowance for the current ordering period.
+    /// Records a top-up of a packname's product-group subsidy for the current ordering period.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -1114,7 +1114,7 @@ public partial class SubsidyService : ISubsidyService
             CreatedOnUtc = now
         };
 
-        //the allowance and its history row are saved together or not at all, as in SaveSubsidyTopupForPeriodAsync
+        //the top-up and its history row are saved together or not at all, as in SaveSubsidyTopupForPeriodAsync
         using var scope = PackNameTransaction.Begin(TransactionManager.DefaultTimeout);
 
         await _productGroupTopupRepository.InsertAsync(productGroupTopup);

@@ -185,6 +185,22 @@ public class ReturnsController : ReturnRequestController
         };
     }
 
+    /// <summary>
+    /// The state a status puts the return's case line in: its decision, or Pending for the steps on the way (Pending,
+    /// Received), which re-open a decided line
+    /// </summary>
+    /// <param name="returnRequestStatusId">Return request status identifier</param>
+    /// <returns>The line's state; null for a status that does not decide the line either way (Refunded, Repaired)</returns>
+    protected static ReturnLineDisposition? MapStatusToLineState(int returnRequestStatusId)
+    {
+        if (MapStatusToDisposition(returnRequestStatusId) is { } decision)
+            return decision;
+
+        return (ReturnRequestStatus)returnRequestStatusId is ReturnRequestStatus.Pending or ReturnRequestStatus.Received
+            ? ReturnLineDisposition.Pending
+            : null;
+    }
+
     protected async Task RecordLineDispositionAsync(ReturnRequest returnRequest, CWReturnRequestModel model)
     {
         var disposition = MapStatusToDisposition(model.ReturnRequestStatusId);
@@ -226,12 +242,15 @@ public class ReturnsController : ReturnRequestController
     /// <summary>
     /// Runs the approval workflow for this return request and reports what it did.
     /// </summary>
-    /// <returns>False when the workflow failed, in which case the caller must not advance the status.</returns>
-    protected async Task<bool> ExecuteStatusChangeWorkflowAsync(ReturnRequest returnRequest, CWReturnRequestModel model)
+    /// <returns>
+    /// <c>succeeded</c> is false when the workflow failed, in which case the caller must not advance the status.
+    /// <c>returnToStock</c> is true when the rules ask for the whole returned quantity to go back to stock.
+    /// </returns>
+    protected async Task<(bool succeeded, bool returnToStock)> ExecuteStatusChangeWorkflowAsync(ReturnRequest returnRequest, CWReturnRequestModel model)
     {
         //Only a real status change triggers anything, and only when there is exchange data.
         if (!RequestStatusHasChanged(model) || !await HasExchangeRequestItemAsync(returnRequest))
-            return true;
+            return (true, false);
 
         ReturnRequestWorkflowResult workflowResult;
 
@@ -244,7 +263,7 @@ public class ReturnsController : ReturnRequestController
             await _logger.ErrorAsync($"[Returns] The exchange workflow threw for return request {returnRequest.Id}. Nothing was advanced.", ex);
             _notificationService.ErrorNotification("There were errors during the Exchange workflow steps. Could not complete the workflow: " + ex.Message);
 
-            return false;
+            return (false, false);
         }
 
         if (workflowResult.Errors.Count > 0)
@@ -254,7 +273,7 @@ public class ReturnsController : ReturnRequestController
             foreach (var error in workflowResult.Errors)
                 _notificationService.ErrorNotification(error);
 
-            return false;
+            return (false, false);
         }
 
         if (workflowResult.SubsidyWasRestored)
@@ -272,7 +291,55 @@ public class ReturnsController : ReturnRequestController
         if (workflowResult.NeedsCompletion)
             _notificationService.WarningNotification($"The Return Request with ID: {returnRequest.Id} requires further actions for completion");
 
-        return true;
+        return (true, workflowResult.ReturnToStock);
+    }
+
+    /// <summary>
+    /// Whether the units of a rejected or cancelled return are still free to be taken back by it
+    /// </summary>
+    /// <remarks>
+    /// A rejected return's units can be returned again, so before such a return is re-opened the units must not have
+    /// gone into another return: authorising both would give the customer the same units' value twice. The return is
+    /// still rejected when this runs, so the count leaves it out. An item nop no longer lists as returnable is not
+    /// held back here: there is nothing another return could have taken.
+    /// </remarks>
+    /// <param name="returnRequest">The rejected or cancelled return request</param>
+    /// <returns>True when the units are still free, or the item is no longer listed</returns>
+    protected async Task<bool> AreReturnedUnitsStillFreeAsync(ReturnRequest returnRequest)
+    {
+        var orderItem = await _orderService.GetOrderItemByIdAsync(returnRequest.OrderItemId);
+
+        if (orderItem == null)
+            return true;
+
+        var availability = await _returnRequestService.GetReturnRequestAvailabilityAsync(orderItem.OrderId);
+        var returnable = availability?.ReturnableOrderItems?.FirstOrDefault(item => item.OrderItem.Id == orderItem.Id);
+
+        return returnable == null || returnable.AvailableQuantityForReturn >= returnRequest.Quantity;
+    }
+
+    /// <summary>
+    /// Sends the customer the rejection e-mail when this save rejected or cancelled the return. Moving between
+    /// Rejected and Cancelled, or re-saving either, sends nothing.
+    /// </summary>
+    /// <param name="returnRequest">The return request, already saved with its new status</param>
+    /// <param name="previousStatus">The status the return had before this save</param>
+    /// <param name="decisionNote">The decision note recorded against the item</param>
+    protected async Task NotifyCustomerIfRejectedAsync(ReturnRequest returnRequest, ReturnRequestStatus previousStatus, string decisionNote)
+    {
+        if (!ExchangesHelper.IsRejectedReturnRequestStatus(returnRequest.ReturnRequestStatus)
+            || ExchangesHelper.IsRejectedReturnRequestStatus(previousStatus))
+            return;
+
+        try
+        {
+            await _exchangesLogic.SendReturnRejectedNotificationAsync(returnRequest, decisionNote);
+        }
+        catch (Exception ex)
+        {
+            //Never fails the save: the decision is recorded, only the e-mail is missing
+            await _logger.ErrorAsync($"[Returns] Could not queue the rejection e-mail for return request {returnRequest.Id}.", ex);
+        }
     }
 
     /// <summary>
@@ -316,11 +383,15 @@ public class ReturnsController : ReturnRequestController
     /// charge frozen while it was rejected. RecordLineDispositionAsync writes the real decision later in
     /// this same request.
     /// </para>
+    /// <para>
+    /// A rejected line set back to Pending or Received is re-opened the same way and stays Pending, so the case
+    /// says what the status says and re-resolves once the line is decided again.
+    /// </para>
     /// Best-effort, like the other case writes: a failure here must not fail the administrator's save.
     /// </remarks>
     protected async Task ReopenResolvedCaseIfDecisionChangesAsync(ReturnRequest returnRequest, CWReturnRequestModel model)
     {
-        var disposition = MapStatusToDisposition(model.ReturnRequestStatusId);
+        var disposition = MapStatusToLineState(model.ReturnRequestStatusId);
 
         if (disposition == null)
             return;
@@ -479,11 +550,23 @@ public class ReturnsController : ReturnRequestController
             return continueEditing ? RedirectToReturn(returnRequest.Id) : RedirectAfterLeavingReturn();
         }
 
+        var previousStatus = returnRequest.ReturnRequestStatus;
+
         // If the staff did not enable the additional fee, discard any submitted values so it is never persisted
         if (!model.EnableAdditionalFee)
         {
             model.AdditionalFeeName = null;
             model.AdditionalFeeAmount = null;
+        }
+
+        //Re-opening a rejected or cancelled return: its units may have gone into another return since
+        if (ExchangesHelper.IsRejectedReturnRequestStatus(previousStatus)
+            && !ExchangesHelper.IsRejectedReturnRequestStatus((ReturnRequestStatus)model.ReturnRequestStatusId)
+            && !await AreReturnedUnitsStillFreeAsync(returnRequest))
+        {
+            _notificationService.ErrorNotification(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Returns.Reopen.UnitsReturnedAgain"));
+
+            return RedirectToReturn(returnRequest.Id);
         }
 
         if (ModelState.IsValid)
@@ -500,12 +583,20 @@ public class ReturnsController : ReturnRequestController
                 //workflow leaves the line exactly where it was and the next save retries cleanly. The staff
                 //quantities and the ad-hoc fee are committed above and are kept either way, so the
                 //administrator does not lose their typing to a failed workflow.
-                if (!await ExecuteStatusChangeWorkflowAsync(returnRequest, model))
+                var (workflowSucceeded, returnToStock) = await ExecuteStatusChangeWorkflowAsync(returnRequest, model);
+
+                if (!workflowSucceeded)
                     return continueEditing
                         ? RedirectToReturn(returnRequest.Id)
                         : RedirectAfterLeavingReturn();
 
                 await RecordLineDispositionAsync(returnRequest, model);
+
+                //The rules put the goods back on the shelf: the whole returned quantity goes back to stock, whatever
+                //was typed in the box
+                if (returnToStock)
+                    model.ReturnedQuantity = Math.Max(model.ReturnedQuantity, returnRequest.Quantity);
+
                 // Return the entered quantity back to stock (mirrors the native Nop Return Request handling)
                 var quantityToReturn = model.ReturnedQuantity - returnRequest.ReturnedQuantity;
                 if (quantityToReturn < 0)
@@ -554,6 +645,8 @@ public class ReturnsController : ReturnRequestController
                 //LAST. The line has already executed; this only freezes the case's charges, and only once
                 //every line of it has been decided. See ReturnResolutionLogic.
                 await RecordCaseResolutionAsync(returnRequest);
+
+                await NotifyCustomerIfRejectedAsync(returnRequest, previousStatus, model.DispositionReason);
 
                 //activity log
                 await _customerActivityService.InsertActivityAsync("EditReturnRequest", string.Format(await _localizationService.GetResourceAsync("ActivityLog.EditReturnRequest"), returnRequest.Id), returnRequest);

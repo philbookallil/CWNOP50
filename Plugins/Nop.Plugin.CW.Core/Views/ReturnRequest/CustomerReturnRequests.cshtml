@@ -169,6 +169,14 @@
                         </li>
                     }
 
+                    @if (!string.IsNullOrWhiteSpace(exchangeRequestData?.DecisionNote))
+                    {
+                        <li class="comments decision-note">
+                            <label>@T("Plugins.CW.Core.Exchanges.ReturnRequests.DecisionNote")</label>
+                            <div>@Html.Raw(htmlFormatter.FormatText(exchangeRequestData.DecisionNote))</div>
+                        </li>
+                    }
+
                     @if (allowChangeReturn && exchangeRequestData != null && exchangeRequestData.ExchangeType != ExchangeType.Exact)
                     {
                         <li class="actions">

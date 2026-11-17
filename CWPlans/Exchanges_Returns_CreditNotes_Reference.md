@@ -171,6 +171,12 @@ current setting). Concretely:
 - Order cancellation needs no code and so no gate: the balance views exclude cancelled orders (§6.1, §9.6), so an
   old order's money comes back regardless of today's setting.
 - `ExchangesLogic.ExecuteExchangeWorkflowAsync`'s credit-notes-balance check — **not** gated (completing an in-flight exchange).
+- The wizard's *credit note* mode — `ExchangeService.DetermineEnabledReturnModesAsync` offers `CreditNote` only while
+  `CWFeature.CreditNotes` is on for the store (both the wizard's buttons and `CheckSubmissionAsync` read it). A return
+  already submitted for credit is still approved as credit, and an exchange still raises its own-money note.
+- The exemptions of a replacement already in a cart (`ShoppingCartOverrideService.IsExchangeReplacementAsync` /
+  `GetCartLineReplacementAsync`: selling quantities, required products, subsidy caps, catalogue window) and its free
+  delivery (`OrderTotalCalculationOverrideService.IsFreeShippingAsync`) — **not** gated by `CWFeature.Exchanges`.
 - Admin `CreditNotesController.SaveCreditNote` / `DeleteCreditNote` — gated via `ICWFeatureGuard.BlockIfDisabledAsync` (new/destructive write).
 - Admin list/report/history actions on `CreditNotesController` (balances owed) — **deliberately ungated**, they show money the store owes regardless of the toggle.
 - `ExchangesConfigController.GetOrderReturnRequests` — deliberately ungated (pure read of requests that already exist).
@@ -321,14 +327,16 @@ The rules/config + return-request-item data-access layer. Large surface; grouped
   (**R**). Read by the admin order-list badges (§8.4).
 - **Returnable quantities** — `GetReturnableQuantitiesAsync(order)`: nop's own availability
   (`GetReturnRequestAvailabilityAsync` — ordered less already requested, without non-returnable products and, unless
-  allowed, downloads) less the units not yet shipped, in one shipped-units query per order. The return page, the
+  allowed, downloads; `Services/Orders/ReturnRequestOverrideService` recounts what is requested without the
+  **Rejected** and Cancelled requests, so a rejected return's units can be returned again — nop counts Rejected) less
+  the units not yet shipped, in one shipped-units query per order. The return page, the
   wizard's server checks and `ReturnRequestSubmitFilter` all read it. `CountReturnedUnitsAsync` (one grouped query)
   is still on the interface but has no caller.
 - **Store and customer scope** — `GetActiveReasonIdsAsync(storeId)` (the reasons with an active reason rule: the only
   ones the wizard offers or accepts) and `GetCustomerReturnRequestsByIdsAsync(customerId, ids)` (the customer's own
   requests only — the confirmation panel and the receipts).
 - **Miscellaneous** — `DetermineEnabledReturnModesAsync` (which of Exchange/CreditNote the customer is
-  allowed to pick, from the Reason+Action rule intersection),
+  allowed to pick, from the Reason+Action rule intersection; CreditNote only while `CWFeature.CreditNotes` is on),
   `IsReturnRequestAlreadyPerformed` (idempotency guard keyed by `ReturnRequestGroup` Guid so re-posting
   the same wizard submission doesn't double-create requests).
 
@@ -357,7 +365,9 @@ Logic (`ExecuteApprovedLineCoreAsync`):
    note, no exchange, regardless of anything else. *Configuration note:* the *Return authorized* rule must also have
    *Perform store credit* / *Perform exchange* ticked, or an authorisation raises nothing.
 3. Resolve the reason and action from the item's ids (§5.2.1) and load their rules; an unresolvable id stops the
-   workflow with a warning.
+   workflow with a warning. `ReturnToStock` is set here (`ExchangesHelper.IsBackInStock`: the status, reason and
+   action rules all tick `BackInStock`), before anything can stop the workflow; the controller then raises the
+   returned quantity to the whole return before nop's own stock adjustment (§8.1).
 4. `IsExchangeNeeded` = mode is `Exchange` **and** status `PerformExchange`, reason and action `AllowExchange`.
    `IsCreditNoteNeeded` = `(statusRule.PerformStoreCredit && reasonRule.AllowStoreCredit && actionRule.AllowStoreCredit) || exchangeNeeded`
    (decision 17: an exchange always gives the customer's own money back). If neither, stop.
@@ -377,15 +387,23 @@ Logic (`ExecuteApprovedLineCoreAsync`):
      owed. At checkout the ordinary pipeline settles it against the restored entitlement first.
    - On any failure in either pathway: `CleanupFailedExchangeWorkflowAsync` — undoes the credit note (if
      one was created this run), the subsidy restore rows and any cart items added.
-   Otherwise (no exchange) the line is marked complete.
+   Otherwise (no exchange) the line is marked complete and `SendCreditApprovalEmailAsync` queues
+   `ReturnAuthorisedCredit.CustomerNotification` (the note raised and/or the subsidy given back; nothing is sent when
+   neither came back). A failure to queue it is logged and never undoes the approval.
 8. Returns a `ReturnRequestWorkflowResult` (`CreditNoteWasCreated`, `SubsidyWasRestored`, `FeesNotDeductible`,
-   `NeedsCompletion`, `OrderWasPlaced`, `Errors`) that the admin controller turns into notification banners. The
+   `ReturnToStock`, `NeedsCompletion`, `OrderWasPlaced`, `Errors`) that the admin controller turns into notification banners. The
    return case's resolution is written by `IReturnResolutionLogic.TryResolveCaseAsync` once every line is decided.
 
-**The customer e-mails at approval** (`ExchangeWorkflowMessageService`). Pathway A queues
+**The customer e-mails at approval and rejection** (`ExchangeWorkflowMessageService`). Pathway A queues
 `ReturnAuthorisedExcepted.CustomerNotification` ("approved, nothing to pay", with the order placed); pathway B queues
 `ReturnAuthorisedPayment.CustomerNotification` ("approved, please complete your order", with the fees and the amount
-due). `CWCorePlugin` installs both, on install and on update, beside `Return.Receipt`. All three carry a
+due); an approval without an exchange queues `ReturnAuthorisedCredit.CustomerNotification` (token group *Return credit
+tokens*: `%ReturnRequest.CreditNoteAmount%` in the primary store currency, `%ReturnRequest.HasCreditNote%`,
+`%ReturnRequest.ReturnedToSubsidy%`). `SendReturnRejectedNotificationAsync` queues
+`ReturnRejected.CustomerNotification` (token group *Return rejection tokens*: `%ReturnRequest.DecisionNote%`, encoded
+with its line breaks kept, and `%ReturnRequest.HasDecisionNote%`) — called by the admin save (§8.1). The credit and
+rejection sends share `SendReturnCustomerNotificationAsync`. `CWCorePlugin` installs all five once each, on install and
+on update (`InstallReturnApprovalTemplatesAsync`, `InstallReturnOutcomeTemplatesAsync`), beside `Return.Receipt`. All carry a
 `%PackName.Name%` line (the returned line's packname, empty for a plain order item, so the template's `%if%` drops
 the line). The payment e-mail names an additional fee when there is one ("It also includes …"), through
 `%ReturnRequest.HasAdditionalFee%` — a bool, so its `%if%` works whatever the fee's name holds (a string token with a
@@ -411,10 +429,15 @@ order-placement pipeline, specialised for "place an order that represents an app
   approval is what pays for the replacement; the order's `OrderTotal` is rewritten after settlement to what the
   customer still owes. Exchange orders settle under the packname locks (20 tries half a second apart) and settle
   unlocked after that, logged as a warning, because the order is already placed and paid.
-- **An approved replacement is added to the cart through the packname `AddToCartAsync(…, packNameId, …)` inside
-  `ExchangeReplacementScope`**, which exempts it from the closed-ordering-period and branch checks, from the
-  allocated-quantity cap (the returned units were given back at approval, and a refusal would roll the whole
-  authorisation back) and, by exchange type, from the allocation gate (see §7 step 3). The exemption ends when the
+- **An approved replacement is added to the cart through the packname `AddToCartAsync(…, packNameId, …,
+  addRequiredProducts: false)` inside `ExchangeReplacementScope`**, which exempts it from the closed-ordering-period and
+  branch checks, from the allocated-quantity cap (the returned units were given back at approval, and a refusal would
+  roll the whole authorisation back), from the catalogue's selling quantities and **required products**
+  (`GetRequiredProductWarningsAsync`; `addRequiredProducts: false` also stops nop's add-to-cart adding them) and, by
+  exchange type, from the allocation gate (see §7 step 3). A cart, or a packname destination, whose lines are all
+  replacements has **no delivery charge** (`OrderTotalCalculationOverrideService.IsFreeShippingAsync` →
+  `IsReplacementOnlyCartAsync`; a mixed parcel is rated as usual): the redelivery fee is the replacement's delivery
+  charge. None of these follow the Exchanges switch. The exemption ends when the
   scope closes; at checkout each row is judged by its own `ReturnRequestItem.ShoppingCartItemId` link. Two known
   gaps: the packname cart view hides a replacement line whose packname's period is closed, so such a replacement can
   be paid only through `PlaceReturnOrderAsync`; and an exchange cannot be authorised at all once the customer's
@@ -509,7 +532,16 @@ subclassed — not a parallel controller) overrides/adds:
   its result as success/warning/error notifications. The CW fields (staff quantities clamped to the returned
   quantity, ad-hoc fee, reason, action) are committed before the workflow runs, and the status only after it
   succeeds; nop's own fields are persisted onto the base `ReturnRequest`, and stock is returned to
-  inventory for any quantity delta. The extra buttons below are posts to the same action name
+  inventory for any quantity delta — raised to the whole returned quantity when the workflow reports
+  `ReturnToStock`.
+  The case line follows the status (`MapStatusToLineState`): Authorized → Accepted, Rejected/Cancelled → Rejected,
+  Pending/Received → **Pending** (a rejected line set back is re-opened: any resolution voided, decision note
+  cleared), Refunded/Repaired → untouched. Re-opening a Rejected or Cancelled return is refused
+  (`AreReturnedUnitsStillFreeAsync`, resource `Plugins.CW.Core.Admin.Returns.Reopen.UnitsReturnedAgain`) when its units
+  are no longer free — the customer returned them again — so the same units can never be approved twice. A save that
+  moves the status **to** Rejected/Cancelled from any other status sends the rejection e-mail
+  (`NotifyCustomerIfRejectedAsync`, after the status is saved; a failure is logged, never fails the save).
+  Labels come from resources (`Plugins.CW.Core.Admin.Returns.Fields.*`). The extra buttons below are posts to the same action name
   (`[HttpPost, ActionName("EditExchangeRequest")]` with `FormValueRequired`), and each checks
   `StandardPermission.Orders.RETURN_REQUESTS_CREATE_EDIT_DELETE`.
 - **`ImpersonateForCompletion`** — "impersonate" button for Pathway B returns: logs the admin in as the
@@ -545,9 +577,13 @@ status, records it, and sends staff back to its page with a message (rename it i
 `ReturnReasonActionDeletedEventConsumer` deletes its per-store rules and its reason-action links.
 
 The admin **Edit Return** view (`Areas/Admin/Views/ReturnRequest/Edit.cshtml`) is the CW-extended version
-of nop's stock page (Figure 11/12 in the docx): shows exchange mode/type, replacement product, packname,
-staff-adjustable repack/ship quantities, additional-fee toggle, and (once completed) links to the
-auto-generated exchange order.
+of nop's stock page (Figure 11/12 in the docx): *Basic Data* shows store, branch, packname, exchange mode, and for an
+exchange the type and the replacement (product linked to its admin page, options, price); a credit return draws no
+exchange-type row. Then staff-adjustable repack/ship quantities, additional-fee toggle, and (once completed) links to
+the auto-generated exchange order. A Rejected/Cancelled line (`CWReturnRequestModel.IsRejected`) shows "Nothing
+Credited or Charged (Return Rejected)" at 0 in the fees panel, live re-pricing included. The *Decision note* hint says
+the customer sees the note: My returns shows it (`CustomerExchangeRequestModel.DecisionNote`, read from the case line
+once the return is Authorized, Rejected or Cancelled).
 
 ### 8.2 Exchanges configuration (`ExchangesConfigController`)
 
@@ -621,8 +657,9 @@ exchanges or credit-notes switches.
   page's Credit Notes card), `GetCreditNotesSummary` (balance for the summary chip),
   `GetAvailableOrders` + `SaveCreditNote` (manual issuance form — requires
   `CreditNotesPermissionConfigManager.ALLOW_MANUAL_CREDITNOTES` **in addition to**
-  `ADMIN_ACCESS_CREDITNOTES`), `DeleteCreditNote` (only allowed while the note has no consumption
-  history — see `CreditNoteHasHistoryAsync`).
+  `ADMIN_ACCESS_CREDITNOTES`), `DeleteCreditNote` (refused while the note has consumption history —
+  `CreditNoteHasHistoryAsync`, resource `Plugins.CW.Core.Admin.CreditNotes.Delete.Spent`; the grid draws *Delete* only
+  while *Remaining* equals *Amount*).
 - **Store-level reporting** (`#region Liability report`): `MainReport` page, `StoreLiabilityList` (per
   store: notes issued, notes fully consumed, issued value, remaining liability value, % used),
   `StoreCustomerCreditNotesList` (per store: which customers are holding a balance). The outstanding and
@@ -783,12 +820,10 @@ private static readonly IList<ReturnRequestStatus> _finalStatuses = new List<Ret
 };
 ```
 
-Only `ReturnAuthorized` is treated as a "final, no longer editable" status. nop's stock
-`ReturnRequestStatus` enum is `Pending` (0), `Received` (10), `ReturnAuthorized` (20), `ItemsRepaired`
-(30), `ItemsRefunded` (40), `RequestRejected` (50), `Cancelled` (60) — so `RequestRejected`,
-`ItemsRefunded` and `Cancelled` are all arguably terminal too. Worth confirming with the business whether
-they should also lock the admin edit form; today staff can keep editing quantities, fees and status after
-a return has been rejected or cancelled.
+Only `ReturnAuthorized` is treated as a "final, no longer editable" status (as in 4.1). `ItemsRepaired` and
+`ItemsRefunded` stay labels (decided 2026-11-16). `RequestRejected` and `Cancelled` stay editable on purpose: a
+rejected line can be re-opened (its case line goes back to Pending), refused once its units are in another return
+(§8.1). `ExchangesHelper.IsRejectedReturnRequestStatus` names the two.
 
 ### 10.5 Old-style code smells (general)
 

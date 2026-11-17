@@ -99,6 +99,17 @@
                                             </div>
                                         </div>
                                     }
+                                    @if (!string.IsNullOrEmpty(exchangeRequestModel.Packname))
+                                    {
+                                        <div class="form-group row">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="@exchangeRequestModel.Packname" />
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="form-text-row">@exchangeRequestModel.Packname</div>
+                                            </div>
+                                        </div>
+                                    }
                                     @if (!string.IsNullOrEmpty(exchangeRequestModel.ExchangeModeName))
                                     {
                                         <div class="form-group row">
@@ -113,13 +124,53 @@
                                     }
                                     @if (!string.IsNullOrEmpty(exchangeRequestModel.ExchangeTypeName))
                                     {
-                                        <div class="form-group row @Html.Raw(exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.CreditNote ? " hidden" : string.Empty)">
+                                        //a credit return has no exchange type: the row is left out and only the posted value kept
+                                        if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.CreditNote)
+                                        {
+                                            <input type="hidden" name="ExchangeTypeId" value="@exchangeRequestModel.ExchangeTypeId" />
+                                        }
+                                        else
+                                        {
+                                            <div class="form-group row">
+                                                <div class="col-md-3">
+                                                    <nop-label asp-for="@exchangeRequestModel.ExchangeTypeName" />
+                                                </div>
+                                                <div class="col-md-9">
+                                                    <div class="form-text-row">@exchangeRequestModel.ExchangeTypeName</div>
+                                                    <input type="hidden" name="ExchangeTypeId" value="@exchangeRequestModel.ExchangeTypeId" />
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                    @if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.Exchange && exchangeRequestModel.ReplacementProductId > 0)
+                                    {
+                                        <div class="form-group row">
                                             <div class="col-md-3">
-                                                <nop-label asp-for="@exchangeRequestModel.ExchangeTypeName" />
+                                                <nop-label asp-for="@exchangeRequestModel.ReplacementProductName" />
                                             </div>
                                             <div class="col-md-9">
-                                                <div class="form-text-row">@exchangeRequestModel.ExchangeTypeName</div>
-                                                <input type="hidden" name="ExchangeTypeId" value="@exchangeRequestModel.ExchangeTypeId" />
+                                                <div class="form-text-row">
+                                                    <a asp-controller="Product" asp-action="Edit" asp-route-id="@exchangeRequestModel.ReplacementProductId">@exchangeRequestModel.ReplacementProductName</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(exchangeRequestModel.ReplacementProductAttrInfo))
+                                        {
+                                            <div class="form-group row">
+                                                <div class="col-md-3">
+                                                    <nop-label asp-for="@exchangeRequestModel.ReplacementProductAttrInfo" />
+                                                </div>
+                                                <div class="col-md-9">
+                                                    <div class="form-text-row">@Html.Raw(exchangeRequestModel.ReplacementProductAttrInfo)</div>
+                                                </div>
+                                            </div>
+                                        }
+                                        <div class="form-group row">
+                                            <div class="col-md-3">
+                                                <nop-label asp-for="@exchangeRequestModel.ReplacementProductPrice" />
+                                            </div>
+                                            <div class="col-md-9">
+                                                <div class="form-text-row">@(await _priceFormatter.FormatPriceAsync(exchangeRequestModel.ReplacementProductPrice))</div>
                                             </div>
                                         </div>
                                     }
@@ -306,7 +357,7 @@
                                                 <nop-textarea asp-for="DispositionReason" />
                                                 <span asp-validation-for="DispositionReason"></span>
                                                 <span class="form-text text-muted">
-                                                    Recorded against this item when you authorise or reject it. Explain here if the item is being rejected.
+                                                    Recorded against this item when you authorise or reject it, and shown to the customer on their returns page and in the e-mail sent when the item is rejected or cancelled. Explain here if the item is being rejected.
                                                 </span>
                                             }
                                             else

@@ -24,4 +24,15 @@ public static class CWTokenGroupNames
     /// Represents the tokens of the subsidy expiry reminders: the seasons ending and the days left
     /// </summary>
     public const string SubsidyExpiryTokens = "Subsidy expiry tokens";
+
+    /// <summary>
+    /// Represents the tokens of a rejected or cancelled return: the decision note staff recorded
+    /// </summary>
+    public const string ReturnRejectionTokens = "Return rejection tokens";
+
+    /// <summary>
+    /// Represents the tokens of a return authorised without a replacement: the store credit raised and the subsidy
+    /// given back
+    /// </summary>
+    public const string ReturnCreditTokens = "Return credit tokens";
 }

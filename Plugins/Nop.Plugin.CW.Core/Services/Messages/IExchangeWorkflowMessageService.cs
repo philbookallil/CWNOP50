@@ -35,4 +35,24 @@ public interface IExchangeWorkflowMessageService
     /// </param>
     /// <returns>A task that represents the asynchronous operation; the task result contains the ids of the queued e-mails</returns>
     Task<IList<int>> SendReturnRequestApprovedPaymentCustomerNotificationAsync(ReturnRequest returnRequest, OrderItem orderItem, decimal pendingAmount, ReturnRequestItem returnRequestItem = null);
+
+    /// <summary>
+    /// Sends a notification when a Return Request is authorised without a replacement: the store credit raised and the
+    /// subsidy given back
+    /// </summary>
+    /// <param name="returnRequest">The return request</param>
+    /// <param name="orderItem">The returned order item</param>
+    /// <param name="creditNoteAmount">The amount of the credit note raised; zero when none was</param>
+    /// <param name="returnedToSubsidy">Whether what the subsidy paid for the item was given back</param>
+    /// <returns>A task that represents the asynchronous operation; the task result contains the ids of the queued e-mails</returns>
+    Task<IList<int>> SendReturnRequestCreditCustomerNotificationAsync(ReturnRequest returnRequest, OrderItem orderItem, decimal creditNoteAmount, bool returnedToSubsidy);
+
+    /// <summary>
+    /// Sends a notification when a Return Request is rejected or cancelled, with the decision note
+    /// </summary>
+    /// <param name="returnRequest">The return request, saved with its new status</param>
+    /// <param name="orderItem">The returned order item</param>
+    /// <param name="decisionNote">The decision note recorded against the item; empty when there is none</param>
+    /// <returns>A task that represents the asynchronous operation; the task result contains the ids of the queued e-mails</returns>
+    Task<IList<int>> SendReturnRequestRejectedCustomerNotificationAsync(ReturnRequest returnRequest, OrderItem orderItem, string decisionNote);
 }

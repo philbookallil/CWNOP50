@@ -7,9 +7,11 @@ using Nop.Data;
 using Nop.Plugin.CW.Core.Domain.Exchanges;
 using Nop.Plugin.CW.Core.Domain.Exchanges.DTOs;
 using Nop.Plugin.CW.Core.Domain.Returns;
+using Nop.Plugin.CW.Core.Domain.Settings;
 using Nop.Plugin.CW.Core.Helpers;
 using Nop.Plugin.CW.Core.Services.Orders;
 using Nop.Plugin.CW.Core.Services.Returns;
+using Nop.Plugin.CW.Core.Services.Settings;
 using Nop.Services.Catalog;
 using Nop.Services.Orders;
 
@@ -38,6 +40,7 @@ public class ExchangeService : IExchangeService
     protected readonly IShortTermCacheManager _shortTermCacheManager;
     protected readonly IRepository<Shipment> _shipmentRepository;
     protected readonly IRepository<ShipmentItem> _shipmentItemRepository;
+    protected readonly ICWFeatureService _cwFeatureService;
 
     #endregion
 
@@ -61,7 +64,8 @@ public class ExchangeService : IExchangeService
         IRepository<ShoppingCartItem> shoppingCartItemRepository,
         IShortTermCacheManager shortTermCacheManager,
         IRepository<Shipment> shipmentRepository,
-        IRepository<ShipmentItem> shipmentItemRepository)
+        IRepository<ShipmentItem> shipmentItemRepository,
+        ICWFeatureService cwFeatureService)
     {
         _returnReasonRuleRepository = returnReasonRuleRepository;
         _returnActionRuleRepository = returnActionRuleRepository;
@@ -82,6 +86,7 @@ public class ExchangeService : IExchangeService
         _shortTermCacheManager = shortTermCacheManager;
         _shipmentRepository = shipmentRepository;
         _shipmentItemRepository = shipmentItemRepository;
+        _cwFeatureService = cwFeatureService;
     }
 
     #endregion
@@ -1203,7 +1208,10 @@ public class ExchangeService : IExchangeService
             {
                 modes.Add(ExchangeReturnMode.Exchange);
             }
-            if (returnReasonRule.AllowStoreCredit && returnActionRule.AllowStoreCredit)
+            //a store with Credit Notes switched off offers no credit return; an exchange still raises the note for the
+            //customer's own money when it is approved
+            if (returnReasonRule.AllowStoreCredit && returnActionRule.AllowStoreCredit
+                && await _cwFeatureService.IsEnabledAsync(CWFeature.CreditNotes, storeId))
             {
                 modes.Add(ExchangeReturnMode.CreditNote);
             }

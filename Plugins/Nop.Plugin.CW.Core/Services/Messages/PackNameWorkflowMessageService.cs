@@ -125,7 +125,7 @@ public class PackNameWorkflowMessageService : WorkflowMessageService, IPackNameW
         var unitsFormat = await _localizationService.GetResourceAsync("Plugins.CW.Core.Messages.Subsidy.Details.Units", languageId);
 
         //credit is held in the primary store currency, the customer's e-mail states it in that currency, in the message's
-        //language and without nop's tax suffix (an allowance, not a price)
+        //language and without nop's tax suffix (a subsidy, not a price)
         var primaryCurrency = await _currencyService.GetCurrencyByIdAsync(_currencySettings.PrimaryStoreCurrencyId);
 
         var lines = new List<string>();
@@ -166,7 +166,7 @@ public class PackNameWorkflowMessageService : WorkflowMessageService, IPackNameW
         var unitsFormat = await _localizationService.GetResourceAsync("Plugins.CW.Core.Messages.Subsidy.Details.Units", languageId);
 
         //credit is held in the primary store currency, the customer's e-mail states it in that currency, in the message's
-        //language and without nop's tax suffix (an allowance, not a price)
+        //language and without nop's tax suffix (a subsidy, not a price)
         var primaryCurrency = await _currencyService.GetCurrencyByIdAsync(_currencySettings.PrimaryStoreCurrencyId);
 
         var lines = new List<string>();

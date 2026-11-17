@@ -17,7 +17,7 @@
         //Null once the store's rule has been removed. The row still renders, because the frozen charge is
         //what is collected; there is simply no live rule name left to round-trip.
         FeeConceptHiddenField = Model.ShippingFeeConfig != null ? Html.HiddenFor(m => m.ShippingFeeConfig.Concept) : null,
-        Label = Html.LabelFor(m => m.StaffShipQty),
+        Label = Html.LabelFor(m => m.StaffShipQty, T("Plugins.CW.Core.Admin.Returns.Fields.StaffShipQty").Text),
         TextBox = Html.TextBoxFor(m => m.StaffShipQty, allowEdit ? null : new { disabled = true }),
         Rule = Model.ShippingFeeConfig
     };

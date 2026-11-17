@@ -202,6 +202,8 @@
             {
                 <text>return '';</text>
             }
+            //a note that has paid for an order cannot be deleted (the server refuses it too)
+            if (row.Remain < row.Amount) return '';
             return '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCreditNote(' + data + ')">' +
                 '<i class="far fa-trash-can"></i> ' + $('<span>').text($cfg.data('deleteLabel')).html() + '</button>';
         };

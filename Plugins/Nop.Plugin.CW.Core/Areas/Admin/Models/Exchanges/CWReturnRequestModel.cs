@@ -2,7 +2,7 @@
 using Nop.Plugin.CW.Core.Domain.Exchanges;
 using Nop.Plugin.CW.Core.Models.Exchanges.FeeRule;
 using Nop.Web.Areas.Admin.Models.Orders;
-using System.ComponentModel;
+using Nop.Web.Framework.Mvc.ModelBinding;
 
 namespace Nop.Plugin.CW.Core.Areas.Admin.Models.Exchanges;
 
@@ -43,25 +43,25 @@ public record CWReturnRequestModel : ReturnRequestModel
 
     #region Properties
 
-    [DisplayName("Re-Shipped Quantity")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.StaffShipQty")]
     public int StaffShipQty { get; set; }
 
-    [DisplayName("Repackaged Quantity")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.StaffRepackQty")]
     public int StaffRepackQty { get; set; }
 
-    [DisplayName("Price")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.ProductPrice")]
     public decimal ProductPrice { get; set; }
 
-    [DisplayName("Enable Additional Fee")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.EnableAdditionalFee")]
     public bool EnableAdditionalFee { get; set; }
 
-    [DisplayName("Additional Fee Name")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.AdditionalFeeName")]
     public string AdditionalFeeName { get; set; }
 
-    [DisplayName("Fee Amount")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.AdditionalFeeAmount")]
     public decimal? AdditionalFeeAmount { get; set; }
 
-    [DisplayName("Decision note")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.DispositionReason")]
     public string DispositionReason { get; set; }
 
     public int ReturnCaseId { get; set; }
@@ -81,7 +81,7 @@ public record CWReturnRequestModel : ReturnRequestModel
         }
     }
 
-    [DisplayName("Exchange Mode")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.ExchangeMode")]
     public string ExchangeModeName { get; set; }
 
     /// <summary>
@@ -97,24 +97,24 @@ public record CWReturnRequestModel : ReturnRequestModel
         }
     }
 
-    [DisplayName("Exchange Type")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.ExchangeType")]
     public string ExchangeTypeName { get; set; }
 
     public int ReplacementProductId { get; set; }
 
-    [DisplayName("Product Name")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.ReplacementProduct")]
     public string ReplacementProductName { get; set; }
 
-    [DisplayName("Attributes")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.ReplacementOptions")]
     public string ReplacementProductAttrInfo { get; set; }
 
-    [DisplayName("Price")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.ReplacementPrice")]
     public decimal ReplacementProductPrice { get; set; }
 
-    [DisplayName("Reason for return")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.ReasonForReturn")]
     public int ReturnRequestReasonId { get; set; }
 
-    [DisplayName("Requested action")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.RequestedAction")]
     public int ReturnRequestActionId { get; set; }
 
     public SelectList ReturnReasonsList { get; set; }
@@ -176,16 +176,25 @@ public record CWReturnRequestModel : ReturnRequestModel
 
     public bool IsCompleted { get; set; }
 
+    /// <summary>
+    /// The return was rejected or cancelled: nothing is credited, exchanged or charged for it
+    /// </summary>
+    public bool IsRejected { get; set; }
+
     public int StoreId { get; set; }
 
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.Store")]
     public string StoreName { get; set; }
 
     public int BranchId { get; set; }
 
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.Branch")]
     public string BranchName { get; set; }
 
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.Packname")]
     public string Packname { get; set; }
 
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.Returns.Fields.CustomerName")]
     public string CustomerName { get; set; }
 
     //Odoo ERP Number

@@ -60,5 +60,13 @@ public interface IExchangesLogic
     /// <returns>A task that represents the asynchronous operation; the task result contains the ids of the queued e-mails</returns>
     Task<IList<int>> SendCompletionRequiredNotificationAsync(ReturnRequest returnRequest);
 
+    /// <summary>
+    /// Sends the customer the e-mail saying their return was rejected or cancelled, with the decision note staff recorded
+    /// </summary>
+    /// <param name="returnRequest">The return request, already saved with its new status</param>
+    /// <param name="decisionNote">The decision note recorded against the item; empty when there is none</param>
+    /// <returns>A task that represents the asynchronous operation; the task result contains the ids of the queued e-mails</returns>
+    Task<IList<int>> SendReturnRejectedNotificationAsync(ReturnRequest returnRequest, string decisionNote);
+
     Task UndoReturnRequestApprovalAsync(ReturnRequest returnRequest);
 }

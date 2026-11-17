@@ -82,5 +82,10 @@ public record CustomerExchangeRequestModel : CustomerReturnRequestsModel.ReturnR
     /// </summary>
     public string CurrentAttributesJson { get; set; }
 
+    /// <summary>
+    /// The note staff recorded when they authorised or rejected the return; empty until the return is decided
+    /// </summary>
+    public string DecisionNote { get; set; }
+
     #endregion
 }

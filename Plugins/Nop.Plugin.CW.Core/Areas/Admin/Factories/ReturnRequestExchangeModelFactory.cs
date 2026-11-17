@@ -138,6 +138,7 @@ public class ReturnRequestExchangeModelFactory : IReturnRequestExchangeModelFact
     {
         model.OriginalRequestStatusId = requestData.ReturnRequestStatusId;
         model.IsEditable = !ExchangesHelper.IsFinalReturnRequestStatus((ReturnRequestStatus)requestData.ReturnRequestStatusId);
+        model.IsRejected = ExchangesHelper.IsRejectedReturnRequestStatus((ReturnRequestStatus)requestData.ReturnRequestStatusId);
 
         if (string.IsNullOrEmpty(requestData.ReturnRequestStatusStr) && requestData.ReturnRequestStatusId >= 0)
         {

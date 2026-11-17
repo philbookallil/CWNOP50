@@ -8,8 +8,21 @@ public static partial class CWMessageTemplateSystemNames
     #region Exchanges and Returns templates
 
     public const string ReturnReceipt = "Return.Receipt";
+
     public const string ReturnAuthorisedPaymentCustomer = "ReturnAuthorisedPayment.CustomerNotification";
+
     public const string ReturnAuthorisedExceptedCustomer = "ReturnAuthorisedExcepted.CustomerNotification";
+
+    /// <summary>
+    /// Sent to the customer when a return is authorised without a replacement: the store credit raised and the
+    /// subsidy given back
+    /// </summary>
+    public const string ReturnAuthorisedCreditCustomer = "ReturnAuthorisedCredit.CustomerNotification";
+
+    /// <summary>
+    /// Sent to the customer when a return is rejected or cancelled, with the decision note
+    /// </summary>
+    public const string ReturnRejectedCustomer = "ReturnRejected.CustomerNotification";
 
     #endregion
 

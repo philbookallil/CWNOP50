@@ -517,7 +517,7 @@ public class PackNameController : BasePublicController
     /// the class-level <c>[AutoValidateAntiforgeryToken]</c> (which only validates unsafe methods).
     /// An <c>&lt;img src="/PackName/SelectPackName/123"&gt;</c> on any page the victim visited
     /// switched a manager's ordering context to another employee, so their next order was charged
-    /// against that employee's allowance - no interaction, no token. The four
+    /// against that employee's subsidy - no interaction, no token. The four
     /// callers now submit a token-bearing form; the action still answers with a redirect, so the
     /// browser navigation they relied on is unchanged.
     /// </remarks>
@@ -969,7 +969,7 @@ public class PackNameController : BasePublicController
 
         //The same gate the other three maintenance actions apply. Delete was the only one that never
         //read it, so with "managers may maintain packnames" switched OFF a manager could still
-        //permanently delete an employee's packname and its allowance history.
+        //permanently delete an employee's packname and its subsidy history.
         var managerStoreId = await ResolveManagerStoreIdAsync(manager);
 
         if (managerStoreId == null)

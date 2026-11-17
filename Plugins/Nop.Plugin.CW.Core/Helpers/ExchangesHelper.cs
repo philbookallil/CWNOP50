@@ -110,6 +110,31 @@ public static class ExchangesHelper
         return _finalStatuses.Any(s => s == status);
     }
 
+    /// <summary>
+    /// Whether a status closes the return without an outcome: nothing is credited, exchanged or charged for it
+    /// </summary>
+    /// <param name="status">Return request status</param>
+    /// <returns>True for Rejected and Cancelled</returns>
+    public static bool IsRejectedReturnRequestStatus(ReturnRequestStatus status)
+    {
+        return status is ReturnRequestStatus.RequestRejected or ReturnRequestStatus.Cancelled;
+    }
+
+    /// <summary>
+    /// Whether an authorised return puts the returned goods back in stock: the reason, the action and the status
+    /// rules all have to say so
+    /// </summary>
+    /// <param name="statusRule">The rule of the status the return is set to</param>
+    /// <param name="reasonRule">The rule of the return's reason</param>
+    /// <param name="actionRule">The rule of the return's action</param>
+    /// <returns>True when all three rules exist and tick Back in stock</returns>
+    public static bool IsBackInStock(ReturnStatusRule statusRule, ReturnReasonRule reasonRule, ReturnActionRule actionRule)
+    {
+        return statusRule is { BackInStock: true }
+            && reasonRule is { BackInStock: true }
+            && actionRule is { BackInStock: true };
+    }
+
     public static int DetermineFeeRuleQuantity(FeeRule feeRule, ReturnRequest returnRequest, ReturnRequestItem returnRequestItem)
     {
         var qty = returnRequest.Quantity;

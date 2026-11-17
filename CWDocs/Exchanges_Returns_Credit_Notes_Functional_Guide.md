@@ -1,587 +1,960 @@
-# Returns, Exchanges, Credit Notes & Subsidies — Functional Guide
+# Returns, Exchanges and Store Credit — Functional Guide
 
-Migrated to nopCommerce 5.00 on 2026-10-31: checked against the 5.00 code; the 4.9 copy is in `NOP49/CWDocs/`.
+**System:** CW store on nopCommerce **5.00**, with the CW Core plugin
+**For:** managers, store administrators, Sales Support and clients. You do not need any technical knowledge to read it.
 
-**Who this is for:** anyone who needs to understand what the system does — store administrators, Sales
-Support, managers, and anyone reviewing the customer experience. There is nothing technical in here: no
-code, no database, no screens-that-do-not-exist-yet. It describes **how the functionality works**.
+> **About the examples.** Every screen in this guide is a real screenshot from the CW test store, taken while the
+> scenarios in §9 were run from start to finish: real orders, real returns, real approvals. The people
+> (*Steve Gates*, *James Pan*) and the products are test data. Amounts are in US dollars because that is how the test
+> store is set up; live stores use their own currency.
+>
+> §4 explains what nopCommerce does by itself, what CW adds on top, and where the two differ. Things that work
+> differently from what you might expect are collected in §11.
 
-**A note on timing — read this once.** This guide describes **what is built and running today**, as of
-**11 September 2026**, not what is planned. It was checked again on **31 October 2026**, when the system moved to
-nopCommerce 5.00: the behaviour below came across unchanged, apart from the points marked *5.00*. Where a behaviour is agreed but not yet built, it is marked
-**⏳ not yet built** at the point it appears, so nothing here can be mistaken for something you can use.
-§9 lists where the rebuild has got to.
+---
+
+## Contents
+
+1. [The short version](#1-the-short-version)
+2. [Key ideas in plain language](#2-key-ideas-in-plain-language)
+3. [The whole process at a glance (activity diagram)](#3-the-whole-process-at-a-glance)
+4. [nopCommerce and CW: who does what](#4-nopcommerce-and-cw-who-does-what)
+5. [The customer's journey, screen by screen](#5-the-customers-journey-screen-by-screen)
+6. [The Sales Support journey, screen by screen](#6-the-sales-support-journey-screen-by-screen)
+7. [E-mails the customer and the store receive](#7-e-mails)
+8. [What happens to the money](#8-what-happens-to-the-money)
+9. [Worked scenarios from the test store](#9-worked-scenarios-from-the-test-store)
+10. [Configuration](#10-configuration)
+11. [Things to know, and open points](#11-things-to-know-and-open-points)
+12. [Quick reference](#12-quick-reference)
 
 ---
 
 ## 1. The short version
 
-The store sells uniforms and workwear to businesses. Three things interact:
+The store sells uniforms and workwear to businesses. Three things work together:
 
-- **Subsidy** — an entitlement a company gives its staff. It can be *units* ("two shirts a year") or
-  *money* ("$300 a year"), and it can be limited to certain kinds of product.
-- **Credit notes** — store credit held by a customer. Usually created when something is returned; can also
-  be issued by hand.
-- **Returns and exchanges** — sending something back, either for store credit or to swap it for something
-  else.
+- **Subsidy** — what a company gives each employee to spend on uniform. It can be **units** ("two shirts a
+  year") or **money** ("$300 a year"), and it can be limited to certain groups of products.
+- **Store credit (credit notes)** — money the store owes a customer. Usually created when something is returned;
+  it can also be issued by hand by an administrator.
+- **Returns and exchanges** — sending something back, either for **store credit** or to **swap it** for something else.
 
-Most of the complexity lives in one question: **when someone returns something that was paid for with a
-subsidy, what do they get back?** The answer the business has settled on is: *they get back exactly what
-they spent* — a unit if they spent a unit, dollars to the same pot if they spent dollars.
+The central rule, decided by the business:
 
----
+> **When something is returned, the customer gets back exactly what they spent on it, in the same form.**
+> A unit comes back as a unit, subsidy money goes back to the same subsidy pot, and only the money the customer
+> paid themselves comes back as store credit. Delivery that was paid by subsidy is not given back.
 
-## 2. Key concepts, in plain language
-
-### Subsidy — the company's entitlement to its staff
-
-A subsidy is what a company allows each of its staff to spend. It has:
-
-- **A period** — for example a calendar year, optionally repeating each year.
-- **An allocation**, which comes in two forms that behave very differently:
-  - **Units** — "three polo shirts". Counted in garments. The price does not matter.
-  - **Money** — "$250". Counted in dollars.
-- **Product groups** — an allocation can be limited to a defined set of products. "Two items from the
-  Outerwear group" is a unit allocation scoped to a group. "$100 towards Footwear" is a money allocation
-  scoped to a group.
-- **A global money pot** — money not tied to any group, usable on anything, and the only thing that can
-  pay for delivery.
-- **Top-ups** — extra allocation added during the period, either by a store administrator or by a
-  manager. Top-ups add to what is there; they never replace it.
-
-**The order things get used up** matters, and is fixed: units are always used before money. Within that,
-group-specific allocation is used before the global pot. In full:
-
-1. Product-group units
-2. Product-group unit top-ups
-3. Product-group money
-4. Product-group money top-ups
-5. Global money
-6. Global money top-ups
-
-The reason units go first, across *all* of an employee's subsidies, is to avoid a situation where the
-system spends money from one subsidy while unused units are still sitting in another.
-
-### Credit notes — store credit
-
-A credit note is an amount of store credit belonging to one customer. It records what it was issued for
-and how much of it is left. Credit notes are used **oldest first**, so an older note is fully spent before
-a newer one is touched.
-
-They are created in two ways:
-
-- **Automatically**, when a return is approved and the outcome is store credit.
-- **By hand**, by an administrator with the right permission, against a specific order.
-
-A credit note can only be deleted while it is untouched. Once any of it has been spent, it stays on record.
-
-### Returns and exchanges
-
-A **return** is a request to send one or more items back from an order. For each item the customer chooses
-what they want:
-
-- **Credit** — send it back, receive store credit.
-- **Exchange** — send it back, receive something else. Three flavours:
-  - **Exact** — the identical item again (usually a fault or damage in transit).
-  - **Same style** — the same product in a different size or colour. *This is the most common case by far.*
-  - **Different style** — a different product altogether.
-
-### Fees
-
-Two standard fees, both configured per store:
-
-- **Repackaging fee** — for handling and repackaging a returned garment. Charged **per garment**.
-- **Redelivery fee** — for shipping the replacement out again. Charged **per returned item**, over that
-  item's own *Re-Shipped Quantity*.
-
-Both can be a flat amount or an amount per so-many-garments. A typical setup is *$3.00 per garment*
-repackaging and *$5.00 per 4 garments* redelivery.
-
-> **How one parcel ends up charged one redelivery fee.** Each returned item is its own return request and
-> carries its own redelivery fee, so five garments coming back would be charged five times. Sales Support
-> set the *Re-Shipped Quantity* to zero on the lines that should not carry it, leaving one line charged for
-> the parcel. **This manual step is deliberate and is not being automated** — it is how the business has
-> worked for ten years, and it lets staff adjust a fee after speaking to the customer. Confirmed by the
-> manager, 2026-08-24.
-
-Administrators can also add a **one-off fee** with a description, for anything unusual.
-
-Whether a fee applies at all depends on the reason for the return. A faulty item normally attracts no fees;
-a change of mind normally does.
-
-**Fees are always paid by the customer.** Neither their store credit nor their subsidy is ever spent on a
-fee — those pay for goods and delivery only. A return the customer chose is at the customer's expense, so
-the fee is a separate amount they settle themselves.
-
-There is one place a fee and store credit do meet, and it is the opposite direction: when a customer
-returns something **for credit**, the fee is deducted from the credit note before it is issued (see
-example 5). That reduces what we give them; it does not spend credit they already hold.
+Every returned item is **decided on its own** by Sales Support — one garment can be accepted while another in the
+same parcel is rejected. When an item is approved, the system does the rest automatically: gives the subsidy back,
+raises any store credit, and either **places the replacement order straight away** (when nothing is owed) or puts
+the replacement in the customer's **cart** for them to pay the balance or the fees.
 
 ---
 
-## 3. The customer experience
+## 2. Key ideas in plain language
 
-### 3.1 Placing an order
+### 2.1 Subsidy
 
-When a customer checks out, the system works out what they owe and applies what they are entitled to, in a
-fixed order:
+A subsidy is what a company allows each of its staff (each *packname*) to spend:
 
-1. **Subsidy first** — the company's entitlement, following the consumption order in §2: units, then
-   product-group money, then the global pot, each base before its top-up.
-2. **Credit notes second** — any store credit they hold covers whatever subsidy did not.
-3. **The customer pays the remainder**, if anything is left.
-4. **Any returns fees are added on top**, and the customer pays those themselves (§2).
+- **A period** — for example a calendar year, optionally repeating every year.
+- **Units** — "3 polo shirts". Counted in garments; the price does not matter.
+- **Money** — "$250". Counted in dollars.
+- **Product groups** — units and money can be limited to a group of products ("2 items from Footwear & Hats",
+  "$100 towards Outerwear").
+- **Global money** — money not tied to any group. It can pay for anything, and it is the only part of a subsidy
+  that can pay for delivery (when the store allows subsidy to pay delivery).
+- **Top-ups** — extra units or money added during the period by an administrator or by a manager. Top-ups always
+  add to what is there.
 
-This order is the manager's decision of 10 September 2026 (the 2018 design said the same: *"Unit →
-StyleGroup $ → Subsidy $ → Topup → Credit Note"*). It applies to units and money alike, and when a
-manager orders for employees the **employer's** subsidy is spent before the manager's **own** store
-credit. The reasoning: the entitlement is there to be used for uniform, and it lapses at the end of the
-period, whereas store credit is the customer's and keeps.
+Subsidy is always used in this fixed order — units before money, group allocations before the global pot:
 
-> **✅ Live since 11 September 2026.** The previous system spent store credit first at the money level;
-> that is now reversed, so a customer holding both sees their entitlement used before their store credit.
+1. Product-group units, then their top-ups
+2. Product-group money, then its top-ups
+3. Global money, then its top-ups
 
-**How the order reads.** The checkout, the order page, the confirmation e-mail and the invoice all list the money the
-same way, in the order it was applied: *Total before subsidy and credit* (goods and shipping at full price), then
-*Subsidy applied* — split into *Subsidy (items)* and *Subsidy (shipping)* where shipping was subsidised — then *Store
-credit*, then the customer's own discounts and fees, and last the *Payable balance*, which is what the customer pays.
-The invoice and the packing slip also say, under each item, who it is for — *For: name · department · cost centre*.
+### 2.2 Store credit (credit notes)
 
-### 3.2 Requesting a return
+A credit note is an amount of store credit belonging to one customer. It shows what it was issued for, its amount
+and what is left. Store credit is used **oldest note first**.
 
-From their order history, the customer picks "Return Item(s)" on an eligible order and works through a
-short sequence:
+Credit notes are created:
 
-1. **Choose items and quantities.** Only items that have actually been shipped can be returned, and only
-   the quantity not already returned. The return screens are for the signed-in customer who placed the order. *(5.00:
-   a guest following a withdrawal link from an e-mail uses the store's standard return form instead.)* Each line shows a picture of the item as it was bought, in the
-   colour ordered.
-2. **Choose a reason.** The reason then determines which **actions** are offered — the two are linked, and
-   the pairing is configured per store. Only the reasons the store has switched on are offered; a store with none
-   shows the customer a message instead of the form.
-3. **Choose what they want for each item** — credit or exchange, and for an exchange, which flavour and
-   which replacement product. Picking *Same Style* opens the same garment with its size and colour
-   already set to what they bought, so they change only what they mean to. *Different Style* opens a
-   searchable, paged list of the store's range. The picture updates as they change colour, so the item
-   being returned and its replacement can be compared side by side.
+- **automatically**, when a return is approved and money the customer paid has to come back, and
+- **by hand**, by an administrator with the right permission, against one of the customer's orders.
 
-   A small number of products need details the return screens cannot take — a line of text to be printed,
-   a date, a file to upload, a rental period, or gift-card recipient details. Those products are still
-   shown in the list, because hiding them would look as though they were out of stock. If the customer
-   tries to choose one they are told which details cannot be taken online and asked to pick something else
-   or contact Sales Support, who can arrange the exchange for them.
-4. **Review a summary**, including the fees that will apply, then confirm.
+An administrator can delete a credit note issued by mistake, as long as **none of it has been spent**. Once a note
+has paid for an order it cannot be deleted: it is part of the record of how that order was paid.
 
-A progress indicator runs across all four steps. Fees that may apply are shown from step 3 onward, before
-the customer commits to anything, and the *Next Step* button explains what is still missing rather than
-simply being unavailable. If something is wrong when they submit, they stay on the same step with their
-choices intact.
+### 2.3 Returns and exchanges
 
-Once confirmed, a printable confirmation opens listing each return, and the store can require it to be
-printed before the window is closed. The returns then appear in their account with their status; an exchange also
-shows its type and replacement. While a return is still pending, the customer can change the replacement they picked
-without starting over.
+A **return request** is raised for each item the customer sends back. For each item the customer asks for one of:
 
-Everything the customer chooses is checked again by the system when they submit — the quantities, the reason and
-action, credit or exchange, and that the replacement fits the exchange type, has every required option chosen and is
-one their entitlement lets them order. A choice that does not pass is refused with a message.
+- **Credit** — send it back and receive store credit.
+- **Exchange** — send it back and receive something else:
+  - **Same style** — the same product in another size or colour (*the most common case by far*);
+  - **Different style** — a different product;
+  - **Exact** — the identical item again (usually a fault or transit damage).
 
-### 3.3 What happens next
+The **reason** the customer gives ("Wrong product ordered", "Problem with the product"…) decides which
+**actions** they may ask for ("Replacement", "Store credit"…), and the reason and action together decide whether
+credit and/or exchange are allowed and whether fees apply (§10).
 
-Sales Support reviews the return (§4). The customer then hears one of:
+### 2.4 Fees
 
-- **Approved, nothing further needed.** The exchange was fully covered — usually by the entitlement that
-  came back with the returned garment, sometimes by store credit — and there were no fees. A replacement
-  order has already been placed.
-- **Approved, payment needed.** There is a balance to pay. The replacement is waiting in their cart.
-- **Store credit issued.** They chose credit, and it is now on their account.
-- **Declined**, for some or all items.
+Two standard fees, set per store (or once for all stores):
 
-### 3.4 Completing an exchange that needs payment
+- **Repackaging fee** — handling and repackaging the returned garment. In the test store: **$3.00 per garment**.
+- **Redelivery fee** — shipping the replacement out. In the test store: **$5.00 per 4 garments**.
 
-The replacement item is placed in the customer's cart. When the cart contains only exchange items,
-checkout is simplified — no delivery options to choose, and the exchange items themselves cannot be
-edited or removed.
+Sales Support can also add a **one-off fee** with a description ("Name embroidery removal $2.00").
 
-Two things worth knowing:
+**Fees are always paid by the customer.** Neither subsidy nor store credit is ever used to pay a fee:
 
-- **They can carry on shopping.** Ordinary items can be added and paid for in the same transaction. The
-  value of the returned garment only ever counts towards the exchange, never towards unrelated shopping.
-- **They cannot cancel the exchange themselves.** If they change their mind they ring in, and an
-  administrator adjusts it.
+- On an **exchange**, the fees are part of what the customer pays at checkout.
+- On a return **for credit**, the fees are taken off the credit note before it is issued. When the item was paid
+  by subsidy there is no credit note, so no fee is collected; when the fees are larger than the note, the note
+  goes down to zero and the rest is not collected. The approval screen warns staff, who set the fee quantities
+  to zero if the fees should not stand.
 
-There is no time limit on completing an exchange, and the price they were quoted at approval is the price
-they pay, even if the item's price changes in the meantime.
-
-### 3.5 Their store credit page
-
-Under *My account › My Store Credit* customers see their available balance, each credit note (what it was issued
-for, its amount and what is left of it) and every order their credit was applied to, with links to those orders.
-Their subsidy position has its own page, *My account › Subsidies*: one card per subsidy of the packname they are
-ordering for — whether it is open, remaining credit or units with a usage bar, the product groups, and a history of
-every top-up, order and return behind the figures.
+Each returned item carries its own fee. When several items come back in one parcel, Sales Support set the
+*Re-Shipped Quantity* to zero on all lines but one so the parcel is charged one redelivery fee. This manual step is
+deliberate: the same box is how staff waive or adjust a fee after speaking to the customer.
 
 ---
 
-## 4. The administrator experience
+## 3. The whole process at a glance
 
-### 4.1 Reviewing a return
+The diagrams below show the complete activity flow — what the customer does, what nopCommerce does by itself,
+what the CW additions do, and what Sales Support does, in four phases.
 
-Sales Support opens the return and sees the customer, the order, the items, the reason and action chosen,
-the requested outcome, and the replacement product where relevant.
+**Colour key:**
+🟦 blue = the customer · ⬜ grey = standard nopCommerce · 🟩 green = CW additions (automatic) ·
+🟧 orange = Sales Support · 🟨 yellow = a decision · 🟥 red = the flow stops / nothing is given back ·
+🟪 purple = finished.
 
-**Each item is judged individually.** One garment can come back clean and be accepted while another comes
-back soiled or worn and is rejected. This is why approval is per item rather than for the whole return.
+### Phase 1a — can the item be returned online, and which form opens?
 
-For each item the administrator can:
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, Arial","fontSize":"17px","lineColor":"#555"},"flowchart":{"wrappingWidth":360,"curve":"basis","nodeSpacing":24,"rankSpacing":26}}}%%
+flowchart TB
+  classDef cust fill:#dbeafe,stroke:#2563eb,color:#0b2e6b
+  classDef nop fill:#eceff3,stroke:#6b7280,color:#1f2937
+  classDef cw fill:#dcfce7,stroke:#16a34a,color:#064e1d
+  classDef staff fill:#ffedd5,stroke:#ea580c,color:#6b2600
+  classDef dec fill:#fef9c3,stroke:#ca8a04,color:#3f2d00
+  classDef stop fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef done fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b
 
-- **Accept or reject it**, with a note explaining why.
-- **Adjust the quantities used to work out fees** — the number to be repackaged and the number to be
-  redelivered — within what was actually returned.
-- **Add a one-off fee** with a description.
+  subgraph P1["1a · Can the item be returned online, and which form opens?"]
+    direction TB
+    S((Start)):::cust --> A1["Customer opens<br/>My account › Orders › an order"]:::cust
+    A1 --> D1{{"Is a <b>Return Item(s)</b> button shown?<br/>(returns switched on, order Complete,<br/>within the allowed days, something left to return)"}}:::dec
+    D1 -- No --> X1["No button:<br/>the order cannot be returned online"]:::stop
+    D1 -- Yes --> D2{{"Is <b>Exchanges</b> switched on<br/>for this store?"}}:::dec
+    D2 -- No --> N1["nopCommerce's own return form:<br/>quantities, reason, action, comment"]:::nop
+    N1 --> N2["A plain return request is logged (Pending)<br/>+ nopCommerce's two 'new return' e-mails"]:::nop
+    N2 --> N3["Staff only change its status.<br/>No credit note, no exchange, no subsidy back"]:::stop
+    D2 -- Yes --> NX(["▶ the CW return wizard (Phase 1b)"]):::done
+  end
+```
 
-**A rejected item costs the customer nothing.** No repackaging fee, and it does not count towards the
-redelivery fee either. If every item is rejected there are no charges at all, no store credit, and no
-exchange.
+### Phase 1b — the CW return wizard
 
-### 4.2 Approving
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, Arial","fontSize":"17px","lineColor":"#555"},"flowchart":{"wrappingWidth":360,"curve":"basis","nodeSpacing":24,"rankSpacing":26}}}%%
+flowchart TB
+  classDef cust fill:#dbeafe,stroke:#2563eb,color:#0b2e6b
+  classDef nop fill:#eceff3,stroke:#6b7280,color:#1f2937
+  classDef cw fill:#dcfce7,stroke:#16a34a,color:#064e1d
+  classDef staff fill:#ffedd5,stroke:#ea580c,color:#6b2600
+  classDef dec fill:#fef9c3,stroke:#ca8a04,color:#3f2d00
+  classDef stop fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef done fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b
 
-Approval happens by moving the return to an authorised status. At that point the system does everything
-that follows automatically:
+  subgraph P1["1b · The CW return wizard"]
+    direction TB
+    W1["Step 1 · Choose items and quantities<br/>(only shipped units not in another return;<br/>a rejected return's units can be returned again)"]:::cw
+    W1 --> W2["Step 2 · Choose the reason;<br/>the reason decides which actions are offered"]:::cw
+    W2 --> W3["Step 3 · Credit or Exchange<br/>(only what the reason + action allow;<br/>no credit while Credit Notes is switched off).<br/>Exchange: Same style / Different style / Exact,<br/>then pick the replacement. Fees shown."]:::cw
+    W3 --> W4["Step 4 · Review the summary<br/>and confirm"]:::cw
+    W4 --> W5["Everything is checked again.<br/>One return request per item is logged (Pending)"]:::cw
+    W5 --> W6["E-mails: store owner + customer (nopCommerce)<br/>+ CW return receipt with the returns address.<br/>Confirmation panel to print"]:::cw
+  end
+  W6 --> NX(["▶ continues in Phase 2"]):::done
+```
 
-- Works out the fees and records them.
-- Issues store credit if that is the outcome.
-- Gives back any subsidy that was spent on the returned items (§5).
-- Either places the replacement order outright, or puts the replacement in the customer's cart and tells
-  them what is owed.
-- Sends the customer the appropriate e-mail: "approved, nothing further needed" (with the replacement order's
-  number) or "approved, payment needed" (with what is owed). Both name the person the garment was for. If the
-  approval is undone before the e-mail has gone out, the e-mail is withdrawn. Staff can send the "payment needed"
-  e-mail again with the current amount from the return's page (*Checkout Notification*).
+### Phase 2 — Sales Support decides each item
 
-If anything fails partway, nothing is left half-done — the whole approval is undone.
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, Arial","fontSize":"17px","lineColor":"#555"},"flowchart":{"wrappingWidth":360,"curve":"basis","nodeSpacing":24,"rankSpacing":26}}}%%
+flowchart TB
+  classDef cust fill:#dbeafe,stroke:#2563eb,color:#0b2e6b
+  classDef nop fill:#eceff3,stroke:#6b7280,color:#1f2937
+  classDef cw fill:#dcfce7,stroke:#16a34a,color:#064e1d
+  classDef staff fill:#ffedd5,stroke:#ea580c,color:#6b2600
+  classDef dec fill:#fef9c3,stroke:#ca8a04,color:#3f2d00
+  classDef stop fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef done fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b
 
-Approving the same return twice does nothing the second time. There is no way to accidentally issue two
-credit notes for one return.
+  ST(["From Phase 1: a return request is waiting"]):::done --> R1
+  subgraph P2["2 · Sales Support decides each item"]
+    direction TB
+    R1["Open the item in Sales › Return requests.<br/>Optionally: adjust fee quantities,<br/>add a one-off fee, correct reason/action"]:::staff
+    R1 --> D3{{"Which status<br/>is saved?"}}:::dec
+    D3 -- "Pending / Received" --> R2["Saved. Nothing happens yet.<br/>A rejected item set back here is re-opened<br/>(refused if its units were returned again)"]:::nop
+    D3 -- "Item(s) repaired /<br/>Item(s) refunded" --> R3["Status only — no money moves,<br/>and the item is not counted as decided"]:::stop
+    D3 -- "Request rejected /<br/>Cancelled" --> R4["Item rejected: no fee,<br/>no credit, no exchange.<br/>E-mail to the customer with the decision note;<br/>the units can be returned again"]:::stop
+    D3 -- "Return authorized" --> R5["'Are you sure?' confirmation"]:::staff
+  end
 
-### 4.3 Other things an administrator can do
+  R5 --> NX(["▶ continues in Phase 3"]):::done
+```
 
-- **Undo an approval** — resets the return and reverses what the approval did.
-- **Resend a notification**, or nudge a customer who has not completed a pending exchange.
-- **Complete a checkout on the customer's behalf** (*Impersonate*), when the return belongs to the store they are
-  signed into. **Doing this for a return that belongs to a different store does not work** at present: that part of
-  the previous system was never rebuilt.
-- **Issue a credit note by hand** against an order — this needs its own permission, separate from general
-  access.
-- **Delete a credit note**, but only while none of it has been spent.
-- **Spot orders with exchanges or returns** in the order list and on a customer's Orders tab: **E** marks an order that
-  contains a replacement sent for an exchange, **R** an order with an item whose return was approved. An order can
-  carry both.
+### Phase 3 — what the approval does (automatic)
 
-### 4.4 Reporting
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, Arial","fontSize":"17px","lineColor":"#555"},"flowchart":{"wrappingWidth":360,"curve":"basis","nodeSpacing":24,"rankSpacing":26}}}%%
+flowchart TB
+  classDef cust fill:#dbeafe,stroke:#2563eb,color:#0b2e6b
+  classDef nop fill:#eceff3,stroke:#6b7280,color:#1f2937
+  classDef cw fill:#dcfce7,stroke:#16a34a,color:#064e1d
+  classDef staff fill:#ffedd5,stroke:#ea580c,color:#6b2600
+  classDef dec fill:#fef9c3,stroke:#ca8a04,color:#3f2d00
+  classDef stop fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef done fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b
 
-- Per store: how many credit notes have been issued, how many are fully used, the total issued value, and
-  the **outstanding liability** — money the business still owes customers.
-- Per store: which customers are holding a balance.
-- Per customer: their credit notes and where each has been spent.
+  ST(["From Phase 2: Return authorized, confirmed"]):::staff --> D4
+  subgraph P3["3 · The system applies the approval (automatic)"]
+    direction TB
+    D4{{"Do the store's rules allow<br/>credit or exchange for this<br/>status + reason + action?"}}:::dec
+    S0["If the reason, action and status rules all tick<br/>Back in stock: the returned quantity goes back to stock"]:::cw
+    ST -.-> S0
+    D4 -- No --> X2["Approved, but nothing is<br/>given back or exchanged"]:::stop
+    D4 -- Yes --> C1["Subsidy spent on the item goes back<br/>in kind: unit → unit, group $ → group,<br/>global $ → global (delivery is not given back)"]:::cw
+    C1 --> C2["Any money the customer paid comes back<br/>as a NEW credit note<br/>(credit returns: minus the fees)"]:::cw
+    C2 --> D5{{"Credit or<br/>Exchange?"}}:::dec
+    D5 -- Credit --> F1["Done. Item locked.<br/>E-mail: 'approved' with the store credit raised<br/>and/or the subsidy given back"]:::done
+    D5 -- Exchange --> D6{{"Is the replacement fully covered<br/>(subsidy + store credit)<br/>and are there no fees?"}}:::dec
+    D6 -- Yes --> E1["Replacement order placed automatically<br/>E-mail: 'approved — nothing to pay'"]:::cw
+    E1 --> F2["Done. Item locked<br/>(no Undo — cancel the replacement order instead)"]:::done
+    D6 -- No --> E2["Replacement put in the customer's cart<br/>(without the products it may require)<br/>E-mail: 'approved — please complete your order'<br/>with the amount to pay"]:::cw
+  end
+
+  E2 --> NX(["▶ continues in Phase 4"]):::done
+```
+
+### Phase 4 — the customer completes a pending exchange
+
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, Arial","fontSize":"17px","lineColor":"#555"},"flowchart":{"wrappingWidth":360,"curve":"basis","nodeSpacing":24,"rankSpacing":26}}}%%
+flowchart TB
+  classDef cust fill:#dbeafe,stroke:#2563eb,color:#0b2e6b
+  classDef nop fill:#eceff3,stroke:#6b7280,color:#1f2937
+  classDef cw fill:#dcfce7,stroke:#16a34a,color:#064e1d
+  classDef staff fill:#ffedd5,stroke:#ea580c,color:#6b2600
+  classDef dec fill:#fef9c3,stroke:#ca8a04,color:#3f2d00
+  classDef stop fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  classDef done fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b
+
+  ST(["From Phase 3: the replacement is in the cart"]):::done --> K1
+  subgraph P4["4 · The customer completes a pending exchange"]
+    direction TB
+    K1["Customer opens the cart / checkout.<br/>The replacement cannot be removed<br/>or reduced; other shopping may be added"]:::cust
+    K1 --> K2["Checkout applies: subsidy first,<br/>then store credit (oldest first),<br/>customer pays the rest + the fees.<br/>No delivery charge on a parcel holding only replacements"]:::cw
+    K2 --> F3["Replacement order placed.<br/>It shows an <b>E</b> badge in admin;<br/>the original order shows <b>R</b>"]:::done
+    T1["Staff may instead: Checkout Notification (resend),<br/>Impersonate (finish it for the customer),<br/>Undo Approval (reverse everything)"]:::staff
+  end
+
+  ST -.-> T1
+```
+
+### How the money is settled at checkout (every order, including replacements)
+
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, Arial","fontSize":"15px"},"flowchart":{"curve":"basis"}}}%%
+flowchart LR
+  classDef sub fill:#dcfce7,stroke:#16a34a,color:#064e1d
+  classDef cn fill:#dbeafe,stroke:#2563eb,color:#0b2e6b
+  classDef pay fill:#ffedd5,stroke:#ea580c,color:#6b2600
+  classDef fee fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+  A["Goods + delivery<br/>at full price"] --> S1["① Product-group units<br/>(base, then top-ups)"]:::sub
+  S1 --> S2["② Product-group money<br/>(base, then top-ups)"]:::sub
+  S2 --> S3["③ Global subsidy money<br/>(base, then top-ups)<br/>— the only one that can pay delivery"]:::sub
+  S3 --> C["④ Store credit<br/>(credit notes, oldest first)"]:::cn
+  C --> P["⑤ Customer pays<br/>what is left"]:::pay
+  P --> F["⑥ Exchange fees added on top —<br/>always paid by the customer,<br/>never by subsidy or store credit"]:::fee
+```
 
 ---
 
-## 5. What happens to the money on a return
+## 4. nopCommerce and CW: who does what
 
-This is the part worth reading carefully, because it is where the design is most deliberate.
+nopCommerce has its own, simple return system: a customer asks to return items, a request is logged with a
+status, and the store changes that status by hand. **nopCommerce on its own never gives money or goods back** — a
+"Return authorized" or "Item(s) refunded" status in plain nopCommerce is only a label. Everything financial —
+store credit, subsidy coming back, exchanges, fees, replacement orders — is CW.
 
-### 5.1 The guiding rule
+CW builds on top of nopCommerce rather than replacing it: every CW return is still a nopCommerce return request
+(same number, same list, same statuses, same reasons and actions, same e-mails), with CW's information attached.
 
-**You get back exactly what you spent on the garment.** Not the cash equivalent — the same kind of thing,
-to the same place. **Delivery is the one exception**, and §5.6 explains why.
+### 4.1 Where they agree (CW uses nopCommerce as it is)
 
-| What paid for the returned item | What comes back |
+| Feature | nopCommerce | CW |
+|---|---|---|
+| **Switching returns on** — *Configuration › Settings › Order settings › Enable Returns System* | Shows the **Return Item(s)** button on eligible orders | Same switch; CW does not add its own |
+| **Which orders can be returned** — "only for completed orders" and "number of days available" | Hides the button for orders that are not Complete, or older than the set number of days (test store: completed only, 365 days) | Same rules |
+| **Return request numbers** — number mask | `{ID}` by default | Same numbers everywhere (customer pages, e-mails, admin) |
+| **Statuses** — Pending, Received, Return authorized, Item(s) repaired, Item(s) refunded, Request rejected, Cancelled | Labels set by staff | Same list; CW gives three of them a meaning (§6.4) |
+| **Reasons and actions** — *Order settings › Return request reasons / actions* | The lists the customer chooses from | Same lists; CW adds per-store rules on top (§10.3) |
+| **The returns list in admin** — *Sales › Return requests* | Search by date, number, status | Unchanged |
+| **"New return request" e-mails** to the store owner and the customer | Sent on every new request | Sent too, plus CW's own return receipt (§7) |
+| **"Notify customer about status change"** button | Sends nopCommerce's generic status e-mail | Unchanged. CW e-mails the customer by itself when an item is rejected or approved for credit, so pressing the button as well sends a second e-mail (§7) |
+| **Quantity returned to stock** on the admin return page | Puts that many units back into stock | Unchanged, and CW fills it in automatically when the store's rules say the goods go *back in stock* (§10.3) |
+| **Customer file upload** (setting *Allow customers to upload files*) | Offered on the return form | Also offered in the CW wizard (switched off in the test store) |
+
+### 4.2 Where CW adds to nopCommerce
+
+| | nopCommerce alone | With CW (Exchanges switched on) |
+|---|---|---|
+| **The customer's return form** | One page: quantities, reason, action, comment | A four-step wizard: items → reason → credit or exchange (with the replacement picked) → summary and confirm (§5) |
+| **What can be returned** | Units ordered and not already requested — shipped or not. A **rejected** request keeps its units | Only units that have **shipped** and are not already requested. The units of a **rejected** or cancelled request can be returned again (this also applies to nopCommerce's own form) |
+| **Reasons and actions** | Any reason with any action | Only the reasons the store has switched on; the reason decides which actions are offered |
+| **Credit or exchange** | Not a concept | Chosen per item, within what the reason and action allow. Credit is offered only while store credit is switched on |
+| **Fees** | None | Repackaging, redelivery and one-off fees, shown to the customer before they confirm |
+| **Approval** | A label | Gives subsidy back, raises store credit, places or prepares the replacement, sends the right e-mail (§6.5) |
+| **Per-item decision with a note** | Not tracked | Each item accepted or rejected with a *Decision note*, which the customer sees on their returns page and in the rejection e-mail; staff see all items that came back together |
+| **Delivery on a replacement** | — | A parcel that holds only replacements has **no delivery charge**: the redelivery fee is the delivery charge |
+| **Store credit** | Does not exist | Credit notes, a *My Store Credit* page, used automatically at checkout, manual notes, liability reports |
+| **Order markers** | None | **E** (order holds an exchange replacement) and **R** (an item of the order was returned and authorised — or later marked repaired or refunded) badges in the order lists |
+| **Receipt to print** | None | Printable return note and confirmation panel |
+
+### 4.3 nopCommerce's withdrawal features, and how CW treats them
+
+nopCommerce has several return features meant for the EU "right of withdrawal". This is how each one behaves with
+CW:
+
+| nopCommerce feature | What it does in nopCommerce | With CW |
+|---|---|---|
+| **Allow guests to create return requests** (withdrawal form) | A guest enters an order number and e-mail address and receives a link (valid for *Withdrawal link. Days valid*, 7 in the test store) to nopCommerce's return form | Works, but it is **nopCommerce's plain form**: no exchange, no credit, no fees, and approving it gives nothing back. CW only makes sure the guest cannot return more units than have shipped. **Switched off** in the test store |
+| **Locales for EU Withdrawal** | Renames the button and messages to "withdrawal" wording | The wizard's page title follows it too |
+| **Return reasons enabled / Return actions enabled** | Lets a store hide the reason or action box | **Ignored by the CW wizard** — it always asks for both, because they decide fees and options. They still apply to nopCommerce's plain form |
+| **Allow return requests for downloadable products** | Off by default | Same |
+
+![nopCommerce return settings (Configuration › Settings › Order settings)](images/returns/nop-return-settings.jpg)
+
+*nopCommerce's own return settings. CW uses "Enable Returns System", "only for completed orders", the number of
+days and the reasons/actions lists. "Allow guests…" (the withdrawal form) is off.*
+
+### 4.4 Where they differ
+
+| | nopCommerce | CW behaviour |
+|---|---|---|
+| Customer with an account, Exchanges **on** | nopCommerce's form | Always the CW wizard; nopCommerce's form is not reachable for them |
+| Customer with an account, Exchanges **off** | nopCommerce's form | nopCommerce's form (plain return, no money back), still limited to shipped units — see §5.10 |
+| *Item(s) refunded* / *Item(s) repaired* | Labels | Still only labels: **no** refund, credit or subsidy is given back. Use *Return authorized* (§6.4) |
+| *Return authorized* | Label | Triggers the whole approval (§6.5) and locks the item |
+| *Request rejected* / *Cancelled* | Labels; the units stay counted as "returned" | Mark the item as rejected: no fee, no credit, no exchange. The customer is e-mailed with the decision note, and the units can be returned again |
+| Refunds | nopCommerce's order refund (payment gateway) is a separate action on the order | CW does not refund to card; money comes back as store credit |
+
+---
+
+## 5. The customer's journey, screen by screen
+
+The screens below are from the test store, signed in as **Steve Gates**, an employee with a uniform subsidy
+(units for the *Footwear & Hats* group plus global money). His order **#2013** contained 2 running shirts, a hat
+and a pair of shoes, all paid by his subsidy.
+
+### 5.1 Starting a return
+
+On *My account › Orders*, the order page shows **Return Item(s)** when the order can be returned (returns are
+switched on, the order is *Complete*, it is within the allowed number of days, and something is left to return).
+
+![Order page with the Return Item(s) button](images/returns/c-order-return-button.jpg)
+
+*The bottom of order #2013: the order was fully paid by subsidy (Payable balance $0.00). The* Return Item(s)
+*button starts the wizard.*
+
+### 5.2 Steps 1 and 2 — which items, and why
+
+![Wizard steps 1 and 2](images/returns/w1-step1-2.jpg)
+
+- **Step 1** lists every item of the order with a picture in the colour bought and the **packname** it was for. The
+  quantity box only goes up to what can still be returned: units that have **shipped** and are not already in
+  another return request. An item that has been fully requested disappears from the list.
+- **Step 2** asks for the **reason**. Only the reasons the store has switched on are listed, and choosing a reason
+  refreshes the **action** list with the actions linked to it (a reason with no linked actions offers every active
+  action). A comment is optional. If the store has no reason
+  switched on, the page says *"Returns can't be requested online at the moment. Please contact us about returning
+  items from this order."* instead of showing the form.
+
+### 5.3 Step 3 — credit or exchange
+
+The buttons offered depend on the reason and action chosen. With the action **Replacement** the customer sees
+**Request exchange**; with **Store Credit** they see **Request credit note**; when both are allowed, both buttons
+appear. While the store has **store credit switched off**, *Request credit note* is not offered; if that leaves
+nothing for the chosen reason and action, the page says so and asks the customer to choose another combination.
+
+![Step 3 with only the exchange option](images/returns/w1-step3-mode.jpg)
+
+For an exchange, each returned item needs an **exchange type** and a **replacement product**:
+
+![Choosing the exchange type](images/returns/w1-step3-exchange-type.jpg)
+
+**Same style** opens the same product with its options already set to what was bought, so the customer only
+changes what they mean to (here the size):
+
+![Same-style picker](images/returns/w1-same-style-picker.jpg)
+
+**Different style** opens a searchable, paged list of the products the customer is allowed to order. If their
+subsidy only allows certain products, only those are offered.
+
+![Different-style picker](images/returns/w4-different-style-picker.jpg)
+
+A replacement must have **every option chosen** before it can be picked:
+
+![Required options message](images/returns/w4-options-required.jpg)
+
+Products that need details the wizard cannot take (text to print, a date, a file, a rental period, gift-card
+recipient details) are still listed; choosing one tells the customer which details cannot be taken online and to
+pick something else or contact Sales Support.
+
+**Fees are shown before the customer commits.** When the reason and action carry fees, step 3 lists them:
+
+![Fee preview on step 3](images/returns/w2-step3-fees.jpg)
+
+For a **credit** return the items to be credited are listed (the fee estimate appears on the summary in step 4):
+
+![Step 3 for a credit return](images/returns/w3-step3-credit.jpg)
+
+### 5.4 Step 4 — review and confirm
+
+The summary repeats the order, reason, action, comment and items, and estimates what the customer may have to
+pay or receive. Three examples from the test run:
+
+**An exchange with no fees** — Small shirt for a 2X shirt, nothing to pay:
+
+![Summary — exchange, no fees](images/returns/w1-step4-summary.jpg)
+
+**An exchange with fees** — size 9 shoes for size 10, $8.00 of fees:
+
+![Summary — exchange with fees](images/returns/w2-step4-summary-fees.jpg)
+
+**An exchange for something dearer** — James Pan swaps a $15 shirt for a $30 hat, so $15 more may be due:
+
+![Summary — dearer different-style exchange](images/returns/w4-summary-dearer.jpg)
+
+**A return for credit with fees** — a $40 pair of shoes, $8 of fees, at most $32 of store credit:
+
+![Summary — credit return with fees](images/returns/w5-summary-credit-fees.jpg)
+
+The notes under every summary explain the rules in the customer's words: a negative amount is in their favour;
+anything paid by subsidy goes back to the subsidy and only what they paid by card or cash comes back as
+store credit; fees are estimates until staff review the return.
+
+![Notes under the summary](images/returns/w1-step4-notes.jpg)
+
+When the customer presses **Confirm return**, the system checks everything again (quantities, reason and action,
+credit or exchange, that the replacement fits its type, has all its options and is one they may order). If
+something no longer passes, they stay on the same step with their choices kept and a message explaining what to
+fix.
+
+### 5.5 The confirmation and return note
+
+After confirming, a **Return requests created** panel opens over the customer's returns list, one block per item,
+with the instructions for sending the parcel back. **Print all** opens the printable return note.
+
+![Confirmation panel](images/returns/w1-confirmation-panel.jpg)
+
+If the store setting *Allow closing without printing the return note* is **off** (as in the test store), the
+customer is reminded *"Please print the return request and include it in the box with the garments"* until they
+have pressed **Print all**.
+
+### 5.6 My account › Return requests
+
+Each return is listed with its status. While a return is **Pending**, the customer can change the options of the
+chosen replacement (for example the size) with **Edit exchange item**, without starting over. The product itself
+cannot be changed this way, and the button is not offered for an **Exact** exchange.
+
+![My returns — pending exchange](images/returns/c-my-returns-pending.jpg)
+
+After Sales Support decide, the status changes and the note staff wrote with their decision appears as **Note from
+the store**. Below: the hat was **authorised**, the shirt returned with it was **rejected**, and each shows its note:
+
+![My returns — authorised and rejected, with the store's notes](images/returns/c-my-returns-decided.jpg)
+
+A rejected or cancelled item also sends the customer an e-mail with the same note (§7).
+
+### 5.7 Completing an exchange that needs payment
+
+When an approved exchange still has something to pay (fees, or a dearer replacement), the replacement is placed in
+the customer's cart and they receive an e-mail (§7). The checkout shows the replacement and what is due:
+
+![Checkout with an exchange replacement](images/returns/c-cart-replacement.jpg)
+
+*Steve's size 9 shoes. The shoes are paid by his subsidy (the size 8 pair's unit came back at approval) and the parcel
+holds only the replacement, so there is no delivery charge; the payable balance is the **$10.00 of fees** ($5
+redelivery + $3 repackaging + $2 one-off fee).*
+
+Good to know:
+
+- The replacement line **cannot be removed and its quantity cannot be reduced** (it can be increased — buying more
+  is ordinary shopping).
+- The customer can add other items and pay for them in the same checkout. Note that the value of the returned
+  garment went back to the subsidy (or onto a credit note) at approval, so it is available to anything in that
+  checkout, not only to the replacement.
+- There is no time limit. The returned garment is always valued at what the customer actually paid for it (a bulk
+  or tier price included). An **Exact** replacement is charged at that same price; a **same-style** or
+  **different-style** replacement is charged at its current price.
+- The customer cannot cancel an approved exchange; they contact the store.
+
+The placed replacement order shows the breakdown, fees included:
+
+![Replacement order totals](images/returns/c-exchange-order-totals.jpg)
+
+**Delivery on a replacement.** A parcel that holds **only replacements** has no delivery charge — the redelivery fee
+(when the store's rules apply one) is what the customer pays to have it sent. If the customer adds other shopping
+for the same delivery address, that parcel is charged delivery as usual. James Pan's replacement hat:
+
+![Replacement order with no delivery charge](images/returns/c-exchange-order-no-delivery.jpg)
+
+*Order #3013: the $30 hat replaced a $15 shirt. Shipping $0.00; his store credit ($15 from the returned shirt plus
+$9.44 left from before) paid $24.44, and he paid $5.56.*
+
+### 5.8 My account › Subsidies
+
+The employee's subsidy page shows what is left and, under **History**, every order, top-up and return behind the
+figures. Returns appear as **"Return on order #… — given back"**:
+
+![Subsidy page with history](images/returns/c-subsidies-history.jpg)
+
+*Reading from the bottom: order #3014 used 1 unit and $24.95 of delivery; the approved exchange gave the unit back
+(+1); the replacement order #3015 used 1 unit and, sent on its own, no delivery.*
+
+### 5.9 My account › My Store Credit
+
+Customers who hold, or have ever held, store credit see **My Store Credit** in their account: the available balance,
+each credit note (what it was issued for, its amount and what is left of it) and every order their credit was used
+on, with links to those orders. Store credit is applied automatically at checkout — the customer does not have to
+choose it — and it appears as a *Store credit* line in the order summary.
+
+![My Store Credit](images/returns/c-my-store-credit.jpg)
+
+*James Pan after his hat was returned for credit: one note of $22.00 ($30 less $8 of fees). The lower table lists
+where earlier credit was spent.*
+
+### 5.10 When Exchanges is switched off: nopCommerce's own form
+
+When a store has **Enable Exchanges** off, the **Return Item(s)** button opens nopCommerce's one-page form instead
+of the wizard: quantities (still only shipped units), reason, action and a comment. The request is logged as
+*Pending* and the two nopCommerce e-mails are sent, but there is no credit/exchange choice, no fee, no receipt, and
+approving it in admin gives nothing back. The same form is what a guest reaches through nopCommerce's withdrawal
+link (§4.3).
+
+![nopCommerce's own return form (Exchanges off)](images/returns/c-nop-plain-form.jpg)
+
+*The same store with Exchanges switched off. Every action is listed, including* Repair*, which the CW rules
+switch off: nopCommerce's form does not read CW's rules.*
+
+---
+
+## 6. The Sales Support journey, screen by screen
+
+### 6.1 The returns list
+
+*Sales › Return requests* is nopCommerce's own list: one line per returned item, with its status. Items submitted
+together appear as consecutive numbers.
+
+![Admin returns list](images/returns/a-return-list.jpg)
+
+### 6.2 The return page
+
+Opening a line shows nopCommerce's return page with CW's information added:
+
+![Admin return page](images/returns/a-edit-top.jpg)
+
+- **Basic data** — store, branch, the **packname** the item was ordered for, whether the customer asked for an
+  exchange or a credit note and, for an exchange, the exchange type and the **replacement** chosen (product, options
+  and price).
+- **Misc information** — the order, customer, product, quantity, price, **status**, **reason** and **requested
+  action** (both can be corrected; the action list follows the reason), the **Decision note**, the customer's
+  comments and the staff notes.
+- **Returned together** — when several items came back in one submission, a table lists them all with their
+  decision so far, and links to open each one (see §6.5).
+- **Fees and charges** — the money side, described next.
+
+### 6.3 Fees and charges
+
+When the reason and action carry fees, the panel shows the fee quantities and amounts, which staff can change
+before approving:
+
+![Fees and charges panel](images/returns/a-fees-panel.jpg)
+
+- **Re-Shipped Quantity** drives the redelivery fee, **Repackaged Quantity** the repackaging fee. Both default to
+  the returned quantity and can be lowered (to 0 to waive a fee).
+- **Enable Additional Fee** adds a one-off fee with a description:
+
+![Additional fee](images/returns/a-fees-additional.jpg)
+
+- **Minimum Payment Required** is what the customer will have to pay for an exchange; for a credit return the panel
+  shows the most the customer could receive as store credit instead.
+- Once an item is **rejected** or **cancelled**, the panel says so: nothing is credited or charged for it.
+
+![Fees panel of a rejected item](images/returns/a-fees-rejected.jpg)
+
+When the reason and action carry no fees, the panel shows only the amounts:
+
+![Fees panel with no fees](images/returns/a-edit-bottom-nofees.jpg)
+
+### 6.4 Deciding an item — what each status means
+
+| Status saved | What happens |
 |---|---|
-| A subsidy **unit** | **One unit**, to the same product group. The price of the garment is irrelevant. |
-| **Product-group money** | That money, to **that same product group's** allocation |
-| **Global subsidy money** | That money, to the global pot |
-| A **credit note** | A **new** credit note for the item's price. Nothing is put back onto the original note |
-| The **customer's own money** | A credit note for that amount |
+| **Pending**, **Received** | Saved. Nothing else happens. Use *Received* to note that the parcel arrived. Setting a **rejected** item back to one of these **re-opens** it: its decision note is cleared and it can be decided again |
+| **Return authorized** | The item is **accepted**. A confirmation box appears; then the approval runs (§6.5) and the item is **locked** (only staff notes can change afterwards). If the store's rules say so, the returned quantity goes **back in stock** (§10.3) |
+| **Request rejected** or **Cancelled** | The item is **rejected**: no fee, no store credit, no exchange. The customer is **e-mailed** with the decision note, and the units can be returned again. Moving between *Rejected* and *Cancelled* sends nothing more |
+| **Item(s) repaired**, **Item(s) refunded** | Only the label changes. **Nothing is given back, nothing is charged**, and the item does not count as decided (§11) |
 
-Money only comes back as a credit note when the return's reason and action **allow store credit** (§6.3).
-Subsidy always comes back.
+A rejected item cannot be re-opened once the customer has returned the same units in a **new** return — otherwise
+both returns could be approved for the same garment. The page then says which to decide instead:
 
-**Only the money the customer put in comes back as a credit note** — the returned garment's price minus
-the subsidy that went back in kind. A garment paid entirely by a unit raises no credit note at all; one
-paid $30 by subsidy and $15 by the customer raises a $15 note.
+![Re-opening refused](images/returns/a-reopen-refused.jpg)
 
-> **✅ Live since 11 September 2026.** The rule above is the real behaviour: the entitlement goes back the
-> moment the return is authorised, and the replacement draws on it at checkout. Until then the system took
-> a shortcut — every exchange raised a credit note for the garment's full price and that note paid for the
-> replacement. The money was always right; the route was wrong, and a customer could watch a note appear
-> and vanish.
->
-> **✅ Live since 11 September 2026.** An exchange with no fees that the returned entitlement covers
-> outright is now placed for the customer outright — no cart step, nothing to pay, a replacement order
-> already on its way. Anything with a fee, or with a balance to settle, still goes to the cart as before.
+Changing the status to *Return authorized* asks for confirmation first:
 
-### 5.2 Why this matters — an example
+![Approval confirmation](images/returns/a-approve-confirm.jpg)
 
-An employee has an entitlement of *two shirts a year*. They order a $45 shirt using one unit. It is the
-wrong size, so they exchange it for the same shirt in a larger size, which happens to cost $40.
+### 6.5 What an approval does — the four outcomes seen in the test run
 
-Under the rule above: **one unit comes back, and one unit is spent on the replacement.** Net effect: they
-have used one of their two shirts, exactly as intended. The $5 price difference never enters into it,
-because they never spent dollars — they spent a shirt.
+**A. Exchange, nothing to pay → the replacement order is placed automatically.**
+Return #1003 (shirt Small → 2X, no fees, paid by a unit). The unit came back, paid for the replacement, and order
+**#2014** was created straight away. The customer is e-mailed "approved — nothing to pay".
 
-The alternative — refunding $45 as credit and charging $40 — would leave them $5 of spendable credit and
-still consume a unit, quietly turning a uniform entitlement into pocket money. That is the outcome this
-rule exists to prevent.
+![Approved — replacement order placed automatically](images/returns/a-approved-pathA.jpg)
 
-### 5.3 When the replacement costs more or less
+**B. Exchange with something to pay → the replacement goes to the customer's cart.**
+Return #1004 (shoes size 8 → 9, $10 of fees). The unit came back, the replacement went into Steve's cart, and he
+was e-mailed "approved — please complete your order" with the $10.00 to pay. The page offers **Checkout
+Notification**, **Impersonate** and **Undo Approval** (§6.6).
 
-**"More" and "less" are measured against what the customer actually paid for the garment they returned** —
-not against today's price. If they bought it on a bulk discount at $21 when the shelf price was $24, the
-exchange is worked out at $21, and it stays $21 however the price moves afterwards.
+![Approved — waiting for the customer](images/returns/a-approved-pathB.jpg)
 
-- **Costs more** — the difference is settled the ordinary way: any remaining subsidy first, then credit
-  notes, then the customer pays what is left.
-- **Costs less, and the original was paid with money** (their own, or a credit note) — the difference
-  becomes a credit note for them.
-- **Costs less, and the original was paid with a unit** — there is no difference. A unit went back and a
-  unit came out.
-- **Costs less, and the original was paid with subsidy money** — the unspent amount simply stays in the
-  pot it was returned to.
+**C. Return for credit of an item paid by subsidy → the subsidy comes back, no credit note.**
+Return #1006 (hat, paid by a unit). The unit went back to Steve's subsidy; because he paid no money for it, no
+credit note was raised. The *Returned together* table shows the shirt sent back in the same parcel, still to decide:
 
-### 5.4 If the item is not covered by a subsidy
+![Credit return of a subsidised item](images/returns/a-credit-unit-approved.jpg)
 
-Then it works like ordinary retail: the customer pays for the replacement, less any store credit they
-hold.
+**D. Rejection.** Return #1005 (the shirt from the same parcel) was rejected with a decision note. Nothing is
+charged or given back; the customer is e-mailed the note and sees it on their returns page:
 
-There is **no restriction on what a customer may exchange for.** They can swap a shirt for a jacket if
-they want. If the replacement is not covered by their entitlement, they simply pay for it.
+![A rejected item](images/returns/a-rejected-line.jpg)
 
-### 5.5 If an order is cancelled
+**E. Return for credit of an item the customer paid for → a credit note, less the fees.**
+Return #1008 (James Pan's $30 hat, paid with his own money, reason with fees): a credit note of **$22.00** was
+raised ($30 − $5 redelivery − $3 repackaging).
 
-Everything used on it comes back — subsidy and store credit both — automatically, with no action needed
-from anyone.
+![Credit note raised on approval](images/returns/a-credit-note-raised.jpg)
 
-### 5.6 Three things that are decided, not accidental
+**F. Exchange paid entirely by store credit → placed automatically.**
+Return #1009 (James's $15 shirt for $27.56 shoes, no fees): the shirt's $15 came back as a credit note, and that
+note together with his $22 note covered the shoes, so order **#2017** was placed straight away and paid by store
+credit. The replacement order records which return it came from (*Related to Return Request ID 1009*):
 
-- **Delivery paid by subsidy is not given back on a return.** The parcel was shipped. (Manager, 2026-09-10.)
-- **Whether the order was invoiced makes no difference.** The 2018 design wanted a credit note instead of
-  subsidy once an order had reached accounts; there is no accounting link in the rebuild and the
-  entitlement always goes back to the pot. (Manager, 2026-09-10.)
-- **A return of an order from an earlier subsidy period gives the entitlement back to that earlier
-  period.** A lapsed unit comes back lapsed, so nothing becomes spendable. (Manager, 2026-09-10.)
-- **A return for credit of a garment paid entirely by subsidy has nothing to deduct the fees from.** The
-  entitlement goes back, no credit note is raised, and no fee is collected. The approval screen says so,
-  and Sales Support set the fee quantities to zero if the fees should not stand — the same box they use
-  for every other exception. (Manager, 2026-09-10.)
+![Replacement order paid by store credit](images/returns/a-replacement-order-credit.jpg)
 
-### 5.7 Fees are worked out once
+**G. A replacement that is normally sold only with other products.** Return #1007 asked for the Obey hat, which the
+catalogue sells only together with the shirt (*required products*). A replacement is not a sale, so it goes to the
+customer on its own: on approval the hat alone went into James's cart (he had $15 more to pay), and the shirt was
+**not** added. With the reason, action and status rules all ticking *Back in stock*, the returned shirt also went
+back to stock (*Quantity returned to stock: 1*):
 
-The fees quoted at approval are the fees charged. If someone later changes the fee settings for a store,
-returns already approved are unaffected.
+![Approved replacement that normally requires other products](images/returns/a-approved-required-product.jpg)
 
----
+If the exchange step fails during an approval, everything the approval did is undone and an error is shown.
+Approving the same item twice has no effect the second time.
 
-## 6. Configuration — the options available
+An exchange with nothing to pay also goes to the customer's cart (instead of being placed automatically) when the
+replacement does not pass the store's normal cart checks — for example a required option is missing.
 
-### 6.1 Turning it on and off
+### 6.6 After an approval that is waiting for the customer
 
-Exchanges and credit notes can each be switched on or off **per store**. When off, the relevant features
-disappear for that store's customers.
+| Button | What it does |
+|---|---|
+| **Checkout Notification** | Sends the "please complete your order" e-mail again, with the amount the cart asks for now (the earlier unsent e-mail is withdrawn) |
+| **Impersonate** | Signs the administrator in as the customer and opens their cart, to finish the checkout for them. Works only for returns of the store the administrator is signed into |
+| **Undo Approval** | Reverses everything the approval did — subsidy given back, credit note raised, replacement in the cart, the unsent e-mail — and puts the item back to *Pending* |
 
-One rule is worth knowing: switching a feature off stops *new* activity, but never blocks *finishing*
-something already in flight. An existing credit note balance stays visible and spendable, an approved
-exchange can still be completed, and money owed still comes back on a cancellation.
+**Undo Approval** asks for confirmation:
 
-### 6.2 Return reasons and actions
+![Undo approval confirmation](images/returns/a-undo-confirm.jpg)
 
-**Reasons** are why the customer is sending something back — faulty, wrong size, changed mind, and so on.
-**Actions** are what they are asking for. Each store controls which actions are offered for which reason,
-so a customer choosing "faulty" sees a different set of options from one choosing "changed mind".
+In the test run, return #1004 was approved, undone and approved again: the subsidy history shows the unit given
+back once, and the first "please complete" e-mail disappeared from the queue.
 
-### 6.3 Rules — what each combination allows
+**An exchange that was placed automatically (outcome A) has no Undo.** To reverse it, cancel the replacement
+order: the subsidy and any store credit it used come back automatically.
 
-For each reason and each action, a store decides:
+### 6.7 Spotting returns and exchanges in the order lists
 
-- Whether **store credit** is allowed
-- Whether an **exchange** is allowed
-- Whether the **repackaging fee** applies
-- Whether the **redelivery fee** applies
-- Whether the returned stock goes **back into inventory**
-- Whether the reason or action is **disabled** for that store
+*Sales › Orders* and the *Orders* tab of a customer mark each order:
 
-A capability is only available when **everything agrees** — the reason, the action, and the return's
-status all have to allow it. In practice the *Return authorized* status rule must have **Perform store credit** and
-**Perform exchange** ticked, otherwise authorising a return gives nothing back and places no exchange. Anything not explicitly configured counts as *not allowed*. This is
-deliberate: it fails safe. The practical consequence is that a newly added reason does nothing until it
-has been configured, which is worth remembering when troubleshooting "why did nothing happen?".
+- **E** — the order contains a replacement sent for an exchange (in the test run: orders #2014 and #2015);
+- **R** — an item of the order was returned and authorised (later marked *repaired* or *refunded* counts too).
+  Pending, received, rejected and cancelled returns do not count. An order can carry both.
 
-#### ⚠️ "Allow store credit" also decides whether an exchange gives the value back
+![E and R badges in the order list](images/returns/a-order-badges.jpg)
 
-This is the one combination worth understanding before setting up a new reason or action, because the
-result surprises people.
+On the original order's own page, a *Return requests* block lists its returns and the store credit applied, and a
+replacement order shows which return it came from under *Custom values*.
 
-**Allow store credit does two jobs.** It decides whether the customer may choose *credit note* as the
-outcome of their return — and it decides whether the value of the returned garment comes back **at all**,
-including on an exchange.
+### 6.8 Store credit in admin
 
-**In the previous system, with it ticked** — and it is ticked on the Exchange action in 84 of 85 stores,
-and on every exchange-enabled reason in all but one store (checked against the live rules on
-10 September 2026) — authorising an exchange raises a credit note for the returned garment's **full**
-price, whether the garment was paid by the customer or by their subsidy. On a garment with no fees the
-note silently pays the automatically placed replacement, so nobody ever sees it — a uniform unit has been
-turned into store credit and spent. On a garment with fees the note pays the replacement at checkout
-**and** the subsidy is refunded on top, as money into the top-up pot — the same value comes back twice.
-**With it unticked**, no note is raised and the customer pays the replacement's full price on top of the
-fees — **$28** for a $20 cap, having already paid $20 for the original.
+- **On the customer's page** (*Customers › (customer) › Credit Notes*): the available balance, the customer's credit
+  notes (order, reason, amount, remaining, date) and where each was spent.
+- **Add a manual credit note**: choose one of the customer's orders, give a description and an amount. This needs
+  the *Allow manual credit notes* permission as well as access to credit notes, and Credit Notes must be switched
+  on for the store.
+- **Delete**: removes a note issued by mistake. It is offered only on a note that has not been spent at all; a note
+  that has paid for an order cannot be deleted.
 
-**The rebuild does not keep either outcome** (manager, 2026-09-10):
+![Credit notes on the customer's page](images/returns/a-customer-credit-notes.jpg)
 
-- The value comes back **once**, in the form it was paid: entitlement in kind, money as a credit note (§5.1).
-- The money note is raised **whenever an exchange is performed**, whatever the store-credit tick says, so a
-  customer can never pay twice for a garment. The tick still decides whether the customer may *choose*
-  credit note as the outcome of a return, and whether a return for credit raises one.
+*James's card after the test run: every note has been spent, so none offers Delete. A $5 note added by hand during
+the test showed Delete and was deleted.*
+- **Credit Notes Report** (*CW Admin › Exchanges & Returns › Credit Notes Report*): per store, how many notes were
+  issued and fully used, the total issued and the **outstanding liability** (what the business still owes
+  customers); and per store, which customers hold a balance.
 
-So on an exchange the tick no longer changes what the customer gets back. It still matters on a return
-for credit.
-
-### 6.4 Fee settings
-
-Each store sets, for each fee type:
-
-- The **amount**
-- Whether it is a **flat charge** or **per so-many garments**
-- The **number of garments** the amount covers, when it is the second kind
-
-Stores can inherit these from a **global default** rather than defining their own, and the settings screen
-shows which values are inherited. Editing an inherited value creates a store-specific override rather than
-changing it for everyone.
+![Credit notes report](images/returns/a-credit-report.jpg)
 
 ---
 
-## 7. Worked examples
+## 7. E-mails
 
-Using typical settings: repackaging **$3.00 per garment**, redelivery **$5.00 per 4 garments**.
-
-### Example 1 — the everyday case: wrong size
-
-An employee orders a shirt using one unit of their entitlement. It is too small.
-
-They request an exchange, same style, larger size. Sales Support accepts it. Fees for the reason "wrong
-size" are configured to apply: $3 repackaging, $5 redelivery — $8 total.
-
-- One unit is returned to their entitlement, and no credit note is raised — they paid with a unit, not
-  with money.
-- The replacement waits in their cart; when they open it, the unit pays for the replacement.
-- Fees are **$8**, and they pay those themselves in either case. Store credit and subsidy are never used
-  for fees (§2) — even if this employee is holding $50 of store credit, the $8 is theirs to pay.
-- The replacement waits in their cart until they do.
-
-### Example 2 — five garments, one parcel
-
-A site manager returns five jackets from one order, all the wrong size. That is five return requests, one
-per jacket.
-
-- Repackaging: 5 × $3 = **$15**
-- Redelivery, if nothing is touched: 5 × $5 = **$25**, because each line carries its own fee
-- Redelivery, after Sales Support zero the *Re-Shipped Quantity* on four of the five lines: **$5**
-- Total as staff would normally leave it: **$20**
-
-**Zeroing those four boxes is the step that makes it one fee per parcel.** It is not automatic, and that
-is intended — the same box is how staff waive or adjust a fee after a conversation with the customer.
-
-### Example 3 — one item rejected
-
-Same as example 2, but one of the five jackets comes back visibly worn and is rejected.
-
-- Repackaging: 4 × $3 = **$12** — nothing for the rejected one
-- Redelivery: the rejected line raises no fee at all; of the four accepted lines, staff leave one carrying
-  **$5** and zero the rest
-- Total: **$17**
-
-The rejected jacket costs the customer nothing — no repackaging, no redelivery, and it is not exchanged.
-
-### Example 4 — faulty item
-
-An employee reports a faulty garment. The store has configured "faulty" so that no fees apply.
-
-- No repackaging fee, no redelivery fee.
-- The unit returns to their entitlement and is spent again on the replacement.
-- Nothing to pay. The replacement order is placed straight away and they are told it is on its way.
-
-### Example 5 — returning for credit instead of a replacement
-
-An employee returns a $60 jacket bought with their own money and asks for store credit rather than a
-replacement. Fees apply: $3 repackaging, $5 redelivery — although with no redelivery happening, most
-stores would configure this reason not to charge it.
-
-Assuming just the $3: they receive a credit note for **$57**, which they can spend on any future order.
-
-### Example 6 — exchanging for something dearer
-
-An employee returns a $45 shirt bought with one unit, and asks for a $70 jacket instead — a different
-product, not covered by any unit allocation they hold.
-
-- One unit returns to their entitlement.
-- The jacket is settled the ordinary way: any subsidy money available is applied first (the global pot —
-  the returned unit cannot pay for a jacket), then any store credit they hold, then they pay the rest.
-- The returned unit stays available for a future shirt.
-
----
-
-## 8. Limits worth knowing
-
-- **A return can only be requested for items that have shipped.** Something not yet dispatched has to be
-  handled as a cancellation instead.
-- **Quantities already returned cannot be returned again.**
-- **A customer cannot cancel an approved exchange themselves** — they ring in.
-- **There is no expiry** on an unpaid exchange. It waits indefinitely.
-- **A credit note already issued stays with the customer**, whatever subsequently happens to the exchange.
-- **Nothing is sent to the accounting system automatically at present.** Return outcomes and credit notes
-  are not yet synchronised to Jim2; that connection existed in the previous system and has not yet been
-  rebuilt.
-
----
-
-## 9. Where the rebuild has got to
-
-**Shipped** means built, tested and running in the rebuild. **Not yet** means agreed and specified but not
-built — the previous system's behaviour still applies.
-
-| | Previous system | Rebuild | Status |
+| When | E-mail | To | Sent by |
 |---|---|---|---|
-| **Redelivery fee on a multi-item return** | Per item; staff zero the quantity on all but one line | **Unchanged, deliberately.** An earlier draft automated it; reversed 2026-08-24 — the manual box is also how staff adjust a fee after speaking to a customer | **No change** |
-| **Subsidy given back on a return or exchange** | A credit note for the full price on every exchange (the live rules allow it everywhere); on an exchange with fees the subsidy is *also* refunded as top-up money — value back twice. On a return for credit, a full-price credit note even for a subsidised garment | Back **in kind**, once: units to units, group money to that group, global to global; only the customer's own money becomes a credit note (§5.1) | ✅ **Shipped 2026-09-11** |
-| **Subsidy on a replacement that needs payment** | Charged again at checkout, from the refunded top-up money or another unit | The replacement draws on the restored entitlement first, then credit notes, then the customer pays | ✅ **Shipped 2026-09-11** |
-| **Rejecting an item** | Not really supported — approval is effectively all-or-nothing | Per item, with rejected items free of charge | ✅ **Shipped** |
-| **Fees on historical returns** | Recalculated from current settings, so editing a fee setting changes past returns | Recorded at approval and fixed | ✅ **Shipped** |
-| **Price quoted at approval** | The customer pays whatever the price is when they check out | They pay what they actually paid for the garment they returned — a bulk or tier price included — however the catalogue price moves afterwards | ✅ **Shipped 2026-09-11** |
-| **Approving twice** | Possible to double up | Has no effect the second time | ✅ **Shipped** |
-| **Exchanging one of a pair** | A product that must be bought 2, 4 or 6 at a time could not be exchanged one at a time | One may be exchanged on its own. The customer already bought the pair; swapping one of them is not a new purchase | ✅ **Shipped 2026-09-11** |
-| **A straightforward faulty-item swap** | The customer had to open their basket and complete a $0 checkout | Nothing to pay and no fee means the replacement order is simply placed for them | ✅ **Shipped 2026-09-11** |
-| **Delivery paid by subsidy** | — | Covered by the global pot when the store allows it, and **not** given back on a return (§5.6) | ✅ **Shipped 2026-09-11** |
-| **Order in which store credit and subsidy are applied** | Store credit first at the money level; product-group units and money were consumed anyway, so a unit and a credit note could both pay for one garment | **Subsidy first, then store credit** (§3.1), each consumed once | ✅ **Shipped 2026-09-11** |
-| **Store credit *and* subsidy charged for the same order** | An order can consume store credit **and** the full subsidy for the same value, draining both | Each is consumed once, in order; together they never exceed the order value | ✅ **Shipped** |
-| **A returned item sitting in the basket** | Consumes subsidy a second time when the replacement is checked out | The replacement consumes subsidy exactly once — the entitlement the returned garment consumed has already been given back | ✅ **Shipped 2026-09-11** |
+| A return is submitted (one per item) | *New return request* | Store owner | nopCommerce |
+| A return is submitted (one per item) | *New return request* — the details of the request | Customer | nopCommerce |
+| A return is submitted (one per item) | **Your Return Request has been received** — what to do next and the returns address, with a *For:* line naming the employee | Customer | CW |
+| An exchange is approved and nothing is owed | **Your return #… is approved** — the replacement order number | Customer | CW |
+| An exchange is approved and something is owed | **Your return #… is approved – please complete your order** — the amount to pay and what it includes | Customer | CW |
+| Staff press *Checkout Notification* | The same "please complete" e-mail, with the current amount | Customer | CW |
+| A return is approved **without a replacement** (a credit return, or an exchange the rules settle as credit) | **Your return #… is approved** — the store credit raised and/or that the subsidy was given back. Not sent when nothing came back (the fees took the whole note and no subsidy was paid) | Customer | CW |
+| An item is **rejected or cancelled** | **Update on your return #…** — the status and the staff's decision note | Customer | CW |
+| Staff press *Notify customer about status change* | *Return request status was changed* | Customer | nopCommerce |
 
-Nothing about the customer's journey changes: the same wizard, the same choices, the same cart-based
-completion for exchanges that need paying for.
+The approval and rejection e-mails from the test run:
 
-The wizard itself has already been rebuilt — it was carried over from the previous system incompletely and
-several parts of it did not work. That work is finished and is described in §3.2. What happens to the
-money and the entitlement after a return is submitted was the last large piece, and it was tested against
-a live store on 11 September 2026 across twenty-three scenarios covering every combination of units, group
-money, global money, store credit and the customer's own money.
+![E-mail — approved, nothing to pay](images/returns/e-approved-nothing-to-pay.jpg)
 
-**Still to come:** recording which return an exchange order came from.
+![E-mail — approved, please complete your order](images/returns/e-approved-payment.jpg)
 
-**One thing worth knowing about approvals.** When a return needs nothing further — no fee, and the
-returned entitlement covers the replacement — approving it places the replacement order straight away and
-closes the case, so there is no *Undo Approval* afterwards. That is how the previous system behaved too.
-If one is approved in error, cancel the replacement order: the entitlement and any store credit go back to
-the employee automatically. Returns that still owe a fee keep their *Undo Approval* as before.
+![E-mail — credit return approved (paid by subsidy)](images/returns/e-credit-approved.jpg)
 
-**Two things are with the manager**, both in `CWPlans/Deprecated/Exchanges_Questions_For_Manager.md`: whether an
-exchange should be charged delivery **and** the redelivery fee (question 15 — on a store with real freight
-this is the whole delivery cost on every exchange), and whether a customer should be able to choose their
-billing address (question 16).
+![E-mail — return rejected, with the decision note](images/returns/e-rejected.jpg)
+
+All CW templates can be edited under *Content management › Message templates* (`Return.Receipt`,
+`ReturnAuthorisedExcepted.CustomerNotification`, `ReturnAuthorisedPayment.CustomerNotification`,
+`ReturnAuthorisedCredit.CustomerNotification`, `ReturnRejected.CustomerNotification`). The *Undo Approval* button
+withdraws the approval e-mail while it is still unsent; it is offered only while an exchange waits for the customer
+(§6.6), so a credit approval's e-mail cannot be withdrawn that way.
+
+---
+
+## 8. What happens to the money
+
+### 8.1 At checkout (any order, including replacements)
+
+See the settlement diagram in §3. In words: subsidy first (units, then group money, then global money, each base
+before its top-ups), then store credit (oldest note first), then the customer pays what is left. Fees are added on
+top and paid by the customer.
+
+The checkout, the order page, the confirmation e-mail and the invoice all show it in that order: *Total before
+subsidy and credit*, *Subsidy applied* (split into items and shipping), *Store credit*, the customer's own discounts
+and fees, and the *Payable balance*.
+
+### 8.2 On a return — "you get back what you spent"
+
+| What paid for the returned item | What comes back when the item is approved |
+|---|---|
+| A subsidy **unit** | **One unit**, to the same product group. The price does not matter |
+| **Product-group money** | That money, to the same product group |
+| **Global subsidy money** | That money, to the global pot |
+| **Store credit** or the **customer's own money** | A **new** credit note for that amount (on a credit return, minus the fees). Nothing is put back on the old note |
+| **Delivery** paid by subsidy | Not given back — the parcel was shipped |
+
+- On an **exchange**, the value comes back first and the replacement then uses it, so a unit goes back and a unit
+  comes out. If the replacement costs **more**, the difference is settled the usual way (any subsidy left, then
+  store credit, then the customer pays). If it costs **less**: a unit-paid original leaves nothing over; a
+  money-paid original leaves the difference where it came from (on the credit note, or in the subsidy pot).
+- "More" and "less" are measured against **what the customer actually paid** for the returned garment, not today's
+  price.
+- An item from an **earlier subsidy period** gives its entitlement back to that earlier period; a lapsed unit comes
+  back lapsed.
+- Whether the order was invoiced makes no difference.
+- **Cancelling an order** gives back everything it used — subsidy and store credit — automatically.
+- Fees are fixed once **every item of the same submission** has been decided (accepted or rejected). Until then
+  they follow the current fee settings; after that, changing the fee settings does not change them.
+
+---
+
+## 9. Worked scenarios from the test store
+
+Settings during the run: repackaging **$3.00 per garment**, redelivery **$5.00 per 4 garments**. Reasons:
+*Received Wrong Product* and *There Was A Problem With The Product* carry **no** fees; *Wrong Product Ordered*
+carries both fees.
+
+| # | Customer, item, how it was paid | Request | Decision | Result |
+|---|---|---|---|---|
+| 1 | Steve, shirt $15, **subsidy unit** | Exchange, same style (Small → 2X), *Received Wrong Product* (no fees) | Return authorized | Unit back and spent on the replacement. **Order #2014 placed automatically, $0.00.** E-mail "approved — nothing to pay" |
+| 2 | Steve, shoes $40, **subsidy unit** | Exchange, same style (size 8 → 9), *Wrong Product Ordered* (fees) | Staff added a $2 one-off fee; Return authorized | Unit back. Replacement in the cart; **$10.00 to pay** ($5 + $3 + $2). Steve checked out: order **#3015**; the subsidy paid the shoes, there was **no delivery charge** (the parcel held only the replacement), and he paid $10.00 |
+| 3 | Steve, hat $30, **subsidy unit** | Credit, *There Was A Problem* (no fees) | Return authorized | Unit back to his subsidy. **No credit note** — he paid no money for the hat |
+| 4 | Steve, shirt $15 (same parcel as 3) | Credit | Request rejected | Nothing given back, nothing charged. Steve was e-mailed the decision note, and the shirt could be returned again (see 9) |
+| 5 | James (no subsidy), hat $30, **own money** | Credit, *Wrong Product Ordered* (fees) | Return authorized | **Credit note $22.00** ($30 − $8 fees) |
+| 6 | James, a shirt $15, own money | Exchange, different style → adidas shoes $27.56, no fees | Return authorized | Credit note $15 for the shirt; that and his $22 note paid the shoes. **Order #2017 placed automatically, $0.00 to pay**; $9.44 of store credit left |
+| 7 | James, the other shirt $15, own money | Exchange → Obey hat $30 (*Received Wrong Product*, *Replacement*; all three *Back in stock* ticks on) | Rejected → Pending → Return authorized | Credit note $15 for the shirt; **the hat alone** went into his cart (the shirt it normally requires was not added); **the shirt went back to stock**. At checkout: **no delivery charge**, store credit $24.44, he paid $5.56 — order **#3013**. With a laptop added to the same parcel, delivery ($9.95) was charged |
+| 8 | Steve, Fahrenheit 451 book (return #1002) | — | Request rejected with a two-line note, then Cancelled, then back to Pending | **E-mail "Update on your return #1002"** with the note. Moving on to *Cancelled* sent nothing more; setting it back to *Pending* re-opened it and cleared the note |
+| 9 | Steve, the shirt rejected in 4 | Credit, *There Was A Problem* (return #2003) | Return authorized | The rejected shirt could be **returned again**. Unit back to his subsidy; **e-mail "Your return #2003 is approved"** saying his subsidy was given back. Re-opening the old rejected return #1005 was then refused |
+| 10 | James, store credit switched **off** for the store | — | — | The wizard offered no credit option (exchange only); his existing store credit was still used at checkout |
+| 11 | James, Exchanges switched **off** for the store | Checkout of the hat from 7 | — | Completed normally: an exchange already approved is finished whatever the switch says |
+
+---
+
+## 10. Configuration
+
+### 10.1 Feature switches (per store)
+
+In *CW Admin › MultiStores › (store) › Store Settings › Credit Notes & Exchanges*, and for all stores in *CW Admin ›
+Default Settings*:
+
+- **Enable Exchanges** — the CW wizard, its rules and fees. Off: customers use nopCommerce's plain return form (§5.10).
+- **Enable Credit Notes** — store credit. Off: no new manual credit notes, and the wizard no longer offers a return
+  for credit.
+- **Allow closing without printing the return note** — §5.5.
+
+![Feature switches](images/returns/cfg-switches.jpg)
+
+Switching a feature off stops **new** activity; it never blocks **finishing** something already started. An
+existing credit note stays visible and **is still used automatically at checkout**, a return already submitted for
+credit can still be approved (and raises its credit note), and an approved exchange can still be completed — its
+replacement keeps every exemption it had (no quantity rules, no required products, no delivery charge).
+
+### 10.2 nopCommerce's settings
+
+*Configuration › Settings › Order settings › Return request (withdrawal button) settings* (§4.3), and the lists of
+**return request reasons** and **actions** below it. Renaming a reason or action is fine; deleting one is refused
+while any return uses it.
+
+### 10.3 Reason, action and status rules (per store)
+
+*CW Admin › MultiStores › (store) › Exchanges and Returns*. Three tables decide what a combination allows:
+
+**Return reason rules** — for each reason: allow store credit, allow exchange, repackaging fee, redelivery fee,
+back in stock, active, display order, and the **linked actions** (which actions are offered for that reason).
+
+![Return reason rules](images/returns/cfg-reason-rules.jpg)
+
+**Return action rules** — the same flags for each action:
+
+![Return action rules](images/returns/cfg-action-rules.jpg)
+
+**Return status rules** — for each status: perform store credit, perform exchange, back in stock, authorised.
+
+![Return status rules](images/returns/cfg-status-rules.png)
+
+How they combine:
+
+- **Credit** is offered to the customer when the reason **and** the action allow store credit; **exchange** when
+  both allow exchange.
+- A **fee** applies when the reason **and** the action both have it ticked.
+- At approval, nothing happens unless the **Return authorized** status rule has *Authorised* ticked. Its
+  *Perform store credit* tick (together with the reason and action allowing store credit) lets a credit return
+  raise a credit note; its *Perform exchange* tick (together with the reason and action allowing exchange) lets
+  an exchange be performed. If an exchange is not allowed at approval but credit is, the request is settled as
+  credit. On an exchange the customer's own money always comes back, whatever the store-credit tick says, so
+  nobody pays twice for a garment.
+- The goods go **back in stock** on approval when the reason, the action **and** the *Return authorized* status rule
+  all tick *Back in stock*: the whole returned quantity is added to stock, once, with nopCommerce's usual stock note.
+  Otherwise staff enter *Quantity returned to stock* by hand as before. Undoing an approval does not take stock out
+  again.
+- A reason with **no linked actions** offers every active action.
+- **Anything not configured counts as "not allowed".** A newly added reason does nothing until it has a rule.
+
+### 10.4 Fee rules
+
+*CW Admin › Exchanges & Returns › Fee Settings* holds the rules for all stores; a store's *Fee Settings* tab can
+override them (editing an inherited rule creates the store's own copy).
+
+![Global fee rules](images/returns/cfg-global-fees.jpg)
+
+Each rule is a **fixed price** or an amount **per so many units** (rounded up):
+
+![Adding a fee rule](images/returns/cfg-fee-rule-popup.png)
+
+---
+
+## 11. Things to know, and open points
+
+These are behaviours of the current version that surprise people, and points that are waiting for a business
+decision.
+
+**How it works today**
+
+1. **Only *Return authorized* gives anything back.** *Item(s) refunded* and *Item(s) repaired* are labels only:
+   no store credit, no subsidy back, no exchange, and the item is not counted as decided. To refund as store
+   credit, authorise a credit return.
+2. **Stock comes back only when the rules say so.** With *Back in stock* ticked on the reason, the action and the
+   *Return authorized* status rule, approval puts the whole returned quantity back in stock; otherwise staff use
+   *Quantity returned to stock*. Undoing an approval does not take the stock out again.
+3. **Only the *Return authorized* status matters in the status rules.** The ticks on the other statuses (in the
+   test store, *Received* is fully ticked) have no effect.
+4. **Two e-mails if staff also press *Notify customer about status change*.** CW already e-mails the customer when an
+   item is rejected or approved; nopCommerce's button sends its own generic message as well.
+5. **A rejected item stays editable**; only an authorised item is locked. Setting it back to *Pending* or *Received*
+   re-opens it (the decision note is cleared), unless the customer has since returned the same units again.
+6. **An automatically placed exchange cannot be undone** with *Undo Approval*; cancel the replacement order instead.
+   *Undo Approval* is offered only while an exchange waits for the customer, so a credit approval cannot be undone
+   either.
+7. **Impersonate** works only for returns of the store the administrator is signed into.
+8. **Exchanges switched off** means plain nopCommerce returns for new requests: staff can change statuses, but nothing
+   financial happens. The same applies to returns raised through nopCommerce's guest withdrawal form.
+9. **Store credit switched off** hides the credit option for new returns; credit returns already submitted are still
+   approved as credit, and existing store credit is still spent at checkout.
+10. **Nothing is sent to the accounting system (Jim2)** — return outcomes and credit notes are not synchronised.
+11. **A replacement ships without the products it normally requires** (a catalogue *required products* setting), and a
+    parcel holding only replacements has **no delivery charge** — the redelivery fee is its delivery charge. A store
+    with no redelivery fee rule sends replacements free.
+
+**Waiting for a decision**
+
+12. **Billing address on an exchange checkout** — whether the customer should choose it.
+
+## 12. Quick reference
+
+**Customer**
+
+- Return from *My account › Orders › (order) › Return Item(s)*. Only shipped items, only what is not already returned.
+- Choose reason → action → credit or exchange → replacement → confirm. Print the return note and put it in the parcel.
+- Check progress in *My account › Return requests*; change a pending exchange with *Edit exchange item*.
+- If an exchange needs payment, it is waiting in the cart. Store credit is in *My Store Credit*; subsidy in *Subsidies*.
+
+**Sales Support**
+
+- Work from *Sales › Return requests* or from the order's page. Decide each item on its own.
+- Before approving: check the fee quantities (zero the redelivery on all but one item of a parcel), add a one-off fee
+  if needed, write a decision note.
+- *Return authorized* = accept (automatic from there). *Request rejected* = reject — the customer is e-mailed your
+  decision note, so write it for them. Don't use *Item(s) refunded* to refund.
+- Pending exchange: *Checkout Notification* to remind, *Impersonate* to finish it, *Undo Approval* to reverse.
+- Look for **E** and **R** in the order lists.
+
+**Administrator**
+
+- Switches: *Store Settings › Credit Notes & Exchanges*. Rules: store *Exchanges and Returns* tab. Fees: *Fee
+  Settings*. nopCommerce return settings: *Order settings*.
+- A new reason or action needs an active rule before customers see it; link actions to a reason to narrow what it offers.
+- Tick *Back in stock* on the reason, the action and the *Return authorized* status for goods that go straight back on
+  the shelf.

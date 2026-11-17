@@ -15,7 +15,7 @@
         //Priced by ExchangeService, not here, so the frozen charge wins once the case has resolved.
         FeeAmount = Model.RepackagingFeeAmount,
         FeeConceptHiddenField = Model.RepackagingFeeConfig != null ? Html.HiddenFor(m => m.RepackagingFeeConfig.Concept) : null,
-        Label = Html.LabelFor(m => m.StaffRepackQty),
+        Label = Html.LabelFor(m => m.StaffRepackQty, T("Plugins.CW.Core.Admin.Returns.Fields.StaffRepackQty").Text),
         TextBox = Html.TextBoxFor(m => m.StaffRepackQty, allowEdit ? null : new { disabled = true }),
         Rule = Model.RepackagingFeeConfig
     };

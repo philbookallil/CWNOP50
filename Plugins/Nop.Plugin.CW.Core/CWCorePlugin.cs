@@ -96,6 +96,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         await InstallActivityLogTypesAsync();
         await InstallReturnReceiptTemplateAsync();
         await InstallReturnApprovalTemplatesAsync();
+        await InstallReturnOutcomeTemplatesAsync();
         await InstallCustomerRegistrationTemplateAsync();
         await InstallSubsidyExpiryReminderTemplatesAsync();
         await InstallSubsidyExpiryReminderTaskAsync();
@@ -231,6 +232,63 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             await _localizationService.AddOrUpdateLocaleResourceAsync(
                 $"Admin.ContentManagement.MessageTemplates.Description.{CWMessageTemplateSystemNames.ReturnAuthorisedExceptedCustomer}",
                 "Sent to the customer when a return is authorised and nothing is due: the order for the replacement has been placed for them.");
+        }
+    }
+
+    /// <summary>
+    /// Installs the two e-mails that tell the customer how a return ended without a replacement, once each: a store that
+    /// has edited one keeps its wording.
+    /// </summary>
+    protected async Task InstallReturnOutcomeTemplatesAsync()
+    {
+        var emailAccount = await _emailAccountService.GetEmailAccountByIdAsync(_emailAccountSettings.DefaultEmailAccountId)
+            ?? (await _emailAccountService.GetAllEmailAccountsAsync()).FirstOrDefault();
+
+        if (!(await _messageTemplateService.GetMessageTemplatesByNameAsync(CWMessageTemplateSystemNames.ReturnAuthorisedCreditCustomer)).Any())
+        {
+            await _messageTemplateService.InsertMessageTemplateAsync(new MessageTemplate
+            {
+                Name = CWMessageTemplateSystemNames.ReturnAuthorisedCreditCustomer,
+                Subject = "Your return #%ReturnRequest.CustomNumber% is approved",
+                Body = "Hello %Customer.FullName%,<br /><br />" +
+                       "We have approved your return #%ReturnRequest.CustomNumber%: %ReturnRequest.Product.Quantity% x %ReturnRequest.Product.Name%.<br />" +
+                       "%if (%PackName.Name% != \"\") For: %PackName.Name%<br /> endif%" +
+                       "<br />" +
+                       "%if (%ReturnRequest.HasCreditNote%) We have added store credit of <strong>%ReturnRequest.CreditNoteAmount%</strong> to your account. " +
+                       "It is used automatically at your next checkout.<br /> endif%" +
+                       "%if (%ReturnRequest.ReturnedToSubsidy%) What your subsidy paid for this item has been given back to your subsidy.<br /> endif%" +
+                       "<br />" +
+                       "Thank you,<br />%Store.Name%<br />",
+                IsActive = true,
+                EmailAccountId = emailAccount?.Id ?? 0
+            });
+
+            await _localizationService.AddOrUpdateLocaleResourceAsync(
+                $"Admin.ContentManagement.MessageTemplates.Description.{CWMessageTemplateSystemNames.ReturnAuthorisedCreditCustomer}",
+                "Sent to the customer when a return is authorised without a replacement: the store credit raised for it, and whether what their subsidy paid was given back.");
+        }
+
+        if (!(await _messageTemplateService.GetMessageTemplatesByNameAsync(CWMessageTemplateSystemNames.ReturnRejectedCustomer)).Any())
+        {
+            await _messageTemplateService.InsertMessageTemplateAsync(new MessageTemplate
+            {
+                Name = CWMessageTemplateSystemNames.ReturnRejectedCustomer,
+                Subject = "Update on your return #%ReturnRequest.CustomNumber%",
+                Body = "Hello %Customer.FullName%,<br /><br />" +
+                       "Your return #%ReturnRequest.CustomNumber% (%ReturnRequest.Product.Quantity% x %ReturnRequest.Product.Name%) has been closed " +
+                       "without a replacement or store credit. Status: %ReturnRequest.Status%.<br />" +
+                       "%if (%PackName.Name% != \"\") For: %PackName.Name%<br /> endif%" +
+                       "<br />" +
+                       "%if (%ReturnRequest.HasDecisionNote%) Our note: %ReturnRequest.DecisionNote%<br /><br /> endif%" +
+                       "If you have any questions, please contact us.<br /><br />" +
+                       "Thank you,<br />%Store.Name%<br />",
+                IsActive = true,
+                EmailAccountId = emailAccount?.Id ?? 0
+            });
+
+            await _localizationService.AddOrUpdateLocaleResourceAsync(
+                $"Admin.ContentManagement.MessageTemplates.Description.{CWMessageTemplateSystemNames.ReturnRejectedCustomer}",
+                "Sent to the customer when a return is rejected or cancelled, with the decision note recorded on the return page.");
         }
     }
 
@@ -1201,6 +1259,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.Admin.CreditNotes.Delete.Confirm"] = "Are you sure you want to delete this credit note?",
             ["Plugins.CW.Core.Admin.CreditNotes.Delete.ConfirmReturnRequest"] = "This credit note was created by a return request. Deleting it will NOT undo the return itself. Are you sure you want to delete it?",
             ["Plugins.CW.Core.Admin.CreditNotes.Delete.Error"] = "Failed to delete the credit note.",
+            ["Plugins.CW.Core.Admin.CreditNotes.Delete.Spent"] = "This credit note has already paid for an order, so it cannot be deleted.",
             ["Plugins.CW.Core.Admin.CreditNotes.AppliedTitle"] = "Credit Notes",
             ["Plugins.CW.Core.Admin.CreditNotes.AppliedLabel"] = "Applied to this order",
 
@@ -1860,6 +1919,27 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.Admin.Returns.Fields.Action.Select"] = "Select an action",
             ["Plugins.CW.Core.Admin.Returns.Fields.Action.NotForReason"] = "The requested action is not offered for this reason. Please choose one from the list.",
             ["Plugins.CW.Core.Admin.Returns.Fields.Action.LoadError"] = "The actions for this reason could not be loaded. Please reload the page.",
+            ["Plugins.CW.Core.Admin.Returns.Reopen.UnitsReturnedAgain"] = "This return cannot be re-opened: the customer has returned the same units again in another return. Decide that return instead.",
+            ["Plugins.CW.Core.Admin.Returns.Fields.StaffShipQty"] = "Re-Shipped Quantity",
+            ["Plugins.CW.Core.Admin.Returns.Fields.StaffRepackQty"] = "Repackaged Quantity",
+            ["Plugins.CW.Core.Admin.Returns.Fields.ProductPrice"] = "Price",
+            ["Plugins.CW.Core.Admin.Returns.Fields.EnableAdditionalFee"] = "Enable Additional Fee",
+            ["Plugins.CW.Core.Admin.Returns.Fields.AdditionalFeeName"] = "Additional Fee Name",
+            ["Plugins.CW.Core.Admin.Returns.Fields.AdditionalFeeAmount"] = "Fee Amount",
+            ["Plugins.CW.Core.Admin.Returns.Fields.DispositionReason"] = "Decision note",
+            ["Plugins.CW.Core.Admin.Returns.Fields.ExchangeMode"] = "Exchange Mode",
+            ["Plugins.CW.Core.Admin.Returns.Fields.ExchangeType"] = "Exchange Type",
+            ["Plugins.CW.Core.Admin.Returns.Fields.ReplacementProduct"] = "Replacement product",
+            ["Plugins.CW.Core.Admin.Returns.Fields.ReplacementOptions"] = "Replacement options",
+            ["Plugins.CW.Core.Admin.Returns.Fields.ReplacementPrice"] = "Replacement price",
+            ["Plugins.CW.Core.Admin.Returns.Fields.ReasonForReturn"] = "Reason for return",
+            ["Plugins.CW.Core.Admin.Returns.Fields.RequestedAction"] = "Requested action",
+            ["Plugins.CW.Core.Admin.Returns.Fields.Store"] = "Store",
+            ["Plugins.CW.Core.Admin.Returns.Fields.Branch"] = "Branch",
+            ["Plugins.CW.Core.Admin.Returns.Fields.Packname"] = "Ordered for (packname)",
+            ["Plugins.CW.Core.Admin.Returns.Fields.CustomerName"] = "Customer name",
+            ["Plugins.CW.Core.Admin.FeeRules.Fields.FeeType"] = "Fee Type",
+            ["Plugins.CW.Core.Admin.FeeRules.Fields.Operator"] = "Operator",
             ["Plugins.CW.Core.Admin.Returns.CompletionNotification.NotQueued"] = "No e-mail was queued: the return is not waiting for the customer to check out, or the 'ReturnAuthorisedPayment.CustomerNotification' message template is not active for this store.",
 
             // Exchanges — customer-facing return wizard
@@ -1959,10 +2039,10 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.Exchanges.Summary.EstimatedFees"] = "Fees estimates",
             ["Plugins.CW.Core.Exchanges.Summary.Cancel"] = "Cancel",
             ["Plugins.CW.Core.Exchanges.Summary.Confirm"] = "Confirm return",
-            ["Plugins.CW.Core.Exchanges.Summary.Disclaimer.NegativeAmount"] = "<strong>(*)</strong> A <em>negative</em> amount is in <strong>your favor</strong>. Anything you paid for with your allowance goes back to your allowance; only what you paid by card or cash comes back as store credit.",
+            ["Plugins.CW.Core.Exchanges.Summary.Disclaimer.NegativeAmount"] = "<strong>(*)</strong> A <em>negative</em> amount is in <strong>your favor</strong>. Anything you paid for with your subsidy goes back to your subsidy; only what you paid by card or cash comes back as store credit.",
             ["Plugins.CW.Core.Exchanges.Summary.Disclaimer.FeesEstimate"] = "<strong>(**)</strong> Fee amounts are <strong>estimates</strong> and may change after our staff reviews your return request.",
             ["Plugins.CW.Core.Exchanges.Summary.Disclaimer.FeesNotExcluded"] = "Redelivery and repackaging fees are not excluded from the total even if there is an amount in your favor.",
-            ["Plugins.CW.Core.Exchanges.Summary.Disclaimer.SubsidyReturned"] = "If this item was paid for with your allowance, that value is returned to your allowance when we approve the return, so the amounts above may be higher than what you actually receive as store credit.",
+            ["Plugins.CW.Core.Exchanges.Summary.Disclaimer.SubsidyReturned"] = "If this item was paid for with your subsidy, that value is returned to your subsidy when we approve the return, so the amounts above may be higher than what you actually receive as store credit.",
             ["Plugins.CW.Core.Exchanges.Summary.Disclaimer.CreditNoteApproval"] = "The credit note amounts above are credited to your account once our staff approves the return request.",
             ["Plugins.CW.Core.Exchanges.Summary.Disclaimer.CreditNoteFees"] = "Fee amounts may vary as our staff can apply additional fees after reviewing your request.",
 
@@ -1982,6 +2062,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Plugins.CW.Core.Exchanges.ReturnRequests.ExchangeType"] = "Exchange Type:",
             ["Plugins.CW.Core.Exchanges.ReturnRequests.ReplacementProduct"] = "Replacement Product:",
             ["Plugins.CW.Core.Exchanges.ReturnRequests.EditExchangeItem"] = "Edit Exchange Item",
+            ["Plugins.CW.Core.Exchanges.ReturnRequests.DecisionNote"] = "Note from the store:",
 
             // Exchanges — return wizard: start page, checks, picker labels, summary totals, receipts
             ["Plugins.CW.Core.Exchanges.Wizard.Start.Step1"] = "<strong>Step 1 -</strong> Specify the items you want to return or exchange",

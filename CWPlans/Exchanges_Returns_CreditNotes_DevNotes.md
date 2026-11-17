@@ -442,6 +442,29 @@ the reference doc's Known Issues as unreachable).
 
 Newest first.
 
+**2026-11-16 — Returns findings fixes.** Found while rewriting the functional guide
+(`CWDocs/Exchanges_Returns_Credit_Notes_Functional_Guide.md`) and fixed the same day; decisions by Eduardo. Spec and test
+run: `CWPlans/Deprecated/Returns_Findings_Fixes_Spec.md` (changes 1–34) and `…_Test_Run.md` (T1–T11 passed). Reference
+§4, §6.2, §6.4, §6.5, §8.1, §8.3, §10.4.
+
+- **Defects:** a spent credit note could be deleted (now refused, no Delete button); the return page showed raw labels
+  and never the packname or replacement (now shown; labels from resources); a credit return showed an exchange type
+  (Bootstrap 3 `hidden`); a replacement whose product requires other products failed approval — nop's required-product
+  *warning* and, separately, the auto-add inside `AddToCartAsync` (both now skipped for a replacement); a rejected
+  credit line still showed the credit estimate.
+- **Decisions:** *Back in stock* ticks used (all three rules → whole quantity back on authorise); e-mails for a
+  rejected/cancelled return (with the decision note) and for an approval without a replacement; the decision note on
+  My returns; a rejected return's units returnable again (`ReturnRequestOverrideService`, nop's count without Rejected),
+  with re-opening refused once they are in another return; a rejected line set back to Pending/Received re-opens; no
+  delivery on a replacement-only parcel; no credit mode while Credit Notes is off; the replacement exemptions no longer
+  follow the Exchanges switch; Refunded/Repaired stay labels (as in 4.1).
+- **Not covered by the test run:** a plain (non-packname) cart holding only replacements.
+- **Follow-ups the same day:** the fee rows of the admin return page showed property names (`Html.LabelFor` does
+  not read `[NopResourceDisplayName]` in nop 5.00; the four views now pass the resource text — lesson 31); and
+  "allowance" was replaced by "subsidy" in the wizard notes, the credit e-mail, its token
+  (`%ReturnRequest.ReturnedToSubsidy%`), parameters and comments (`CLAUDE.md` §7 *Terminology*, lesson 32). Specs:
+  `CWPlans/Deprecated/Returns_Fee_Labels_Fix_Spec.md`, `…/Subsidy_Wording_Fix_Spec.md`.
+
 **2026-10-31 — CW.Core moved to nopCommerce 5.00.** This area came across in the port's phases 4d (credit-notes
 admin), 4e (exchanges configuration, return-request edit page) and 5g (the returns wizard, My Returns, the
 `ExchangesWidgets`), with the regression run of phase 7. Record: `CWPlans/CWCore_Port_Reference.md` §5 (*Phase 4d*,

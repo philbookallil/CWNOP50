@@ -33,10 +33,13 @@
     //editing the field no longer moves the money — this total has to follow the money.
     decimal additionalFee = exchangeRequestModel.AdditionalFeeChargedAmount;
 
+    //A rejected or cancelled return gives nothing back and charges nothing, so no figure on this panel is a projection
+    var isRejected = exchangeRequestModel.IsRejected;
+
     //Whether the credit-note figures on this panel are still a projection. A projection is not the answer:
     //subsidy goes back in kind and the note is only what is left over, so an unresolved case can
     //show a maximum and nothing firmer.
-    var creditNoteIsEstimate = exchangeRequestModel.CreditNoteRaisedAmount == null;
+    var creditNoteIsEstimate = !isRejected && exchangeRequestModel.CreditNoteRaisedAmount == null;
     var creditNoteRaised = exchangeRequestModel.CreditNoteRaisedAmount ?? decimal.Zero;
 
     @*data-* values let the script mirror the total formula below exactly rather than scraping amounts out
@@ -44,6 +47,7 @@
     <div class="card card-default cw-fees-admin"
          data-editable="@(exchangeRequestModel.IsEditable ? "true" : "false")"
          data-mode="@(exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.Exchange ? "exchange" : "credit-note")"
+         data-rejected="@(isRejected ? "true" : "false")"
          data-base-quantity="@Model.Quantity"
          data-price-difference="@priceDifference.ToString(System.Globalization.CultureInfo.InvariantCulture)"
          data-product-subtotal="@productSubTotal.ToString(System.Globalization.CultureInfo.InvariantCulture)"
@@ -104,7 +108,11 @@
                             <div class="form-text-row">
                                 @currency.CurrencyCode
                                 <span class="price-display">@FormatHelper.FormatAbsPrice(creditNoteIsEstimate ? productSubTotal : creditNoteRaised)</span>
-                                @if (!creditNoteIsEstimate && creditNoteRaised <= decimal.Zero)
+                                @if (isRejected)
+                                {
+                                    <span>&nbsp; (the return was rejected: nothing is credited)</span>
+                                }
+                                else if (!creditNoteIsEstimate && creditNoteRaised <= decimal.Zero)
                                 {
                                     <span>&nbsp; (no credit note — the value went back to the employee's entitlement)</span>
                                 }
@@ -126,7 +134,7 @@
 
                 @await Component.InvokeAsync("FeeConcept", new { exchangeModel = exchangeRequestModel, feeType = FeeType.AdditionalFee })
 
-                @if (priceDifference < 0)
+                @if (priceDifference < 0 && !isRejected)
                 {
                     <tr class="total-section">
                         <td class="fees-label">
@@ -145,7 +153,11 @@
                     @{
                         decimal feesTotal = (shippingFee + repackagingFee + additionalFee);
                         decimal totalAmount = priceDifference >= decimal.Zero ? (priceDifference + feesTotal) : feesTotal;
-                        if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.CreditNote)
+                        if (isRejected)
+                        {
+                            totalAmount = decimal.Zero;
+                        }
+                        else if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.CreditNote)
                         {
                             //An unresolved case can only bound it: this is the figure a wholly cash-funded
                             //line would produce, and any subsidy on the line reduces it.
@@ -155,7 +167,11 @@
                         }
                     }
                     <td class="fees-label">
-                        @if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.Exchange)
+                        @if (isRejected)
+                        {
+                            <label class="col-form-label">Nothing Credited or Charged (Return Rejected)</label>
+                        }
+                        else if (exchangeRequestModel.ExchangeReturnMode == ExchangeReturnMode.Exchange)
                         {
                             <label class="col-form-label">Minimum Payment Required</label>
                         }
@@ -222,6 +238,7 @@
             var mode         = $panel.data('mode');
             var priceDiff    = parseFloat($panel.data('price-difference')) || 0;
             var productSub   = parseFloat($panel.data('product-subtotal')) || 0;
+            var rejected     = $panel.data('rejected') === true || $panel.data('rejected') === 'true';
 
             // Mirrors ExchangesHelper.CalculateFeeAmount, including its divide-by-zero guard. If these two
             // ever disagree the screen lies about the money, so keep them in step.
@@ -268,9 +285,11 @@
 
                 // Same formula as the Razor above — keep the two in step. In credit-note mode this is the
                 // upper bound, which is what an unresolved case shows.
-                var total = (mode === 'credit-note')
-                    ? productSub - fees
-                    : (priceDiff >= 0 ? priceDiff + fees : fees);
+                var total = rejected
+                    ? 0
+                    : (mode === 'credit-note')
+                        ? productSub - fees
+                        : (priceDiff >= 0 ? priceDiff + fees : fees);
 
                 $panel.find('.price-total').text(Math.abs(total).toFixed(2));
             }

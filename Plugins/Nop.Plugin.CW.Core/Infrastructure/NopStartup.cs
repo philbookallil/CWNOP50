@@ -113,6 +113,9 @@ public class NopStartup : INopStartup
 
         services.AddScoped<IShipmentService, ShipmentOverrideService>();
 
+        //a rejected return's units can be returned again
+        services.AddScoped<IReturnRequestService, ReturnRequestOverrideService>();
+
         services.AddScoped<IBulkOrderService, BulkOrderService>();
 
         // Settlement pipeline. The sources are registered as their own concrete types and composed

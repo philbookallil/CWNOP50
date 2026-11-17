@@ -103,7 +103,7 @@ relitigated.
 | **20** *(2026-09-10)* | Whether an order was invoiced never changes what comes back — subsidy always returns to the pot | `4a Refunds and Changes` |
 | **21** *(2026-09-10)* | Shipping paid by subsidy is not restored on a return | Gap analysis S-17, closed |
 | **22** *(2026-09-10)* | A restoration is scoped to the original order's subsidy period; a previous-period return restores into that lapsed period. Documented, not changed | `SubsidyRestoreItem` |
-| **23** *(2026-09-11)* | **A partial return recovers subsidy first and cash second, not pro rata.** Return one of two $25 items funded by $4 subsidy and $46 cash and all $4 of subsidy comes back plus a $21 note. Returning the second later yields a pure-cash $25 note, so the totals reconcile either way; the only judgement is the ordering, and the employee gets their allowance back up front | §8, `RestoreSubsidyForReturnedItemAsync` |
+| **23** *(2026-09-11)* | **A partial return recovers subsidy first and cash second, not pro rata.** Return one of two $25 items funded by $4 subsidy and $46 cash and all $4 of subsidy comes back plus a $21 note. Returning the second later yields a pure-cash $25 note, so the totals reconcile either way; the only judgement is the ordering, and the employee gets their subsidy back up front | §8, `RestoreSubsidyForReturnedItemAsync` |
 | **24** *(2026-09-11)* | **An Exact Exchange is priced at what the customer actually paid** — the same price even where a tier price applied or the catalogue price has since moved. Not the live qty-1 price | Fixes 6, 8, 11; `ExchangeReplacementScope` |
 | **25** *(2026-09-11)* | **A product's minimum and allowed quantities must never block a partial exchange.** The customer already bought the 2, 4 or 6 the rule demands; exchanging one of them is not a new purchase and nothing may stand in its way — at approval **or** at checkout, where nop revalidates | Fixes 7, 10 |
 | **26** *(2026-09-11)* | A Credit-Note case goes final on approval, so the fee boxes disable and Undo Approval disappears. **Fix the wording, not the workflow** — the screen now says the fees must be set *before* approving | Fix 9, `ReturnsController` |
@@ -691,7 +691,7 @@ unit comes back; `unitsRestored` 1, so `valueBudget = (1 − 1) × price = 0` an
 One unit, nothing else. Under the old arithmetic the same return also paid back $5.
 
 **Decision 23 is the ordering, and it is a choice.** Subsidy is recovered first and cash second rather
-than pro rata, so a customer returning half an order gets all of their allowance back up front. The
+than pro rata, so a customer returning half an order gets all of their subsidy back up front. The
 totals reconcile either way — the second half comes back as a pure-cash note — so this is a policy the
 manager could reverse with a change to the value budget, not a correctness matter.
 

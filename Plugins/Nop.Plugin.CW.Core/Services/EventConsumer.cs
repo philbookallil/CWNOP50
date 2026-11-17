@@ -709,6 +709,21 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
             eventMessage.AdditionalTokens.Add("%ReturnRequest.HasAdditionalFee%");
         }
 
+        //A rejected or cancelled return: the decision note staff recorded
+        if (eventMessage.TokenGroups == null || eventMessage.TokenGroups.Contains(CWTokenGroupNames.ReturnRejectionTokens))
+        {
+            eventMessage.AdditionalTokens.Add("%ReturnRequest.DecisionNote%");
+            eventMessage.AdditionalTokens.Add("%ReturnRequest.HasDecisionNote%");
+        }
+
+        //A return authorised without a replacement: the store credit raised and the subsidy given back
+        if (eventMessage.TokenGroups == null || eventMessage.TokenGroups.Contains(CWTokenGroupNames.ReturnCreditTokens))
+        {
+            eventMessage.AdditionalTokens.Add("%ReturnRequest.CreditNoteAmount%");
+            eventMessage.AdditionalTokens.Add("%ReturnRequest.HasCreditNote%");
+            eventMessage.AdditionalTokens.Add("%ReturnRequest.ReturnedToSubsidy%");
+        }
+
         //The welcome e-mail of a customer registered by a manager: the packname and the subsidies assigned to it
         if (eventMessage.TokenGroups == null || eventMessage.TokenGroups.Contains(CWTokenGroupNames.SubsidyTokens))
         {

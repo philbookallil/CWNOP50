@@ -2,9 +2,11 @@
 using Nop.Core.Domain.Orders;
 using Nop.Plugin.CW.Core.Domain.Exchanges;
 using Nop.Plugin.CW.Core.Domain.Settings;
+using Nop.Plugin.CW.Core.Helpers;
 using Nop.Plugin.CW.Core.Models.Exchanges;
 using Nop.Plugin.CW.Core.Services.Exchanges;
 using Nop.Plugin.CW.Core.Services.Messages;
+using Nop.Plugin.CW.Core.Services.Returns;
 using Nop.Services.Catalog;
 using Nop.Services.Configuration;
 using Nop.Services.Helpers;
@@ -37,6 +39,7 @@ public class ReturnRequestItemModelFactory : IReturnRequestItemModelFactory
     protected readonly IExchangesDisplayService _exchangesDisplayService;
     protected readonly IWorkContext _workContext;
     protected readonly ReturnRequestSettings _returnRequestSettings;
+    protected readonly IReturnCaseService _returnCaseService;
 
     #endregion
 
@@ -56,7 +59,8 @@ public class ReturnRequestItemModelFactory : IReturnRequestItemModelFactory
         ILogger logger,
         IExchangesDisplayService exchangesDisplayService,
         IWorkContext workContext,
-        ReturnRequestSettings returnRequestSettings)
+        ReturnRequestSettings returnRequestSettings,
+        IReturnCaseService returnCaseService)
     {
         _exchangeService = exchangeService;
         _productService = productService;
@@ -73,6 +77,7 @@ public class ReturnRequestItemModelFactory : IReturnRequestItemModelFactory
         _exchangesDisplayService = exchangesDisplayService;
         _workContext = workContext;
         _returnRequestSettings = returnRequestSettings;
+        _returnCaseService = returnCaseService;
     }
 
     #endregion
@@ -149,6 +154,11 @@ public class ReturnRequestItemModelFactory : IReturnRequestItemModelFactory
         model.Packname = await _exchangesDisplayService.GetPacknameAsync(orderItem.Id);
         model.ReturnedItemPictureUrl = await _exchangesDisplayService.GetProductThumbUrlAsync(orderItem.ProductId, orderItem.AttributesXml, CWCoreDefaults.ReturnItemThumbSize);
         model.AllowChangeReturnedItem = (returnRequest.ReturnRequestStatus == ReturnRequestStatus.Pending);
+
+        //the note staff recorded with their decision, once the return has been decided
+        if (returnRequest.ReturnRequestStatus == ReturnRequestStatus.ReturnAuthorized
+            || ExchangesHelper.IsRejectedReturnRequestStatus(returnRequest.ReturnRequestStatus))
+            model.DecisionNote = (await _returnCaseService.GetReturnCaseLineByReturnRequestIdAsync(returnRequest.Id))?.DispositionReason;
 
         var extraInfo = await _exchangesDisplayService.GetReturnRequestExtraInfoAsync(returnRequest, orderItem);
 

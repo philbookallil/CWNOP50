@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
 using Nop.Web.Framework.Models;
-using System.ComponentModel;
+using Nop.Web.Framework.Mvc.ModelBinding;
 
 namespace Nop.Plugin.CW.Core.Areas.Admin.Models.Exchanges.FeeRule;
 
@@ -14,10 +14,10 @@ public partial record FeeRuleSearchModel : BaseSearchModel
 
     public int StoreId { get; set; }
 
-    [DisplayName("Fee Type")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.FeeRules.Fields.FeeType")]
     public int FeeTypeId { get; set; }
 
-    [DisplayName("Operator")]
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.FeeRules.Fields.Operator")]
     public int OperatorId { get; set; }
 
     public decimal Amount { get; set; }

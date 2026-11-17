@@ -68,7 +68,7 @@ Products are linked via `ProductGroupProduct` (`CORE_SUB_ProductGroupProduct`), 
 simple join: `ProductGroupId → ProductId`.
 
 Product Groups are reusable across subsidies. The same group (e.g. "Shirts") can be mapped
-to multiple subsidies with different credit/quantity allowances in each.
+to multiple subsidies with different credit/quantity amounts in each.
 
 ### 2.2 Subsidy (`CORE_SUB_Subsidy`)
 
@@ -90,7 +90,7 @@ A Subsidy is the top-level funding rule. It is store-scoped.
 
 ### 2.3 SubsidyProductGroup (`CORE_SUB_SubsidyProductGroup`)
 
-Maps a Product Group into a Subsidy and adds per-subsidy credit and quantity allowances.
+Maps a Product Group into a Subsidy and adds per-subsidy credit and quantity amounts.
 
 | Field | Type | Description |
 |---|---|---|
@@ -1455,7 +1455,7 @@ purpose.
 e-mail back by the template's delay). Tokens (group *Subsidy expiry tokens*): `%Subsidy.ExpiryDetails%` (the list) and
 `%Subsidy.DaysLeft%` (the fewest days left, for the subject), plus nop's store and customer tokens. Days left count
 **today included**: the 7-day follow-up reads "7 day(s) left", the last day "today is the last day". The credit is
-formatted in the message's language with no tax suffix (an allowance, not a price) — the welcome e-mail's
+formatted in the message's language with no tax suffix (a subsidy, not a price) — the welcome e-mail's
 `%Subsidy.Details%` the same.
 
 **Validation** (`SubsidyExpiryRemindersValidator`, only while the switch is on): each ticked follow-up has a lead time

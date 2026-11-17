@@ -478,6 +478,10 @@ Existing examples in CW.Core: `ICustomersLogic`/`CustomersLogic` (impersonation)
 - **Source comments describe the code and its hazards in their own terms** — never a phase number, change number,
   gap-analysis code, document name or dated note. Working documents are consumed and moved to `Deprecated/` (§0.4); a
   comment that cites one outlives it, and a reviewing developer will not read the specs anyway.
+- **Terminology — "subsidy", never "allowance"** (decided 2026-11-16). The employee's entitlement is the **subsidy**
+  everywhere: storefront and admin text, e-mails, language resources, message tokens, identifiers, comments and documents.
+  "Allowance" was 4.6's name for it (`Jim2.Allowances`) and is not part of this system; it appears only where a legacy
+  name is cited (a 4.6 class or plugin). Never propose it, and replace any you find.
 - **Locale resource keys** follow the pattern `Plugins.CW.{PluginName}.Fields.{PropertyName}`. Exception:
   `ExternalAuth.SSO` keeps `Plugins.ExternalAuth.SSO.*` (§2); its strings live in `Infrastructure/SsoLocaleResources.cs`.
 - **Table names** follow a per-plugin prefix pattern `{PLUGIN_ABBREVIATION}_{EntityName}` (e.g., `CORE_EX_CreditNote`, `CORE_SUB_Subsidy` for `CW.Core`). This changed during the TIG→CW rename: previously every plugin shared one company-wide `TIG_` prefix; now each plugin uses its own short abbreviation (`CW.Core` uses `CORE_`) so table names won't need to change again if the company brand changes. `Payments.NABGateway` keeps the unprefixed `NABXMLTransaction` it had in 4.9. Now-renamed `CW.Freight` uses `CW_FR_*` (e.g. `CW_FR_ShippingMethod`), migrated in place from the old `TIG_FR_*` names by a rename-table migration. `ExternalAuth.SSO` uses `SSO_*`
@@ -1487,6 +1491,7 @@ All registered as **Scoped** unless noted:
 | `IPdfService` / `ICWPdfService` | `PdfOverrideService` / `CWPdfService` |
 | `IOrderReportService` | `OrderReportOverrideService` — subsidy added back to the profit report |
 | `IShipmentService` | `ShipmentOverrideService` — shipment list filters by destination address |
+| `IReturnRequestService` | `ReturnRequestOverrideService` — return availability counts requested units without Rejected / Cancelled returns, so a rejected return's units can be returned again (`Exchanges_Returns_CreditNotes_Reference.md` §6.2) |
 | `IPluginService` | `PluginOverrideService` — plugin role limits read the signed-in roles |
 | `ICustomerRegistrationService` | `CustomerRegistrationOverrideService` — the landing after sign-in |
 | `IPackNameCatalogGate` | `PackNameCatalogGate` — what a packname may see (§15.2) |

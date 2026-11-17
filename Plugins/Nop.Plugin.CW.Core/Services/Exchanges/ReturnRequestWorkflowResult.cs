@@ -34,5 +34,11 @@ public class ReturnRequestWorkflowResult
     /// </summary>
     public bool FeesNotDeductible { get; set; }
 
+    /// <summary>
+    /// The reason, the action and the status rules all tick Back in stock: the whole returned quantity goes back to
+    /// stock when the return is authorised
+    /// </summary>
+    public bool ReturnToStock { get; set; }
+
     #endregion
 }
