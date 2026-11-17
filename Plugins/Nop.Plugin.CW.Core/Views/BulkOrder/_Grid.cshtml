@@ -10,6 +10,25 @@
 @removeTagHelper Microsoft.AspNetCore.Mvc.TagHelpers.OptionTagHelper, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @functions {
+    @*The quantities this cell's dropdown offers when the product has a whitelist: the ones the cell can
+      supply. Shared by RenderCellBody and TakesQuantity so the control and the card's button cannot disagree.*@
+    List<int> AllowedQuantitiesFor(BulkOrderGridCellModel cell)
+    {
+        return Model.AllowedQuantities
+            .Where(quantity => !cell.MaxAvailable.HasValue || quantity <= cell.MaxAvailable.Value)
+            .ToList();
+    }
+
+    @*Whether RenderCellBody draws a quantity control for this cell - the same tests, in the same order.*@
+    bool TakesQuantity(BulkOrderGridCellModel cell)
+    {
+        if (cell == null || !cell.Exists || cell.RequiresPinChoice || cell.RequiresTextAttribute
+            || cell.CallForPrice || cell.Disabled)
+            return false;
+
+        return Model.AllowedQuantities.Count == 0 || AllowedQuantitiesFor(cell).Count > 0;
+    }
+
     void RenderValue(BulkOrderGridValueModel value)
     {
         @*a local function, not a partial: this renders once per column and once per row label, so a partial
@@ -96,9 +115,7 @@
               what nop's own product page renders for it. Options above what this cell can supply are dropped,
               because nop would refuse those too - so the control offers exactly the set that would be
               accepted - the same parity rule applied to the quantity instead of the coordinate.*@
-            var allowed = Model.AllowedQuantities
-                .Where(quantity => !cell.MaxAvailable.HasValue || quantity <= cell.MaxAvailable.Value)
-                .ToList();
+            var allowed = AllowedQuantitiesFor(cell);
 
             if (Model.AllowedQuantities.Count > 0 && allowed.Count == 0)
             {
@@ -150,12 +167,15 @@
 
 @*Whether this card has any quantity control on it at all. Two things below need the same
   answer - the minimum-quantity notice and the Add button - and asking twice is how they
-  drift apart. An unsupported product, a pin state with no matching cells and a grid
-  that could not be built all answer false: each of those already shows its own notice, and
-  "the minimum quantity is 25" under "gift cards are ordered from the product page" is noise.*@
+  drift apart. An unsupported product, a pin state with no matching cells, a grid
+  that could not be built and a card whose every cell refuses a quantity (out of stock, call for price,
+  a choice or a text still needed) all answer false: each of those already shows its own notice or cell
+  note, and an Add button with nothing to add only answers "Enter a quantity first".*@
 @{
     var takesQuantities = string.IsNullOrEmpty(Model.UnsupportedReason)
-        && (Model.IsSingleCell || Model.Rows.Any());
+        && (Model.IsSingleCell
+            ? TakesQuantity(Model.SingleCell)
+            : Model.Rows.Any(row => row.Cells.Any(TakesQuantity)));
 }
 
 <div class="bulk-order-grid" data-product-id="@Model.ProductId"
@@ -329,7 +349,8 @@
         <div class="grid-notice">@string.Format(T("ShoppingCart.MinimumQuantity").Text, Model.MinQuantity)</div>
     }
     @*No button on a card with nothing to add: an unsupported product, a product whose grid could not
-      be built, or a pin state with no cells. The notice above already explains each of those.*@
+      be built, a pin state with no cells, or cells that all refuse a quantity. The notice above, or each
+      cell's own note, already explains each of those.*@
     @if (takesQuantities)
     {
         @*Status BEFORE the button so the button stays flush with the card's right edge however

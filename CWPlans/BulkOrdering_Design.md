@@ -16,7 +16,8 @@ Migrated to nopCommerce 5.00 on 2026-10-31: checked against the 5.00 code; the 4
 > **Companion documents.** `BulkOrdering_NOP46_Reference.md` (what the 4.6 implementation does — the
 > functional baseline) and `BulkOrdering_NOP41_Improvements.md` (what 4.1 did better), both in
 > `CWPlans/LegacyVersions/`, and `BulkOrdering_Future_Improvements.md` (everything deliberately deferred out of this
-> design).
+> design). The plain-English guide for managers and clients is `CWDocs/Bulk_Ordering_Functional_Guide.md` (and its
+> `.docx`); a change to what the screen does is reflected there too.
 >
 > **Rule for this document.** Every claim about nop behaviour is derived from the nop source under
 > `Libraries/` and `Presentation/`, cited as `File.cs:NNN` — re-pointed to the 5.00 source on 2026-10-31. Anything
@@ -51,7 +52,7 @@ Recorded per `tasks/lessons-4.9.md` #16 — source code says what the system doe
 | D4 | **Conditional attributes are supported.** Conditions are evaluated once per product per pin-state, never per cell. See §9. | 2026-08-28 |
 | D5 | A product with **no combinations configured** still renders a grid — nothing is invalid, so every cell is enterable and there are no dashes. See §7.4. | 2026-08-28 |
 | D6 | Add-all follows **4.6's outcome semantics**: lines that pass are committed, lines that fail are reported. Improved only in *how* it is reported — per-cell attribution and the typed grid state survives. Atomic all-or-nothing is deferred (`Future_Improvements` F2). | 2026-08-28 |
-| D7 | **No subsidy participation** on the bulk screen. Subsidy stays a cart/checkout concern, as in 4.6. Deferred (`Future_Improvements` F1). | 2026-08-28 |
+| D7 | **No subsidy participation** on the bulk screen. Subsidy stays a cart/checkout concern, as in 4.6. Deferred (`Future_Improvements` F1). What the screen does get from the subsidy without code of its own: the selected packname's catalogue (§10.4a), and the subsidy's quantity limit (*Restrict To Allocated Qty*), which `ShoppingCartOverrideService` checks on every add (`Plugins.CW.Core.Subsidy.ShoppingCart.SubsidyQtyExceeded`, "There are {0} left") and the screen reports against the line like any other warning. What the subsidy will pay is shown only at checkout. | 2026-08-28 |
 | D8 | PackName attachment stays **ambient** — `ShoppingCartOverrideService.AddToCartAsync` already reads `IPackNameContext` and writes `PackNameCartItem` (`Plugins/Nop.Plugin.CW.Core/Services/Orders/ShoppingCartOverrideService.cs:526`, `:927`). The bulk screen does nothing packname-specific for the add. | 2026-08-28 |
 | D9 | The print-name attribute (`MultiStoreSettings.PrintNameProductAttributeId`) is **pinned like any other non-combinable attribute**. Verified safe at the time: that setting then had no consumer in `CW.Core` beyond admin settings plumbing. It now has one, `PrintNamePrefillEventConsumer`, which pre-fills nop's product page only (`ProductDetailsModel`), not the grid. Deferred (`Future_Improvements` F5). | 2026-08-28 |
 | D10 | Page-level pin defaults (set once, apply to every product on the page) are **not** in this design. Deferred (`Future_Improvements` F3). | 2026-08-28 |
@@ -63,9 +64,8 @@ Recorded per `tasks/lessons-4.9.md` #16 — source code says what the system doe
 
 - **D6 reading.** "Same as 4.6" is read as *commit-what-passes*, not as *full page reload* (a reload would
   contradict "improve the implementation"). If the intent was literal 4.6, say so.
-- **Settings home.** §12 proposes a new `BulkOrderSettings : ISettings` rather than growing `MultiStoreSettings`,
-  surfaced on the same admin settings page. Deviation from "keep it in store settings" in *class*, not in
-  *place*.
+- ~~**Settings home.**~~ **Settled** by §12's revision: the settings live on `MultiStoreSettings` (prefixed
+  `BulkOrder…`), on the store-settings page; no `BulkOrderSettings` class exists.
 
 ---
 
@@ -124,8 +124,10 @@ user-initiated and infrequent.
 
 - Row label columns = one per axis 2..n (here Colour, Fit). With 5 axes there are 4 label columns.
 - `–` = no combination exists for that cell. Not enterable, not submittable.
-- Stock / price / ETA render per cell exactly as 4.6 does, under the same settings (`ShowProductStock`,
-  `ShowProductAttributesPrice`, `BulkorderingShowETA`).
+- Stock and price render per cell under `BulkOrderShowProductStock` and `BulkOrderShowAttributePrices`. The cell
+  price shows only when the product's cells do not all cost the same; then, with the per-cell price off, the card
+  shows a price range instead (`BulkOrderModelFactory`, `samePrice`). A cell that takes no quantity always says why,
+  whatever `BulkOrderShowProductStock` says. There is no ETA (D13, `Future_Improvements` F11).
 
 Degenerate cases, all the same code path:
 
@@ -221,6 +223,7 @@ deliberate divergence from nop, not an oversight.
 | Rule | Detail |
 |---|---|
 | One query method, three filter modes | `BulkOrderService.SearchProductsAsync` owns the base predicate, the three visibility constraints, category, sorting and paging. The filter mode only supplies a product-id restriction. Two query paths diverge — `tasks/lessons-4.9.md` #11. |
+| Recently ordered is three months | With no order chosen, *Recently ordered* lists the products of the customer's orders placed in the last three months of the customer's time (`BulkOrderService.GetRecentOrderCutoffUtcAsync`, as 4.6). The *From order* picker lists the customer's latest `MAX_ORDER_PICKER_ITEMS` (50) orders of any age, and the filter is offered when the customer has at least one counted order — so a customer whose orders are all older than three months gets the filter and an empty *Any recent order* list. |
 | Cancelled orders count for nothing | `CountedOrderStatusIds` = Pending, Processing, Complete. Gates the order picker, "recently ordered" and the best-sellers report. 4.6 filtered on `!o.Deleted` alone in all three, and nop's `BestSellersReportAsync` defaults to every status — a deliberate divergence from both. |
 | Orders are scoped to the logged-in customer | Not to the packname in context. 4.6 parity, verified in its source. The packname-scoped variant is parked as **F17** — it needs the packname id in the category cache key, so it is not a one-line change. |
 | A selected order must belong to the customer | `ProductIdsOfOrder(orderId, customerId)`. Without it, `?OrderId=` lists a stranger's order contents. |
@@ -1123,7 +1126,9 @@ Logged as **F21**; the card-level figure answers the common question today.
 
 ### 11.4 Per-product "Add to cart"
 
-The same endpoint with the lines of one card. 4.6's separate hidden-form path
+The same endpoint with the lines of one card. The button (and the minimum-quantity notice) render only when at least
+one cell of the card draws a quantity control (`_Grid.cshtml`, `TakesQuantity`): a card whose every cell is out of
+stock, call-for-price, or waiting for a choice or a text has its cell notes and no button. 4.6's separate hidden-form path
 (`NOP46` reference §12.3, and defect D3 — the `id*=` substring selector) does not carry over.
 
 ---
@@ -1419,6 +1424,8 @@ the form and already validates it.
 | Rental | `IsRental` | Start and end date per line, start before end | `:1081–1097` |
 | Customer enters price | `CustomerEntersPrice` | A price within `Minimum`/`MaximumCustomerEnteredPrice` | `:384–392` |
 | Recurring | `IsRecurring` | *No data* — but the cart refuses to mix it with standard products, and a bulk screen exists to add several at once | `:1216–1218` |
+| Grouped | `ProductType != SimpleProduct` | The cart refuses it outright; its children are ordered from their own pages | `BulkOrderUnsupportedReason.Grouped` |
+| Buy button off | `DisableBuyButton` | The cart refuses it; nop's catalogue shows it without a button | `BulkOrderUnsupportedReason.BuyDisabled` |
 
 **Two kinds that were suspected and cleared.** **Downloadable** (`IsDownload`) needs nothing at add-to-cart —
 `HasUserAgreement` is accepted at checkout. **Requires other products** is a dependency, not missing data, and
@@ -1945,13 +1952,15 @@ Two entry points: the post-login redirect `BulkOrderSendUserAfterLogin` promises
 
 **Since P10 (subsidy phase 7, carried into 5.00):** the three landing call sites no longer call
 `ResolveLandingRouteAsync` directly. They ask `IPackNameLandingService.ResolveSignInLandingRouteAsync`
-(`Services/PackNames/PackNameLandingService.cs:86–91`), which tries the subsidy catalogue first
+(`Services/PackNames/PackNameLandingService.cs:85–91`), which tries the subsidy catalogue first
 (`SubsidySendUserAfterLogin`, Subsidy on, the selected packname has active product groups) and only then asks
 `ResolveLandingRouteAsync`. Callers: `CustomerRegistrationOverrideService.SignInCustomerAsync`
 (`Services/Customers/CustomerRegistrationOverrideService.cs:159`) and
-`ExtendedCustomerController.RedirectAfterImpersonationAsync` (`Areas/Admin/Controllers/ExtendedCustomerController.cs:1092`),
+`ExtendedCustomerController.RedirectAfterImpersonationAsync` (`Areas/Admin/Controllers/ExtendedCustomerController.cs:1121`),
 used by `Impersonate` and `PlaceOrder`. The header link still calls `CanUseBulkOrderingAsync`
-(`Components/BulkOrderLinkViewComponent.cs:54`).
+(`Components/BulkOrderLinkViewComponent.cs:54`). Picking a packname in the storefront selector is not a landing
+for bulk ordering: `PackNameController` asks `ResolveSelectionLandingRouteAsync`, which tries the subsidy catalogue
+only (`PackNameLandingService.cs:93`).
 
 The second is defined in terms of the first. Four call sites must agree about who qualifies, and the failure
 mode of disagreement is a link that appears for a customer the redirect skips — or a redirect to a page that
