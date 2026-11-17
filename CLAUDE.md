@@ -1199,6 +1199,7 @@ the override simply goes on doing what the old version did.
 | `CW.Core/Areas/Admin/Factories/CustomerOverrideModelFactory.PrepareCustomerListModelAsync`, `.PrepareExtendedCustomerModelAsync` (re-diffed in part 4b) | `Nop.Web/Areas/Admin/Factories/CustomerModelFactory.PrepareCustomerListModelAsync`, `.PrepareCustomerModelAsync` | the branch column and store filter; the branch, packname and credit-notes data of the edit page |
 | `CW.Core/Services/Orders/OrderReportOverrideService.ProfitReportAsync` | `Nop.Services/Orders/OrderReportService.cs` (the order filter, ~90 lines) | the filtered orders are joined to their settlement rows (`CORE_PN_OrderSettlement`) and the subsidy (goods + shipping) is added back onto nop's profit; store credit is not (it is customer money the store already holds) |
 | `CW.Core/Areas/Admin/Views/Reminder/Index.cshtml` (a view, not a method) | `Nop.Web/Areas/Admin/Views/Reminder/Index.cshtml` (the whole page) | one widget zone added inside nop's form, after its three cards: `CWWidgetsZones.ADMIN_REMINDERS_BOTTOM` (`cw_admin_reminders_bottom`), where the subsidy expiry card draws so nop's Save posts it (`subsidy-system.md` §15). A nop change to the page is silently lost until the copy is re-diffed |
+| `CW.Core/Areas/Admin/Views/Order/Edit.cshtml` and `_CWOrderDetails.BillingAddress`, `.Info`, `.Payments`, `.BillingShipping.cshtml` (views, not methods) | `Nop.Web/Areas/Admin/Views/Order/Edit.cshtml` and its `_OrderDetails.*` partials | the order page picks CW's billing/shipping card for a packname order (shipping destinations, no products card) and adds the subsidy, store credit and return blocks; the info and payments partials carry the subsidy and store-credit rows. A nop change to these views is silently lost until the copies are re-diffed (`PackName_Order_Shipments.md` §3.1) |
 
 Everything else in the CW plugins overrides by calling `base` and post-processing, or by overriding a
 `protected virtual` hook, and needs no such check. Background and rationale: `CWPlans/Exchanges_Rebuild_Record.md`
@@ -1965,16 +1966,16 @@ is saved, so a new store starts with bulk ordering off. The `BulkOrder*` group i
 | `EmployeeNumberEnabled` / `PrintNameEnabled` / `POEntryEnabled` / `CommentsEnabled` / `GenderEnabled` | Show that packname field |
 | `PrintNameProductAttributeId` | The product attribute the print name pre-fills (`PrintNamePrefillEventConsumer`) |
 | `ShowDepartmentPackNamesByBranch` | Department managers see each branch's list with only the department's packnames instead of one department list |
-| `AllowManagersToAddPackNames` | Store managers can add packnames from the storefront |
-| `AllowToAddCustomerToPackName` | Link an existing customer to a packname; the account columns of a **manager's** Excel template (an administrator's always has them) |
+| `AllowManagersToAddPackNames` | Store managers may add, edit and delete packnames on the storefront; also a precondition of the manager's Excel import and of top-up editing |
+| `AllowToAddCustomerToPackName` | Managers may create a customer account with a new packname on the storefront add form (never for a Group packname); the account columns of a **manager's** Excel template (an administrator's always has them) |
 | `AllowSubsidySelection` | Subsidy checkboxes on the manager's add / edit packname form and the subsidy columns of a manager's Excel template (Subsidy feature on). Managers only: an administrator's import assigns subsidies whatever it says (`PackNameRegistration.ByAdministrator`) |
-| `AllowEditSubsidyTopup` | Managers can edit top-ups |
+| `AllowEditSubsidyTopup` | Managers can edit top-ups (also needs `AllowManagersToAddPackNames`) |
 | `AllowToAddByExcel` / `AllowSubsidyCountByExcel` | The manager's Excel import (the selector's Excel icon and `PackName/ImportPackNames`, with `AllowManagersToAddPackNames`) and the number of subsidy column groups in its template (1–10, validated where the settings screens show it) |
 | `LimitAssignedBranches` | Limit managers to adding packnames to the branches they are assigned to (the add form and the Excel template offer only branches where the manager owns a list). Managers only: an administrator's import offers every active branch |
 | `PackNamesOwnGlobalValue` / `PackNamesOwnStartAndFinishDates` | Packnames may carry their own subsidy credit value / dates |
 | `ShippingMethod` | Comma list of CW.Freight method names packnames of the store may use, the first the default; empty = every method. A branch's own list overrides it. Saves keep only names the plugin offers |
 | `AllowHomeDelivery` | Packname / customer addresses are offered at the checkout besides the branch addresses |
-| `AllowCustomersToAddAddress` | Packnames can add an address at the checkout (`PackNameCanAddAddress`) |
+| `AllowCustomersToAddAddress` | Packnames can add an address at the checkout (`PackNameCanAddAddress`; needs `AllowHomeDelivery` too) |
 | `DoNotPreSelectShippingAddress` | No address pre-selected at the checkout; switching it on clears the selected addresses |
 | `IncludeShippingOnSubsidy` | Subsidy credit also pays shipping (off by default — decision 4) |
 | `SubsidySendUserAfterLogin` | After sign-in, packname selection and impersonation the customer lands on the subsidy catalogue when the selected packname has active product groups (phase 7, decision H); read before `BulkOrderSendUserAfterLogin` by `IPackNameLandingService` |

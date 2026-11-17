@@ -46,7 +46,7 @@ public class FormatHelper
 
     public static string FormatAbsPrice(decimal price)
     {
-        return ((price < 0) ? "-" : "") + Math.Abs(price).ToString("F");
+        return ((price < 0) ? "-" : "") + Math.Abs(price).ToString("F2");
     }
 
     public static async Task<string> FormatPriceAsync(decimal price, IPriceFormatter priceFormatter, ICurrencyService currencyService,

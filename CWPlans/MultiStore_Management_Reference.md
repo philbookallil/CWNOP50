@@ -267,7 +267,7 @@ Exchanges on**, whether or not the tab is opened.
 
 ## 5. `MultiStoreController` — Action Inventory
 
-`Areas/Admin/Controllers/MultiStoreController.cs`, ~3,180 lines, inherits `BaseAdminController`
+`Areas/Admin/Controllers/MultiStoreController.cs`, ~3,245 lines, inherits `BaseAdminController`
 (which already applies `[Area]`, `[AuthorizeAdmin]`, `[AutoValidateAntiforgeryToken]`,
 `[ValidateIpAddress]`, `[ValidateVendor]`, `[SaveSelectedTab]`, `[NotNullValidationMessage]` —
 do **not** re-apply them). Organised by `#region`:
@@ -277,13 +277,13 @@ do **not** re-apply them). Organised by `#region`:
 | **Stores** | `Index` (redirects to `List`), `List`, `StoreList` (POST/grid), `Edit(id)` | `ADMIN_ACCESS_MULTISTORE` + `ADMIN_ACCESS_MULTISTORE_SETTINGS` (`StoreList` also `ADMIN_ACCESS_BRANCH`) |
 | **Breadcrum** (sic) | `BreadcrumbData(...)` — also `[CheckCWFeature(PackName, Parameter)]` | `ADMIN_ACCESS_MULTISTORE` + `ADMIN_ACCESS_MULTISTORE_SETTINGS` |
 | **Branches** | `BranchTree`, `BranchDetail`, `SaveBranch`, `DeleteBranch` | `ADMIN_ACCESS_MULTISTORE` |
-| **Branch Addresses** | `BranchAddresses`, address create/edit/delete + popup | `ADMIN_ACCESS_MULTISTORE` |
-| **PackName Lists** | `PackNameLists`, `PackNameListDetail`, `SavePackNameList`, delete, manager add/remove + popup | `ADMIN_ACCESS_MULTISTORE` |
-| **PackNames** | `PackNames`, `PackNamesInline`, `PackNameDetail`, `BranchPackNameDetail`, `SavePackName`, `SaveBranchPackName`, delete, customer association popups | `ADMIN_ACCESS_MULTISTORE` |
+| **Branch Addresses** | `BranchAddresses`, address create/edit/delete + popup, `BranchAddressSetDefault` | `ADMIN_ACCESS_MULTISTORE` |
+| **PackName Lists** | `PackNameLists`, `PackNameListDetail`, `SavePackNameList`, `SetDefaultPackNameList`, delete, `ManagerList` (grid), manager add/remove + popup | `ADMIN_ACCESS_MULTISTORE` |
+| **PackNames** | `PackNames`, `PackNamesList` (grid), `PackNamesInline`, `PackNameDetail`, `BranchPackNameDetail`, `SavePackName`, `SaveBranchPackName`, `GetListsByBranchId` (the single edit's branch-then-list picker), delete, customer association popups, `CustomersWithNoPackNamePopup` (+ its list) | `ADMIN_ACCESS_MULTISTORE` |
 | **PackName Addresses** | list / create / edit / delete + popup | `ADMIN_ACCESS_MULTISTORE` |
-| **Cost Centers** | `CostCenters`, `CostCenterDetail`, `BranchCostCenters`, `BranchCostCenterDetail`, `SaveCostCenter`, delete | `ADMIN_ACCESS_MULTISTORE` |
+| **Cost Centers** | `CostCenters`, `CostCenterList` (grid), `CostCenterDetail`, `BranchCostCenters`, `BranchCostCenterDetail`, `SaveCostCenter`, delete | `ADMIN_ACCESS_MULTISTORE` |
 | **Cost Center Addresses** | list / create / edit / delete + popup | `ADMIN_ACCESS_MULTISTORE` |
-| **Departments** | `Departments`, `DepartmentDetail`, `SaveDepartment`, delete, manager add/remove + popup | `ADMIN_ACCESS_MULTISTORE` |
+| **Departments** | `Departments`, `DepartmentList` (grid), `DepartmentDetail`, `SaveDepartment`, delete, `DepartmentManagerList` (grid), manager add/remove + popup | `ADMIN_ACCESS_MULTISTORE` |
 | **Store Settings** | `StoreSettings` (GET partial), `StoreSettings` (POST), `GeneratePackNames`, `GeneratePackNameLists` | GET `ADMIN_ACCESS_MULTISTORE`; POST `ADMIN_ACCESS_MULTISTORE_SETTINGS` |
 | **Default Stores Settings** | `Settings` (GET), `Settings` (POST, `[FormValueRequired("save")]`) | `ADMIN_ACCESS_DEFAULT_STORE_SETTINGS` |
 | **PackNames** (bulk, same region) | `BulkPackNames` (POST, JSON), `PackNameBulkMoveTargets(storeId)` (GET, JSON), `ExportPackNames(PackNameSearchModel, selectedIds)` (POST, xlsx file) — each also `[CheckCWFeature(PackName, Parameter)]` (§8h) | `ADMIN_ACCESS_MULTISTORE` |
@@ -470,8 +470,9 @@ Four rules, settled in phase 2a. They apply to the storefront `PackNameControlle
    (`AllowManagersToAddPackNames`, `LimitAssignedBranches`), so loading them for a posted store id let
    a manager pick the store whose settings suited them (U-25). One method answers it everywhere,
    `IMultiStoreService.GetManagerStoreIdAsync` (cached per manager, cleared on packname, list and branch changes):
-   no store when the packname, its list or the list's branch is deleted (a deleted branch's lists stay live —
-   Open Items 4.19). The storefront controller's `ResolveManagerStoreIdAsync`, the packname selector's
+   no store when the packname, its list or the list's branch is deleted (a branch cannot be deleted while it holds
+   sub-branches, live lists or live cost centres — `BranchService.BranchHasChildrenAsync`, both branch pages — so the
+   deleted-branch case is only data deleted before that rule). The storefront controller's `ResolveManagerStoreIdAsync`, the packname selector's
    Add / Excel buttons, the manager's departments and the manager's branch tree all use it (R2-A / R2-B,
    2026-11-12).
 4. **`LimitAssignedBranches` decides where a manager may ADD a packname inside the store, never across
@@ -546,7 +547,9 @@ The result is the union of:
 
 Every path filters `PackNameList.Deleted = 0`; `PackNameList.Active = 1` only with `@RequireActiveList = 1`
 (visibility — the selector and the ordering paths), not for ownership (`IsPackNameOwnedByManagerId` passes `0`).
-`Branch.Deleted = 0` holds on paths 1–3 through the CTE and explicitly on path 2; **`Branch.Active` is never
+`Branch.Deleted = 0` holds on the descendants of paths 1 and 3 (the CTE's recursive member) and explicitly on path 2;
+the root branch itself is not checked in the procedure (callers refuse a manager whose branch is deleted through
+`GetManagerStoreIdAsync`, and a branch holding lists cannot be deleted); **`Branch.Active` is never
 filtered** — a deactivated branch's lists stay visible and orderable (`Active` means "no new assignments", §7c). The
 procedure does **not** check `PackName.Manager` (rule 2 above). So `AllManagers = false` with explicit owners means
 "not visible to managers of *other* branches unless mapped", not "private within the branch". Decision 12
@@ -602,9 +605,9 @@ manager orders on behalf of others and has to sign in.
 1. **Tab strip is server-rendered once.** No client re-evaluation. Changing which tabs exist
    requires a page reload.
 2. **AJAX tab URLs are hard-coded strings** in `admin.store.navigation.js`, not `Url.Action` — 16 `'/Admin/…'`
-   literals, left by decision (a URL map handed to `init` is the fix if ever wanted). Renaming a controller or action
-   silently breaks a tab. Two of them point at `SubsidyController`, not `MultiStoreController`. Five detail partials
-   also still carry a literal `data-url="/Admin/MultiStore/…"` (`Subsidy_PackName_Open_Items.md`).
+   literals, an open item (`Subsidy_PackName_Open_Items.md` 3.21: a config div on the host page is the fix). Renaming a
+   controller or action silently breaks a tab. Two of them point at `SubsidyController`, not `MultiStoreController`.
+   The detail partials no longer carry literal `data-url` addresses.
 3. **The `exchangesettings` / `feesettings` ViewComponents run on every page load of a store with Exchanges
    on**, even when the user never opens the tab. With Exchanges off neither the tab nor the component renders.
 4. **Focus forms must return HTML on validation failure and JSON on success.** Getting this
@@ -641,8 +644,8 @@ manager orders on behalf of others and has to sign in.
 9g. **Every write on the store page is activity-logged** — mappings (list managers, department managers), addresses,
    customer association, branch delete, the settings saves (both scopes) and the two Generate buttons (with store and
    count). The generators check `ModelState` and `Enum.IsDefined` on the posted rule, and a settings POST that fails
-   validation no longer reports success. The storefront `EditPackName` POST and the three admin address popups do
-   **not** log (`Subsidy_PackName_Open_Items.md`).
+   validation no longer reports success. The storefront `EditPackName` POST (`EditPackName`) and the three admin
+   address popups (`EditBranch`, `EditPackName`, `EditCostCenter`) log too.
 9h. **Deleting a packname** deletes its cart lines (FK cascade on `CORE_PN_PackNameCartItem` from both parents) and its
    shipping assignment; deleting the **customer** clears `PackName.CustomerId` and `Manager` and leaves the packname
    (`EntityDeletedEvent<Customer>` consumer). A deactivated packname is dropped from the storefront context on its next
@@ -864,8 +867,9 @@ recurs, read the Network status of `/Admin/Subsidy/PackNameSubsidies` first.
    that share a name are told apart in the dropdowns ("Winter #19", "Cost centre (Branch)").
 4. **One name per list on every manual writer** — storefront add and edit, the import (checked first and again inside
    the batch's transaction) and the three admin saves (`IPackNameService.PackNameNameExistsAsync`, ignoring case) — for
-   a new packname, a new name or a move; a packname saved with its own name keeps it. Provisioning is exempt (decision
-   G1), so two packnames may share a name. Nothing in the database enforces it (gap analysis §17b "From phase 8 Part 2" #2).
+   a new packname, a new name or a move; a packname saved with its own name keeps it. Provisioning checks the name too
+   (`PackNameProvisioningService`): a clash is skipped and reported (the customer page shows it, *Generate packnames*
+   logs it). Nothing in the database enforces it (gap analysis §17b "From phase 8 Part 2" #2).
 5. **Switched off means takes nothing new.** A switched-off list or branch takes no new packname and no move on any
    path (form, import, admin saves, popup); a packname already there still saves. A branch whose lists are all off
    counts as having none: the import and the admin saves create its list (`EnsureDefaultPackNameListAsync`, active, the

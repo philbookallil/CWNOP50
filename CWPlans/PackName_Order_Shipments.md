@@ -126,6 +126,7 @@ runs — rather than forking nop's 300-line `AddShipment.cshtml` or its 90-line 
 
 | Direction | What it does |
 |---|---|
+| **GET** (any packname order) | adds a `For: packname · department · cost centre` line to each item's `AttributeInfo` (`PackNameOrderItemHelper.FormatFor`, resource `Plugins.CW.Core.Admin.Orders.Shipments.Product.For`, the packname text HTML-encoded), so identical products going to different people can be told apart — the same line the packing slip and invoice print |
 | **GET** with `?cwDestination={key}` | trims `ShipmentModel.Items` to that destination's order items, and puts the destination in `ViewData` for the banner |
 | **POST** | reads every `qtyToAdd{orderItemId}` with a quantity, resolves each to a destination, and **refuses** if they are not all the same one |
 | **POST**, on nop's "no products selected" redirect | re-attaches `cwDestination`, which the form would otherwise lose — it posts to a bare URL |
@@ -221,7 +222,7 @@ raising with the manager.
 
 ## 7. Deliberately still wrong
 
-### 7.1 Addresses — phase 9, a release blocker
+### 7.1 Addresses — closed by phase 9 (2026-08-27)
 
 `Order.ShippingAddressId` is the first packname's address. Seven surfaces read it, and the first one is
 not a display problem:
@@ -243,11 +244,11 @@ it that produces a slip addressed to a different one.
 
 **What the slip prints under each product** (subsidy phase 6 Part 2, 2026-10-07): a packname order's slip is a `CWShipmentDocument`, which prints the product's attribute lines under its name — nop's `ShipmentDocument` prints none — followed by who the line is for (`For: packname · department · cost centre`, empty parts left out). The invoice prints the same For line. A plain order, or a packname order with no recorded shipping group, gets nop's slip. Record: `CWPlans/subsidy-system.md` §7.
 
-### 7.2 Pickup in store — phase 8, blocked on manager Q8
+### 7.2 Pickup in store — skipped by decision (2026-08-27)
 
 `OrderShipping.PickupInStore` is hardcoded `false` at placement, and nothing offers pickup at checkout,
-so the pickup half of everything here is unreachable. **Do not delete the pickup branches as dead code**
-— they are the correct shape for phase 8a.
+so the pickup half of everything here is unreachable. Pickup was skipped for the first release by decision
+(`Exchanges_Rebuild_Record.md`, 8a); the pickup branches are kept for a possible later round.
 
 **Full spec: `CWPlans/Exchanges_Rebuild_Record.md` §5.**
 

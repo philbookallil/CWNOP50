@@ -55,7 +55,7 @@ else if (Model.EnableAdditionalFee)
             <div class="form-text-row">
                 @*What is charged, not what was typed. On a resolved case the frozen charge is the money,
                   and the panel total below already reads it — these two must not be able to disagree.*@
-                @currency.CurrencyCode @Model.AdditionalFeeChargedAmount.ToString("F")
+                @currency.CurrencyCode @Model.AdditionalFeeChargedAmount.ToString("F2")
             </div>
         </td>
     </tr>

@@ -143,7 +143,7 @@
                         <td colspan="3">
                             <div class="form-text-row">
                                 @currency.CurrencyCode
-                                <span class="amount">@Math.Abs(priceDifference).ToString("F")</span>&nbsp;
+                                <span class="amount">@Math.Abs(priceDifference).ToString("F2")</span>&nbsp;
                                 <span>(returned to whatever paid for it — subsidy to the employee's entitlement, cash as a Credit Note)</span>
                             </div>
                         </td>
@@ -187,7 +187,7 @@
                     <td colspan="3">
                         <div class="form-text-row">
                             @currency.CurrencyCode
-                            <span class="price-total">@Math.Abs(totalAmount).ToString("F")</span>
+                            <span class="price-total">@Math.Abs(totalAmount).ToString("F2")</span>
                         </div>
                     </td>
                 </tr>

@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Net;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Nop.Plugin.CW.Core.Helpers;
 using Nop.Plugin.CW.Core.Services.Orders;
 using Nop.Services.Localization;
 using Nop.Services.Messages;
@@ -17,7 +19,9 @@ namespace Nop.Plugin.CW.Core.Filters;
 /// nop's Shipment is order-scoped and holds no address, so nothing in the core stops staff putting
 /// items bound for two different addresses under one tracking number. On a packname order that is not
 /// an edge case — several destinations is the normal shape. This narrows the Add Shipment screen to the
-/// destination that was chosen, and rejects a post that spans more than one.
+/// destination that was chosen, and rejects a post that spans more than one. Each packname line also gets a
+/// "For" line (packname · department · cost centre) under the product, so identical products going to
+/// different people can be told apart.
 /// </remarks>
 public class AddShipmentDestinationFilter : CoreActionFilter, IAsyncActionFilter
 {
@@ -69,6 +73,42 @@ public class AddShipmentDestinationFilter : CoreActionFilter, IAsyncActionFilter
             raw = httpContext.Request.Form[DESTINATION_KEY].ToString();
 
         return int.TryParse(raw, out var key) ? key : null;
+    }
+
+    /// <summary>
+    /// Adds who each packname line is for under its product, as the packing slip prints it. Lines of a plain
+    /// order, and lines with no packname, are left as nop built them.
+    /// </summary>
+    private async Task AddPackNameForLinesAsync(ShipmentModel model)
+    {
+        var packNameItems = await _cwOrderService.GetPackNameFullOrderItemsAsync(model.OrderId);
+
+        if (packNameItems.Count == 0)
+            return;
+
+        var packNameItemByOrderItemId = packNameItems
+            .GroupBy(item => item.Id)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        var forFormat = await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Orders.Shipments.Product.For");
+
+        foreach (var item in model.Items)
+        {
+            if (!packNameItemByOrderItemId.TryGetValue(item.OrderItemId, out var packNameItem))
+                continue;
+
+            var forText = PackNameOrderItemHelper.FormatFor(packNameItem.PackName, packNameItem.Department, packNameItem.CostCenter);
+
+            if (string.IsNullOrEmpty(forText))
+                continue;
+
+            //AttributeInfo is rendered as HTML, so the packname's own text is encoded
+            var forLine = WebUtility.HtmlEncode(string.Format(forFormat, forText));
+
+            item.AttributeInfo = string.IsNullOrEmpty(item.AttributeInfo)
+                ? forLine
+                : $"{item.AttributeInfo}<br />{forLine}";
+        }
     }
 
     #endregion
@@ -154,15 +194,18 @@ public class AddShipmentDestinationFilter : CoreActionFilter, IAsyncActionFilter
             return;
         }
 
-        //---------- GET: narrow the item list to the chosen destination ----------
+        //---------- GET: say who each line is for, and narrow the list to the chosen destination ----------
         var resultContext = await next();
+
+        if (resultContext.Controller is not Controller mvcController ||
+            mvcController.ViewData.Model is not ShipmentModel model)
+            return;
+
+        await AddPackNameForLinesAsync(model);
 
         var key = ReadDestinationKey(httpContext);
 
-        if (key == null || resultContext.Controller is not Controller mvcController)
-            return;
-
-        if (mvcController.ViewData.Model is not ShipmentModel model)
+        if (key == null)
             return;
 
         var orderDestinations = await _cwOrderService.GetOrderShippingDestinationsAsync(model.OrderId);

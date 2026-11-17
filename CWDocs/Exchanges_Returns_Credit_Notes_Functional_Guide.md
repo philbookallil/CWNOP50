@@ -5,8 +5,8 @@
 
 > **About the examples.** Every screen in this guide is a real screenshot from the CW test store, taken while the
 > scenarios in §9 were run from start to finish: real orders, real returns, real approvals. The people
-> (*Steve Gates*, *James Pan*) and the products are test data. Amounts are in US dollars because that is how the test
-> store is set up; live stores use their own currency.
+> (*Steve Gates*, *James Pan*) and the products are test data. All amounts are in Australian dollars (AUD),
+> shown with the "$" sign as Australian stores show them.
 >
 > §4 explains what nopCommerce does by itself, what CW adds on top, and where the two differ. Things that work
 > differently from what you might expect are collected in §11.
@@ -531,19 +531,22 @@ figures. Returns appear as **"Return on order #… — given back"**:
 ![Subsidy page with history](images/returns/c-subsidies-history.jpg)
 
 *Reading from the bottom: order #3014 used 1 unit and $24.95 of delivery; the approved exchange gave the unit back
-(+1); the replacement order #3015 used 1 unit and, sent on its own, no delivery.*
+(+1); the replacement order #3015 used 1 unit and, sent on its own, no delivery. The rows above came later in the
+test run: the shoes of #3015 were returned for credit (+1), order #4013 used $25.15 and a top-up added it back.*
 
 ### 5.9 My account › My Store Credit
 
 Customers who hold, or have ever held, store credit see **My Store Credit** in their account: the available balance,
-each credit note (what it was issued for, its amount and what is left of it) and every order their credit was used
-on, with links to those orders. Store credit is applied automatically at checkout — the customer does not have to
+each credit note that still has credit left (what it was issued for, its amount and what is left of it) and every
+order their credit was used on, with links to those orders. A note that has been spent completely leaves the upper
+table and stays in the lower one. Store credit is applied automatically at checkout — the customer does not have to
 choose it — and it appears as a *Store credit* line in the order summary.
 
 ![My Store Credit](images/returns/c-my-store-credit.jpg)
 
-*James Pan after his hat was returned for credit: one note of $22.00 ($30 less $8 of fees). The lower table lists
-where earlier credit was spent.*
+*James Pan at the end of the test run: all his credit has been spent, so only the lower table is shown. The $22.00
+note from his returned hat ($30 less $8 of fees) paid for order #2017, and the two $15.00 notes paid for #2017 and
+the exchange order #3013.*
 
 ### 5.10 When Exchanges is switched off: nopCommerce's own form
 
@@ -592,11 +595,16 @@ before approving:
 
 ![Fees and charges panel](images/returns/a-fees-panel.jpg)
 
+*Return #1004 after approval: the quantities are locked and the fees ($5 redelivery, $3 repackaging and a $2
+additional fee) are what was charged. The admin panel writes amounts with the currency code (AUD).*
+
 - **Re-Shipped Quantity** drives the redelivery fee, **Repackaged Quantity** the repackaging fee. Both default to
   the returned quantity and can be lowered (to 0 to waive a fee).
 - **Enable Additional Fee** adds a one-off fee with a description:
 
 ![Additional fee](images/returns/a-fees-additional.jpg)
+
+*Return #1002, still pending: a $5 additional fee typed in by staff.*
 
 - **Minimum Payment Required** is what the customer will have to pay for an exchange; for a credit return the panel
   shows the most the customer could receive as store credit instead.
@@ -701,9 +709,10 @@ order: the subsidy and any store credit it used come back automatically.
 
 *Sales › Orders* and the *Orders* tab of a customer mark each order:
 
-- **E** — the order contains a replacement sent for an exchange (in the test run: orders #2014 and #2015);
+- **E** — the order contains a replacement sent for an exchange (in the test run: orders #2015, #3013 and #3015);
 - **R** — an item of the order was returned and authorised (later marked *repaired* or *refunded* counts too).
-  Pending, received, rejected and cancelled returns do not count. An order can carry both.
+  Pending, received, rejected and cancelled returns do not count. An order can carry both, as #3015 does: it was
+  a replacement, and its own shoes were later returned.
 
 ![E and R badges in the order list](images/returns/a-order-badges.jpg)
 
