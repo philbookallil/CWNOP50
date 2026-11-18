@@ -5,25 +5,25 @@ namespace Nop.Plugin.Integration.Odoo.Models;
 
 public partial record OdooLogModel : BaseNopEntityModel
 {
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.Fields.LogLevel")]
+    [NopResourceDisplayName("Integration.Odoo.Log.Fields.LogLevel")]
     public string LogLevel { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.Fields.ShortMessage")]
+    [NopResourceDisplayName("Integration.Odoo.Log.Fields.ShortMessage")]
     public string ShortMessage { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.Fields.FullMessage")]
+    [NopResourceDisplayName("Integration.Odoo.Log.Fields.FullMessage")]
     public string FullMessage { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.Fields.EntityType")]
+    [NopResourceDisplayName("Integration.Odoo.Log.Fields.EntityType")]
     public string EntityType { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.Fields.OdooEntityId")]
+    [NopResourceDisplayName("Integration.Odoo.Log.Fields.OdooEntityId")]
     public int? OdooEntityId { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.Fields.NopEntityId")]
+    [NopResourceDisplayName("Integration.Odoo.Log.Fields.NopEntityId")]
     public int? NopEntityId { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.Fields.CreatedOn")]
+    [NopResourceDisplayName("Integration.Odoo.Log.Fields.CreatedOn")]
     public DateTime CreatedOn { get; set; }
 
     public int LogEventId { get; set; }

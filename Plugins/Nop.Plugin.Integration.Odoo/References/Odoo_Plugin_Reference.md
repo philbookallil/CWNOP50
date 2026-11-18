@@ -45,7 +45,7 @@ a record whose parent is not mapped yet is logged and skipped. The Sync Log page
 | Syncs | `StoreSyncService`, `DepartmentSyncService`, `ProductSyncService`, `BranchSyncService`; each counts every record once (`SyncTally`). |
 | Sync log | `Odoo_LogEvent` (one row per sync run with its totals) and `Odoo_Log` (its traces); `IOdooLogService`. |
 | Settings | `OdooSettings`, global (store 0): URL, database, username, API key, last sync. |
-| Locale | `Infrastructure/OdooLocaleResources.cs`, keys `Plugins.Integration.Odoo.*`, installed on install and on a DATA version update. |
+| Locale | `Infrastructure/OdooLocaleResources.cs`, keys `Integration.Odoo.*` (`OdooLocaleResources.Prefix`), installed on install and on a DATA version update. Until 2026-11-17 the prefix was `Plugins.Integration.Odoo.*`; the update deletes what is left under it (`PreviousPrefix`). |
 
 **CW.Core coupling** (`CLAUDE.md` §10.2 Pattern C): the `.csproj` references the built
 `Presentation/Nop.Web/Plugins/CW.Core/Nop.Plugin.CW.Core.dll` with `Private=false` / `ExcludeAssets=runtime`, and

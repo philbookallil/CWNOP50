@@ -211,7 +211,8 @@ keys and its `NABXMLTransaction` table (decided 2026-10-23).
 
 **`Nop.Plugin.Integration.Odoo` is CW-owned** on the same terms: its name follows nop's `Integration.*` pattern (nop 5.00
 ships no Odoo plugin), every CW rule applies to it, and it keeps its SystemName `Integration.Odoo` and its `Odoo_*` tables;
-its locale keys are `Plugins.Integration.Odoo.*` (decided 2026-10-26).
+its locale keys are `Integration.Odoo.*` (decided 2026-10-26; the prefix was `Plugins.Integration.Odoo.*` until
+2026-11-17, and the plugin update deletes the rows left under it).
 
 If a customisation seems to require editing one of those projects, stop and re-plan. The correct path is almost always one of:
 
@@ -285,7 +286,7 @@ across wholesale. Port deliberately, into the 5.00 patterns (§10.5).
 | `Themes/CW.Standard` | The CW storefront theme | **Ported** 2026-10-29: its views rebased on the 5.00 views, CSS and images on 5.00 `DefaultClean` | ThemeCore reference doc §3 |
 | `Themes/CW.StandardTest` | Placeholder skin built on Voyage | **Deferred** — Voyage is a paid third-party theme and this repository is public (§0.9): decide licence / `.gitignore` before porting. Four of its views have no 5.00 counterpart | 4.90 source |
 | `Nop.Plugin.Payments.NABGateway` | NAB Transact XML card payments + payment reports (the 4.1 `TIG.NAB.XMLPayment`) | **Ported** 2026-10-22 (`0.5_DATA`); card data now kept in memory between checkout steps, never in the database. Unit tests in `Tests/CW.Tests` (43 cases); install, Configure, reports and card form tested on a local site; not yet run against the NAB test gateway | `Plugins/Nop.Plugin.Payments.NABGateway/References/NABGateway_Plugin_Reference.md` |
-| `Nop.Plugin.Integration.Odoo` | One-way Odoo 19 → nop sync: stores, departments, products, branches | **Ported** 2026-10-26 (`2026_10_26_DATA_1.0`), with the CW standards pass; references the built CW.Core DLL (§10.2 Pattern C). Unit tests in `Tests/CW.Tests` (14 cases). Depends on CW.Core (`DependsOnSystemNames`); installed with CW.Core on a local site 2026-10-27 and T3–T8 passed (admin pages, queued syncs, sync log); run against a real Odoo (the client's test instance, Odoo 20.0) 2026-10-28: all four syncs, a re-run and a change run pass. (the unused `x_studio_external_id` request, which an Odoo without the field refused, was removed the same day) | `Plugins/Nop.Plugin.Integration.Odoo/References/Odoo_Plugin_Reference.md` |
+| `Nop.Plugin.Integration.Odoo` | Odoo 20 (JSON-2 API) ↔ nop: stores, departments, products and branches from Odoo; orders sent to Odoo as sale orders | **Ported** 2026-10-26 (`2026_10_26_DATA_1.0`), with the CW standards pass; references the built CW.Core DLL (§10.2 Pattern C). Unit tests in `Tests/CW.Tests` (14 cases). Depends on CW.Core (`DependsOnSystemNames`); installed with CW.Core on a local site 2026-10-27 and T3–T8 passed (admin pages, queued syncs, sync log); run against a real Odoo (the client's test instance, Odoo 20.0) 2026-10-28: all four syncs, a re-run and a change run pass. (the unused `x_studio_external_id` request, which an Odoo without the field refused, was removed the same day) | `Plugins/Nop.Plugin.Integration.Odoo/References/Odoo_Plugin_Reference.md` |
 
 Update this table as each plugin lands. Coupling rules between them are in §10.2 and apply unchanged.
 

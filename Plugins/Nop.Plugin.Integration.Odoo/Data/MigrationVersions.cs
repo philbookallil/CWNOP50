@@ -13,4 +13,9 @@ public static class MigrationVersions
     /// Initial schema: <c>Odoo_Log</c>, <c>Odoo_LogEvent</c> and <c>Odoo_StoreMapping</c> with their indexes.
     /// </summary>
     public const string InitialSchema = "2026/10/26 00:00:00";
+
+    /// <summary>
+    /// <c>Odoo_OrderMapping</c>: the Odoo sale orders made from nop orders.
+    /// </summary>
+    public const string AddOrderMapping = "2026/11/13 00:00:00";
 }

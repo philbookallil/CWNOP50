@@ -35,4 +35,13 @@ public class OdooSettings : ISettings
 
     public DateTime? LastSyncDateTime { get; set; }
 
+    /// <summary>
+    /// Internal reference (<c>default_code</c>) of the Odoo product used for the shipping line of a sale order.
+    /// </summary>
+    public string DeliveryProductCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Internal reference (<c>default_code</c>) of the Odoo service product used for exchange fee lines.
+    /// </summary>
+    public string ExchangeFeeProductCode { get; set; } = string.Empty;
 }

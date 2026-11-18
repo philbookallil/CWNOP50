@@ -22,7 +22,7 @@
 
     <div class="content-header clearfix">
         <h1 class="float-left">
-            Odoo 19 Settings
+            Odoo Settings
         </h1>
         <div class="float-right">
             <button type="submit" name="save" class="btn btn-primary">
@@ -47,7 +47,7 @@
         <div class="container-fluid">
             <div class="form-horizontal">
                 <nop-cards id="odoo-settings-cards">
-                    <nop-card asp-name="odoo-connection-settings" asp-icon="fas fa-plug" asp-title="Odoo 19 Connection" asp-hide-block-attribute-name="@hideOdooSettingsBlockAttributeName" asp-hide="@hideOdooSettingsBlock" asp-advanced="false">
+                    <nop-card asp-name="odoo-connection-settings" asp-icon="fas fa-plug" asp-title="Odoo Connection" asp-hide-block-attribute-name="@hideOdooSettingsBlockAttributeName" asp-hide="@hideOdooSettingsBlock" asp-advanced="false">
                         <div class="card-body">
                             <p>
                                 Connect to the Odoo JSON-2 API, then start the syncs from the Sync Log page.
@@ -91,6 +91,33 @@
                                 <div class="col-md-9">
                                     <input asp-for="ApiKey" type="password" class="form-control" autocomplete="new-password"
                                            placeholder="@(Model.HasApiKey ? "A key is saved; leave blank to keep it" : "Enter API key")" />
+                                </div>
+                            </div>
+                        </div>
+                    </nop-card>
+
+                    <nop-card asp-name="odoo-order-settings" asp-icon="fas fa-paper-plane" asp-title="Orders to Odoo" asp-hide-block-attribute-name="OdooSettingsPage.HideOrderSettingsBlock" asp-hide="false" asp-advanced="false">
+                        <div class="card-body">
+                            <p>
+                                Orders are sent from the Orders page. These products give the shipping and exchange fee lines of an Odoo order.
+                            </p>
+                            <hr />
+
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="DeliveryProductCode" />
+                                </div>
+                                <div class="col-md-9">
+                                    <input asp-for="DeliveryProductCode" type="text" class="form-control" placeholder="Delivery_007" />
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <nop-label asp-for="ExchangeFeeProductCode" />
+                                </div>
+                                <div class="col-md-9">
+                                    <input asp-for="ExchangeFeeProductCode" type="text" class="form-control" />
                                 </div>
                             </div>
                         </div>

@@ -45,7 +45,7 @@ public class ProductSyncService : IProductSyncService
     /// Prefix of the Odoo link kept in <c>ManufacturerPartNumber</c>: <c>ODOO_{template id}</c> on a product,
     /// <c>ODOO_{product.product id}</c> on a combination. It is the match key, ahead of SKU.
     /// </summary>
-    private const string OdooLinkPrefix = "ODOO_";
+    private const string OdooLinkPrefix = OdooConstants.OdooLinkPrefix;
 
     /// <summary>Per-run lookup of Odoo link (<c>ODOO_{template id}</c>) → nop product id, loaded once.</summary>
     private Dictionary<string, int> _productIdByOdooLink = new();
@@ -303,6 +303,8 @@ public class ProductSyncService : IProductSyncService
                 var currentMarker = GetSyncMarker(odooProduct);
                 if (!string.IsNullOrEmpty(storedMarker) && string.Equals(storedMarker, currentMarker, StringComparison.Ordinal))
                 {
+                    // A product synced before the variant id was recorded gets it without a full resync.
+                    await SaveSingleVariantIdAsync(existingProduct, odooProduct);
                     await _odooLog.InformationAsync($"Product SKU {odooSku} unchanged ({currentMarker}). Skipped.",
                         logEventId, entityType: "Product", odooEntityId: odooProduct.Id, nopEntityId: existingProduct.Id);
                     return SyncOutcome.Skipped;
@@ -311,6 +313,7 @@ public class ProductSyncService : IProductSyncService
                 await _odooLog.InformationAsync($"Product with SKU {odooSku} already exists (ID: {existingProduct.Id}). Updating.",
                     logEventId, entityType: "Product", odooEntityId: odooProduct.Id, nopEntityId: existingProduct.Id);
                 await UpdateExistingProduct(logEventId, existingProduct, odooProduct);
+                await SaveSingleVariantIdAsync(existingProduct, odooProduct);
                 await CheckMainImageOnUpdateAsync(logEventId, existingProduct, odooProduct);
                 var attributesSynced = await SyncAttributesAndVariants(logEventId, existingProduct, odooProduct);
                 await SyncProductCategory(logEventId, existingProduct, odooProduct);
@@ -334,6 +337,7 @@ public class ProductSyncService : IProductSyncService
             if (!string.IsNullOrWhiteSpace(odooProduct.Image1920))
                 await SyncProductMainImageAsync(logEventId, product, odooProduct.Image1920, product.Name);
             await _genericAttributeService.SaveAttributeAsync(product, OdooImageFingerprintAttribute, GetImageFingerprint(odooProduct));
+            await SaveSingleVariantIdAsync(product, odooProduct);
 
             // Sync attributes and variants
             var attributesCreated = await SyncAttributesAndVariants(logEventId, product, odooProduct);
@@ -547,6 +551,20 @@ public class ProductSyncService : IProductSyncService
     /// </summary>
     private Task SaveProductSyncMarkerAsync(Product product, OdooProductResponse odooProduct) =>
         _genericAttributeService.SaveAttributeAsync(product, OdooProductSyncMarkerAttribute, GetSyncMarker(odooProduct));
+
+    /// <summary>
+    /// Records the Odoo variant of a template with exactly one variant, which an order line needs: such a
+    /// product has no combination to carry it. Zero when the template has several variants, whose
+    /// combinations carry their own. Written only when it changed.
+    /// </summary>
+    private async Task SaveSingleVariantIdAsync(Product product, OdooProductResponse odooProduct)
+    {
+        var variantId = odooProduct.ProductVariantIds?.Count == 1 ? odooProduct.ProductVariantIds[0] : 0;
+        var stored = await _genericAttributeService.GetAttributeAsync<int>(product, OdooConstants.ProductVariantIdAttribute);
+
+        if (stored != variantId)
+            await _genericAttributeService.SaveAttributeAsync(product, OdooConstants.ProductVariantIdAttribute, variantId);
+    }
 
     #endregion
 

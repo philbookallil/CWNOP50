@@ -1,4 +1,4 @@
-﻿using Nop.Data.Mapping;
+using Nop.Data.Mapping;
 using Nop.Plugin.Integration.Odoo.Domain;
 
 namespace Nop.Plugin.Integration.Odoo.Data;
@@ -14,6 +14,7 @@ public class DataNameCompatibility : INameCompatibility
         { typeof(OdooLog),  "Odoo_Log" },
         { typeof(OdooLogEvent), "Odoo_LogEvent" },
         { typeof(OdooStoreMapping), "Odoo_StoreMapping" },
+        { typeof(OdooOrderMapping), "Odoo_OrderMapping" },
     };
 
     /// <summary>

@@ -5,9 +5,10 @@ using System.Threading.Channels;
 namespace Nop.Plugin.Integration.Odoo.Services;
 
 /// <summary>
-/// Represents a queued sync request with a type discriminator.
+/// Represents a queued sync request with a type discriminator. <see cref="EntityIds"/> are the nop records the
+/// request is for (the orders of an order send or cancel); null for the syncs that read everything from Odoo.
 /// </summary>
-public record OdooSyncRequest(Guid RequestId, DateTime QueuedAtUtc, SyncEventType SyncType);
+public record OdooSyncRequest(Guid RequestId, DateTime QueuedAtUtc, SyncEventType SyncType, IReadOnlyList<int> EntityIds = null);
 
 /// <summary>
 /// Thin abstraction over the sync channel so controllers don't depend on the channel directly.
@@ -19,8 +20,11 @@ public interface IOdooSyncQueue
     /// <summary>
     /// Claims the sync type and queues a request in one atomic step.
     /// </summary>
+    /// <param name="syncType">The sync to queue.</param>
+    /// <param name="entityIds">The nop records the request is for, or null.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The request ID, or null when a sync of that type is already queued or running.</returns>
-    ValueTask<Guid?> TryEnqueueSyncAsync(SyncEventType syncType, CancellationToken cancellationToken = default);
+    ValueTask<Guid?> TryEnqueueSyncAsync(SyncEventType syncType, IReadOnlyList<int> entityIds = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Releases the sync type. Called by the background service when processing finishes, whatever
@@ -41,7 +45,7 @@ public class OdooSyncQueue : IOdooSyncQueue
         _channel = channel;
     }
 
-    public async ValueTask<Guid?> TryEnqueueSyncAsync(SyncEventType syncType, CancellationToken cancellationToken = default)
+    public async ValueTask<Guid?> TryEnqueueSyncAsync(SyncEventType syncType, IReadOnlyList<int> entityIds = null, CancellationToken cancellationToken = default)
     {
         // TryAdd is atomic: of two simultaneous requests for the same type, exactly one claims it.
         if (!_claimed.TryAdd(syncType, 0))
@@ -49,7 +53,7 @@ public class OdooSyncQueue : IOdooSyncQueue
 
         try
         {
-            var request = new OdooSyncRequest(Guid.NewGuid(), DateTime.UtcNow, syncType);
+            var request = new OdooSyncRequest(Guid.NewGuid(), DateTime.UtcNow, syncType, entityIds);
             await _channel.Writer.WriteAsync(request, cancellationToken);
             return request.RequestId;
         }

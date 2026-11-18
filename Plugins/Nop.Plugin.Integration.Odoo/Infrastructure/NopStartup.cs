@@ -35,6 +35,9 @@ public class NopStartup : INopStartup
         // Register department sync (reuses CW.Core department/role provisioning)
         services.AddScoped<IDepartmentSyncService, DepartmentSyncService>();
 
+        // Register the order send (nop orders → Odoo sale orders)
+        services.AddScoped<IOrderSyncService, OrderSyncService>();
+
         // --- Background sync infrastructure (shared by product & branch sync) ---
         // Bounded channel prevents unbounded memory growth if requests pile up.
         var channel = Channel.CreateBounded<OdooSyncRequest>(new BoundedChannelOptions(10)

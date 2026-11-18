@@ -59,7 +59,16 @@ public class OdooIntegrationPlugin : BasePlugin
     public override async Task UpdateAsync(string currentVersion, string targetVersion)
     {
         if (targetVersion.Contains("DATA"))
+        {
             await _localizationService.AddOrUpdateLocaleResourceAsync(OdooLocaleResources.All);
+
+            // The resources were first installed under "Plugins.Integration.Odoo"; nothing reads that prefix any more
+            await _localizationService.DeleteLocaleResourcesAsync(OdooLocaleResources.PreviousPrefix);
+
+            // The Orders page lists every order; the start date that limited it is gone with its setting
+            if (await _settingService.GetSettingAsync("odoosettings.ordersyncstartdateutc") is { } startDate)
+                await _settingService.DeleteSettingAsync(startDate);
+        }
 
         await base.UpdateAsync(currentVersion, targetVersion);
     }

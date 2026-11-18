@@ -1,5 +1,6 @@
-﻿using Nop.Services.Localization;
+using Nop.Services.Localization;
 using Nop.Services.Plugins;
+using Nop.Services.Security;
 using Nop.Web.Framework.Events;
 using Nop.Web.Framework.Menu;
 
@@ -44,6 +45,16 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer
             SystemName = OdooConstants.SettingsMenuSystemName,
             Visible = true,
             IconClass = "far fa-dot-circle",
+            PermissionNames = new List<string> { StandardPermission.Configuration.MANAGE_PLUGINS },
+        };
+        var ordersMenu = new AdminMenuItem
+        {
+            Title = await _localizationService.GetResourceAsync($"{OdooLocaleResources.Prefix}.Menu.Orders"),
+            Url = $"/Admin/{OdooConstants.AdminController}/Orders",
+            SystemName = OdooConstants.OrdersMenuSystemName,
+            Visible = true,
+            IconClass = "far fa-paper-plane",
+            PermissionNames = new List<string> { OdooPermissionConfigManager.SEND_ORDERS },
         };
         var syncLogMenu = new AdminMenuItem
         {
@@ -52,6 +63,7 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer
             SystemName = OdooConstants.SyncLogsMenuSystemName,
             Visible = true,
             IconClass = "far fa-list-alt",
+            PermissionNames = new List<string> { StandardPermission.Configuration.MANAGE_PLUGINS },
         };
 
         var menu = new AdminMenuItem
@@ -63,6 +75,7 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer
         };
 
         menu.ChildNodes.Add(settingsMenu);
+        menu.ChildNodes.Add(ordersMenu);
         menu.ChildNodes.Add(syncLogMenu);
 
         return menu;

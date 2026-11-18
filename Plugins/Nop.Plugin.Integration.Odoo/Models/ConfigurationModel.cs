@@ -12,7 +12,7 @@ public record ConfigurationModel : BaseNopModel
     /// <summary>
     /// The base URL of the Odoo instance (e.g. https://mycompany.odoo.com).
     /// </summary>
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Fields.OdooUrl")]
+    [NopResourceDisplayName("Integration.Odoo.Fields.OdooUrl")]
     [Required(ErrorMessage = "Odoo URL is required")]
     [Url(ErrorMessage = "Please enter a valid URL")]
     public string OdooUrl { get; init; } = string.Empty;
@@ -20,14 +20,14 @@ public record ConfigurationModel : BaseNopModel
     /// <summary>
     /// The Odoo database name. For SaaS this is the subdomain portion.
     /// </summary>
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Fields.DatabaseName")]
+    [NopResourceDisplayName("Integration.Odoo.Fields.DatabaseName")]
     [Required(ErrorMessage = "Database name is required")]
     public string DatabaseName { get; init; } = string.Empty;
 
     /// <summary>
     /// The Odoo user login / email used to identify the API user.
     /// </summary>
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Fields.Username")]
+    [NopResourceDisplayName("Integration.Odoo.Fields.Username")]
     [Required(ErrorMessage = "Username is required")]
     [EmailAddress(ErrorMessage = "Please enter a valid email address")]
     public string Username { get; init; } = string.Empty;
@@ -36,7 +36,7 @@ public record ConfigurationModel : BaseNopModel
     /// The API key from Odoo Settings → Technical → API Keys.
     /// Stored encrypted. The UI shows a masked placeholder when already saved.
     /// </summary>
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Fields.ApiKey")]
+    [NopResourceDisplayName("Integration.Odoo.Fields.ApiKey")]
     public string ApiKey { get; init; } = string.Empty;
 
     /// <summary>
@@ -50,4 +50,16 @@ public record ConfigurationModel : BaseNopModel
     public string ConnectionStatus { get; set; }
 
     public string TestResultMessage { get; set; }
+
+    /// <summary>
+    /// Internal reference of the Odoo product used for shipping lines.
+    /// </summary>
+    [NopResourceDisplayName("Integration.Odoo.Fields.DeliveryProductCode")]
+    public string DeliveryProductCode { get; init; }
+
+    /// <summary>
+    /// Internal reference of the Odoo service product used for exchange fee lines.
+    /// </summary>
+    [NopResourceDisplayName("Integration.Odoo.Fields.ExchangeFeeProductCode")]
+    public string ExchangeFeeProductCode { get; init; }
 }

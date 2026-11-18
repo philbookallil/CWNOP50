@@ -2,11 +2,11 @@
   "Group": "Integration",
   "FriendlyName": "Odoo Integration",
   "SystemName": "Integration.Odoo",
-  "Version": "2026_10_26_DATA_1.0",
+  "Version": "2026_11_18_DATA_1.4",
   "SupportedVersions": [ "5.00" ],
   "Author": "Total Image Group",
   "DisplayOrder": 1,
   "DependsOnSystemNames": [ "CW.Core" ],
   "FileName": "Nop.Plugin.Integration.Odoo.dll",
-  "Description": "Connects NopCommerce to Odoo 19 ERP via the JSON-2 API. Synchronises stores, departments, branches and products (variants, attributes, images)."
+  "Description": "Connects NopCommerce to Odoo (19 and later; the client runs Odoo 20) via the JSON-2 API. Synchronises stores, departments, branches and products (variants, attributes, images) from Odoo, and sends orders to Odoo as sale orders."
 }

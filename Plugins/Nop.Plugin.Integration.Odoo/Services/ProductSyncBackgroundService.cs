@@ -67,6 +67,8 @@ public class OdooSyncBackgroundService : BackgroundService
             SyncEventType.Branch => "Branch Sync",
             SyncEventType.Store => "Store Sync",
             SyncEventType.Department => "Department Sync",
+            SyncEventType.OrderSend => "Order Send",
+            SyncEventType.OrderCancel => "Order Cancel",
             _ => "Unknown Sync"
         };
 
@@ -117,6 +119,19 @@ public class OdooSyncBackgroundService : BackgroundService
                     totalUpdated = deptResult.Updated;
                     totalSkipped = deptResult.Skipped;
                     totalProcessed = deptResult.Processed;
+                    break;
+
+                case SyncEventType.OrderSend:
+                case SyncEventType.OrderCancel:
+                    var orderSyncService = scope.ServiceProvider.GetRequiredService<IOrderSyncService>();
+                    var orderIds = request.EntityIds ?? Array.Empty<int>();
+                    var orderResult = request.SyncType == SyncEventType.OrderSend
+                        ? await orderSyncService.SendOrdersAsync(logEventId, orderIds)
+                        : await orderSyncService.CancelOrdersAsync(logEventId, orderIds);
+                    totalCreated = orderResult.Created;
+                    totalUpdated = orderResult.Updated;
+                    totalSkipped = orderResult.Skipped;
+                    totalProcessed = orderResult.Processed;
                     break;
             }
 

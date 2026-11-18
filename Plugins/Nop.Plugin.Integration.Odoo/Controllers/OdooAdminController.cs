@@ -1,6 +1,10 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Nop.Core.Domain.Orders;
+using Nop.Core.Domain.Payments;
 using Nop.Plugin.Integration.Odoo.Domain;
+using Nop.Plugin.Integration.Odoo.Infrastructure;
 using Nop.Plugin.Integration.Odoo.Models;
 using Nop.Plugin.Integration.Odoo.Services;
 using Nop.Services.Configuration;
@@ -8,6 +12,7 @@ using Nop.Services.Helpers;
 using Nop.Services.Localization;
 using Nop.Services.Messages;
 using Nop.Services.Security;
+using Nop.Services.Stores;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
 using Nop.Web.Framework.Models.Extensions;
@@ -16,12 +21,14 @@ using Nop.Web.Framework.Mvc.Filters;
 namespace Nop.Plugin.Integration.Odoo.Controllers;
 
 /// <summary>
-/// Admin pages of the Odoo integration: the connection settings and the sync log, from which the
-/// background syncs are started.
+/// Admin pages of the Odoo integration: the connection settings, the sync log, from which the background syncs
+/// are started, and the orders sent to Odoo.
 /// </summary>
 /// <remarks>
-/// The sync actions answer <c>{ ConnectionStatus, TestResultMessage }</c>, read by
+/// The sync and order actions answer <c>{ ConnectionStatus, TestResultMessage }</c>, read by
 /// <c>Content/Admin/Odoo/odoo-admin.js</c>; ConnectionStatus is Failed, Busy, Queued or Error.
+/// The Orders page has a permission of its own (<see cref="OdooPermissionConfigManager.SEND_ORDERS"/>), so
+/// the staff who send orders need not manage plugins; everything else needs Manage plugins.
 /// </remarks>
 [AuthorizeAdmin]
 [Area(AreaNames.ADMIN)]
@@ -37,6 +44,8 @@ public class OdooAdminController : BasePluginController
     protected readonly IOdooSyncQueue _syncQueue;
     protected readonly IOdooLogService _odooLogService;
     protected readonly IDateTimeHelper _dateTimeHelper;
+    protected readonly IOrderSyncService _orderSyncService;
+    protected readonly IStoreService _storeService;
 
     #endregion
 
@@ -49,7 +58,9 @@ public class OdooAdminController : BasePluginController
         IOdooApiService odooApiService,
         IOdooSyncQueue syncQueue,
         IOdooLogService odooLogService,
-        IDateTimeHelper dateTimeHelper)
+        IDateTimeHelper dateTimeHelper,
+        IOrderSyncService orderSyncService,
+        IStoreService storeService)
     {
         _settingService = settingService;
         _localizationService = localizationService;
@@ -58,6 +69,8 @@ public class OdooAdminController : BasePluginController
         _syncQueue = syncQueue;
         _odooLogService = odooLogService;
         _dateTimeHelper = dateTimeHelper;
+        _orderSyncService = orderSyncService;
+        _storeService = storeService;
     }
 
     #endregion
@@ -79,8 +92,8 @@ public class OdooAdminController : BasePluginController
             && !string.IsNullOrWhiteSpace(settings.ApiKey);
 
     /// <summary>
-    /// The Configure page model from the saved settings, the last sync in the admin's time zone. The API key
-    /// itself never goes to the view.
+    /// The Configure page model from the saved settings, dates in the admin's time zone. The API key itself never
+    /// goes to the view.
     /// </summary>
     protected async Task<ConfigurationModel> PrepareConfigurationModelAsync(OdooSettings settings) => new()
     {
@@ -91,16 +104,19 @@ public class OdooAdminController : BasePluginController
         HasApiKey = !string.IsNullOrWhiteSpace(settings.ApiKey),
         LastSyncDateTime = settings.LastSyncDateTime.HasValue
             ? await _dateTimeHelper.ConvertToUserTimeAsync(settings.LastSyncDateTime.Value, DateTimeKind.Utc)
-            : null
+            : null,
+        DeliveryProductCode = settings.DeliveryProductCode,
+        ExchangeFeeProductCode = settings.ExchangeFeeProductCode
     };
 
     /// <summary>
-    /// Queues a background sync of the given type and reports the outcome as JSON for the sync
+    /// Queues a background sync of the given type and reports the outcome as JSON for the sync and order
     /// buttons: connection not configured, already queued or running, queued, or failed to queue.
     /// </summary>
     /// <param name="syncType">The sync to queue.</param>
     /// <param name="label">Display name of the sync type, e.g. "Store".</param>
-    protected async Task<IActionResult> QueueSyncAsync(SyncEventType syncType, string label)
+    /// <param name="entityIds">The nop records the request is for (orders), or null.</param>
+    protected async Task<IActionResult> QueueSyncAsync(SyncEventType syncType, string label, IReadOnlyList<int> entityIds = null)
     {
         var settings = await _settingService.LoadSettingAsync<OdooSettings>();
 
@@ -117,13 +133,13 @@ public class OdooAdminController : BasePluginController
         {
             // Claim and enqueue in one step: returns at once, and refuses a duplicate while a sync of
             // this type is queued or running
-            var requestId = await _syncQueue.TryEnqueueSyncAsync(syncType);
+            var requestId = await _syncQueue.TryEnqueueSyncAsync(syncType, entityIds);
             if (requestId is null)
             {
                 return Json(new
                 {
                     ConnectionStatus = "Busy",
-                    TestResultMessage = $"A {label.ToLowerInvariant()} sync is already queued or running. Please wait for it to complete before starting another."
+                    TestResultMessage = $"{label} sync is already queued or running. Please wait for it to complete before starting another."
                 });
             }
 
@@ -132,7 +148,9 @@ public class OdooAdminController : BasePluginController
             return Json(new
             {
                 ConnectionStatus = "Queued",
-                TestResultMessage = $"{label} sync has been queued (ID: {requestId}). Check the Sync Logs for progress."
+                TestResultMessage = entityIds == null
+                    ? $"{label} sync has been queued (ID: {requestId}). Check the Sync Logs for progress."
+                    : $"{label} of {entityIds.Count} order(s) has been queued (ID: {requestId}). Check the Sync Logs for progress, then refresh this page."
             });
         }
         catch (Exception ex)
@@ -140,7 +158,7 @@ public class OdooAdminController : BasePluginController
             return Json(new
             {
                 ConnectionStatus = "Error",
-                TestResultMessage = $"Failed to queue {label.ToLowerInvariant()} sync: {ex.Message}"
+                TestResultMessage = $"Failed to queue the {label.ToLowerInvariant()} sync: {ex.Message}"
             });
         }
     }
@@ -155,6 +173,23 @@ public class OdooAdminController : BasePluginController
 
         await _settingService.SaveSettingAsync(settings, storeId: 0);
         await _settingService.ClearCacheAsync();
+    }
+
+    /// <summary>
+    /// The Orders page's date filters in UTC: from the start of the first day to the end of the last.
+    /// </summary>
+    protected async Task<(DateTime? FromUtc, DateTime? ToUtc)> ToUtcRangeAsync(OdooOrderSearchModel searchModel)
+    {
+        var timeZone = await _dateTimeHelper.GetCurrentTimeZoneAsync();
+
+        DateTime? fromUtc = searchModel.CreatedFrom.HasValue
+            ? _dateTimeHelper.ConvertToUtcTime(searchModel.CreatedFrom.Value.Date, timeZone)
+            : null;
+        DateTime? toUtc = searchModel.CreatedTo.HasValue
+            ? _dateTimeHelper.ConvertToUtcTime(searchModel.CreatedTo.Value.Date, timeZone).AddDays(1)
+            : null;
+
+        return (fromUtc, toUtc);
     }
 
     #endregion
@@ -185,6 +220,9 @@ public class OdooAdminController : BasePluginController
         // Only overwrite the stored API key if the user supplied a new one
         if (!string.IsNullOrWhiteSpace(model.ApiKey))
             settings.ApiKey = model.ApiKey.Trim();
+
+        settings.DeliveryProductCode = model.DeliveryProductCode?.Trim() ?? string.Empty;
+        settings.ExchangeFeeProductCode = model.ExchangeFeeProductCode?.Trim() ?? string.Empty;
 
         // StoreId = 0 → global setting (not store-scoped)
         await _settingService.SaveSettingAsync(settings, storeId: 0);
@@ -301,7 +339,8 @@ public class OdooAdminController : BasePluginController
         model.SetGridPageSize();
 
         model.AvailableEventTypes.Add(new SelectListItem { Text = "All", Value = "-1" });
-        foreach (var type in new[] { SyncEventType.Store, SyncEventType.Department, SyncEventType.Product, SyncEventType.Branch })
+        foreach (var type in new[] { SyncEventType.Store, SyncEventType.Department, SyncEventType.Product, SyncEventType.Branch,
+                     SyncEventType.OrderSend, SyncEventType.OrderCancel })
             model.AvailableEventTypes.Add(new SelectListItem { Text = type.ToString(), Value = ((int)type).ToString() });
 
         return PluginView("SyncLogs", model);
@@ -440,6 +479,121 @@ public class OdooAdminController : BasePluginController
 
         return PluginView("SyncLogView", model);
     }
+
+    #endregion
+
+    #region Orders
+
+    [HttpGet]
+    [CheckPermission(OdooPermissionConfigManager.SEND_ORDERS)]
+    public async Task<IActionResult> Orders()
+    {
+        var model = new OdooOrderSearchModel();
+        model.SetGridPageSize();
+
+        model.AvailableStores.Add(new SelectListItem { Text = await _localizationService.GetResourceAsync("Admin.Common.All"), Value = "0" });
+        foreach (var store in await _storeService.GetAllStoresAsync())
+            model.AvailableStores.Add(new SelectListItem { Text = store.Name, Value = store.Id.ToString() });
+
+        foreach (var (filter, text) in new[]
+        {
+            (OdooOrderSyncFilter.All, "All"),
+            (OdooOrderSyncFilter.NotSent, OdooOrderSyncSummary.NotSent),
+            (OdooOrderSyncFilter.Sent, OdooOrderSyncSummary.Sent),
+            (OdooOrderSyncFilter.NeedsAttention, "Held, failed or in progress"),
+            (OdooOrderSyncFilter.ToCancel, OdooOrderSyncSummary.ToCancel)
+        })
+            model.AvailableSyncStates.Add(new SelectListItem { Text = text, Value = ((int)filter).ToString() });
+
+        model.AvailablePaymentStatuses.Add(new SelectListItem { Text = await _localizationService.GetResourceAsync("Admin.Common.All"), Value = "0" });
+        foreach (var paymentStatus in Enum.GetValues<PaymentStatus>())
+            model.AvailablePaymentStatuses.Add(new SelectListItem
+            {
+                Text = await _localizationService.GetLocalizedEnumAsync(paymentStatus),
+                Value = ((int)paymentStatus).ToString()
+            });
+
+        return PluginView("Orders", model);
+    }
+
+    [HttpPost]
+    [CheckPermission(OdooPermissionConfigManager.SEND_ORDERS)]
+    public async Task<IActionResult> OrderList(OdooOrderSearchModel searchModel)
+    {
+        var (fromUtc, toUtc) = await ToUtcRangeAsync(searchModel);
+        var orders = await _orderSyncService.SearchOrdersAsync(searchModel.StoreId, fromUtc, toUtc,
+            (OdooOrderSyncFilter)searchModel.SyncState, searchModel.PaymentStatusId, searchModel.Page - 1, searchModel.PageSize);
+
+        var mappings = (await _orderSyncService.GetMappingsAsync(orders.Select(order => order.Id).ToList()))
+            .ToLookup(mapping => mapping.NopOrderId);
+        var storeNames = (await _storeService.GetAllStoresAsync()).ToDictionary(store => store.Id, store => store.Name);
+
+        var model = await new OdooOrderListModel().PrepareToGridAsync(searchModel, orders, () =>
+        {
+            return orders.SelectAwait(async order =>
+            {
+                var rows = mappings[order.Id].OrderBy(mapping => mapping.DestinationKey).ToList();
+                var summary = OdooOrderSyncSummary.For(order.Deleted || order.OrderStatus == OrderStatus.Cancelled, rows);
+
+                return new OdooOrderModel
+                {
+                    Id = order.Id,
+                    CustomOrderNumber = order.CustomOrderNumber,
+                    StoreName = storeNames.TryGetValue(order.StoreId, out var storeName) ? storeName : string.Empty,
+                    CreatedOn = await _dateTimeHelper.ConvertToUserTimeAsync(order.CreatedOnUtc, DateTimeKind.Utc),
+                    OrderTotal = order.OrderTotal.ToString("0.00", CultureInfo.InvariantCulture),
+                    OrderStatus = order.Deleted ? "Deleted" : await _localizationService.GetLocalizedEnumAsync(order.OrderStatus),
+                    PaymentStatus = await _localizationService.GetLocalizedEnumAsync(order.PaymentStatus),
+                    OdooStatus = summary.Status,
+                    CanSend = summary.CanSend,
+                    CanCancel = summary.CanCancel,
+                    OdooOrders = string.Join(", ", rows.Where(mapping => !string.IsNullOrEmpty(mapping.OdooOrderName)).Select(mapping => mapping.OdooOrderName)),
+                    Message = string.Join(" | ", rows.Where(mapping => !string.IsNullOrEmpty(mapping.Message)).Select(mapping => mapping.Message))
+                };
+            });
+        });
+
+        return Json(model);
+    }
+
+    [HttpPost]
+    [CheckPermission(OdooPermissionConfigManager.SEND_ORDERS)]
+    public async Task<IActionResult> SendSelectedOrders(ICollection<int> selectedIds)
+    {
+        if (selectedIds == null || selectedIds.Count == 0)
+            return NoContent();
+
+        return await QueueSyncAsync(SyncEventType.OrderSend, "Order send", selectedIds.Distinct().ToList());
+    }
+
+    /// <summary>
+    /// Queues the one order of a row's Sync button.
+    /// </summary>
+    [HttpPost]
+    [CheckPermission(OdooPermissionConfigManager.SEND_ORDERS)]
+    public Task<IActionResult> SendOrder(int id) => QueueSyncAsync(SyncEventType.OrderSend, "Order send", new List<int> { id });
+
+    /// <summary>
+    /// Queues every order the list shows with the posted filters, on every page, that a send would act on: orders
+    /// already sent, cancelled or deleted are left out.
+    /// </summary>
+    [HttpPost]
+    [CheckPermission(OdooPermissionConfigManager.SEND_ORDERS)]
+    public async Task<IActionResult> SendAllOrders(OdooOrderSearchModel searchModel)
+    {
+        var (fromUtc, toUtc) = await ToUtcRangeAsync(searchModel);
+        var orderIds = await _orderSyncService.GetSendableOrderIdsAsync(searchModel.StoreId, fromUtc, toUtc,
+            (OdooOrderSyncFilter)searchModel.SyncState, searchModel.PaymentStatusId);
+
+        if (orderIds.Count == 0)
+            return Json(new { ConnectionStatus = "Failed", TestResultMessage = "No listed order needs sending." });
+
+        return await QueueSyncAsync(SyncEventType.OrderSend, "Order send", orderIds.ToList());
+    }
+
+    [HttpPost]
+    [CheckPermission(OdooPermissionConfigManager.SEND_ORDERS)]
+    public Task<IActionResult> CancelOrder(int id) => QueueSyncAsync(SyncEventType.OrderCancel, "Order cancel", new List<int> { id });
 
     #endregion
 }

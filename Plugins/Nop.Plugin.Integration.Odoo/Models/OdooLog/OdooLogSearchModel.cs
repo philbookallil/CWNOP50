@@ -12,18 +12,18 @@ public partial record OdooLogSearchModel : BaseSearchModel
         AvailableLogLevels = new List<SelectListItem>();
     }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.List.CreatedOnFrom")]
+    [NopResourceDisplayName("Integration.Odoo.Log.List.CreatedOnFrom")]
     [UIHint("DateNullable")]
     public DateTime? CreatedOnFrom { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.List.CreatedOnTo")]
+    [NopResourceDisplayName("Integration.Odoo.Log.List.CreatedOnTo")]
     [UIHint("DateNullable")]
     public DateTime? CreatedOnTo { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.List.Message")]
+    [NopResourceDisplayName("Integration.Odoo.Log.List.Message")]
     public string Message { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.Log.List.LogLevel")]
+    [NopResourceDisplayName("Integration.Odoo.Log.List.LogLevel")]
     public int LogLevelId { get; set; }
 
     public IList<SelectListItem> AvailableLogLevels { get; set; }

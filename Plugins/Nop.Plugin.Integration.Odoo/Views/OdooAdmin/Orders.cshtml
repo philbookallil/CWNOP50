@@ -1,0 +1,151 @@
+@model OdooOrderSearchModel
+
+@{
+    ViewBag.PageTitle = "Odoo Orders";
+    NopHtml.SetActiveMenuItemSystemName(OdooConstants.OrdersMenuSystemName);
+
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/Integration.Odoo/Content/Admin/Odoo/odoo-admin.js");
+}
+
+<div class="odoo-orders-config"
+     data-send-url="@Url.Action("SendOrder", "OdooAdmin")"
+     data-send-selected-url="@Url.Action("SendSelectedOrders", "OdooAdmin")"
+     data-send-all-url="@Url.Action("SendAllOrders", "OdooAdmin")"
+     data-cancel-url="@Url.Action("CancelOrder", "OdooAdmin")"
+     data-nothing-selected="@T("Admin.Common.Alert.NothingSelected")"
+     style="display: none;"></div>
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        Odoo Orders
+    </h1>
+    <div class="float-right">
+        <button type="button" id="odoo-send-selected" class="btn btn-primary">
+            <i class="fas fa-paper-plane"></i> Sync selected
+        </button>
+        <button type="button" id="odoo-send-all" class="btn btn-info ml-1">
+            <i class="fas fa-paper-plane"></i> Sync all listed
+        </button>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal">
+            <div class="cards-group">
+                <div class="card card-default" id="odoo-orders-result" style="display: none;">
+                    <div class="card-body">
+                        <span id="odooOrdersStatus" class="badge"></span>
+                        <span id="odooOrdersMessage" class="ml-2"></span>
+                    </div>
+                </div>
+
+                <div class="card card-default card-search">
+                    <div class="card-body">
+                        <div class="row search-row opened" data-hideAttribute="OdooOrdersPage.HideSearchBlock">
+                            <div class="search-text">@T("Admin.Common.Search")</div>
+                            <div class="icon-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></div>
+                            <div class="icon-collapse"><i class="far fa-angle-up" aria-hidden="true"></i></div>
+                        </div>
+                        <div class="search-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="StoreId" /></div>
+                                        <div class="col-md-8"><nop-select asp-for="StoreId" asp-items="Model.AvailableStores" /></div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="SyncState" /></div>
+                                        <div class="col-md-8"><nop-select asp-for="SyncState" asp-items="Model.AvailableSyncStates" /></div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="PaymentStatusId" /></div>
+                                        <div class="col-md-8"><nop-select asp-for="PaymentStatusId" asp-items="Model.AvailablePaymentStatuses" /></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="CreatedFrom" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="CreatedFrom" /></div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="CreatedTo" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="CreatedTo" /></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="text-center col-12">
+                                    <button type="button" id="search-orders" class="btn btn-primary btn-search">
+                                        <i class="fas fa-magnifying-glass"></i>
+                                        @T("Admin.Common.Search")
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-default">
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Every order, sent to Odoo or not. <em>Sync all listed</em> sends the orders the filters list, on every page,
+                            that are not yet sent; orders already sent, cancelled or deleted are left out. A run happens in the background:
+                            follow it on the Sync Log page, then search again to refresh this list.
+                        </p>
+                        @await Html.PartialAsync("Table", new DataTablesModel
+                        {
+                            Name = "odoo-orders-grid",
+                            UrlRead = new DataUrl("OrderList", "OdooAdmin", null),
+                            SearchButtonId = "search-orders",
+                            Length = Model.PageSize,
+                            LengthMenu = Model.AvailablePageSizes,
+                            Filters = new List<FilterParameter>
+                            {
+                                new FilterParameter(nameof(Model.StoreId)),
+                                new FilterParameter(nameof(Model.SyncState)),
+                                new FilterParameter(nameof(Model.PaymentStatusId)),
+                                new FilterParameter(nameof(Model.CreatedFrom)),
+                                new FilterParameter(nameof(Model.CreatedTo))
+                            },
+                            PrimaryKeyColumn = nameof(OdooOrderModel.Id),
+                            ColumnCollection = new List<ColumnProperty>
+                            {
+                                new ColumnProperty(nameof(OdooOrderModel.Id))
+                                {
+                                    IsMasterCheckBox = true,
+                                    Render = new RenderCheckBox("checkbox_orders"),
+                                    ClassName = NopColumnClassDefaults.CenterAll,
+                                    Width = "50"
+                                },
+                                new ColumnProperty(nameof(OdooOrderModel.CustomOrderNumber)) { Title = "Order #", Width = "80" },
+                                new ColumnProperty(nameof(OdooOrderModel.StoreName)) { Title = "Store", Width = "140" },
+                                new ColumnProperty(nameof(OdooOrderModel.CreatedOn)) { Title = "Placed on", Width = "140", Render = new RenderDate() },
+                                new ColumnProperty(nameof(OdooOrderModel.OrderTotal)) { Title = "Total", Width = "80", ClassName = NopColumnClassDefaults.CenterAll },
+                                new ColumnProperty(nameof(OdooOrderModel.OrderStatus)) { Title = "Order status", Width = "100" },
+                                new ColumnProperty(nameof(OdooOrderModel.PaymentStatus)) { Title = "Payment", Width = "90" },
+                                new ColumnProperty(nameof(OdooOrderModel.OdooStatus))
+                                {
+                                    Title = "Odoo sync",
+                                    Width = "200",
+                                    Render = new RenderCustom("renderOdooSyncStatus")
+                                },
+                                new ColumnProperty(nameof(OdooOrderModel.OdooOrders)) { Title = "Odoo orders", Width = "110" },
+                                new ColumnProperty(nameof(OdooOrderModel.Message)) { Title = "Message" },
+                                new ColumnProperty(nameof(OdooOrderModel.Id))
+                                {
+                                    Title = T("Admin.Common.View").Text,
+                                    Width = "80",
+                                    ClassName = NopColumnClassDefaults.Button,
+                                    Render = new RenderButtonView(new DataUrl("~/Admin/Order/Edit/"))
+                                }
+                            }
+                        })
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<nop-action-confirmation asp-button-id="odoo-cancel-order" asp-additional-confirm="Integration.Odoo.Orders.CancelConfirm" />

@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 namespace Nop.Plugin.Integration.Odoo.Services;
 
 /// <summary>
-/// Implements communication with the Odoo 19 JSON-2 REST API.
+/// Implements communication with Odoo's JSON-2 API (Odoo 19 and later; the client runs Odoo 20).
 ///
 /// Authentication: Bearer token via the Authorization HTTP header.
 ///   Authorization: bearer {apiKey}
@@ -68,7 +68,7 @@ public class OdooApiService : IOdooApiService
     private async Task<string> GetVersionAsync(string odooUrl)
     {
         // /web/version is a lightweight, unauthenticated endpoint that returns
-        // {"version_info": [19, 0, 0, "final", 0, ""], "version": "19.0"}
+        // {"version_info": [20, 0, 0, "final", 0, ""], "version": "20.0"}
         var endpoint = $"{odooUrl}/web/version";
         var client = _httpClientFactory.CreateClient(OdooConstants.HttpClientName);
 
@@ -145,7 +145,7 @@ public class OdooApiService : IOdooApiService
             Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
         };
 
-        // Odoo 19 JSON-2 authentication: bearer token
+        // JSON-2 authentication (Odoo 19 and later): bearer token
         request.Headers.TryAddWithoutValidation("Authorization", $"bearer {apiKey}");
 
         // Required on SaaS when the domain resolves multiple databases
@@ -201,12 +201,24 @@ public class OdooApiService : IOdooApiService
         return url.TrimEnd('/');
     }
 
-    private static string ParseOdooError(string content)
+    /// <summary>
+    /// The message of an Odoo error answer, or null when the body is not one. The JSON-2 API answers
+    /// <c>{ "name", "message", "arguments", … }</c> at the top level; the older JSON-RPC shape nests the
+    /// message under <c>error</c>.
+    /// </summary>
+    internal static string ParseOdooError(string content)
     {
         try
         {
             using var doc = JsonDocument.Parse(content);
-            if (doc.RootElement.TryGetProperty("error", out var error))
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+                return null;
+
+            if (root.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+                return message.GetString();
+
+            if (root.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.Object)
             {
                 if (error.TryGetProperty("message", out var msg))
                     return msg.GetString();
@@ -670,6 +682,152 @@ public class OdooApiService : IOdooApiService
 
     #endregion
 
+    #region Sale order endpoints
+
+    /// <summary>
+    /// The sale.order fields the order send reads back.
+    /// </summary>
+    private static readonly string[] SaleOrderFields = { "id", "name", "state", "amount_untaxed" };
+
+    /// <summary>
+    /// The id of the first record of a <c>search_read</c> that asked for <c>id</c> only, or null.
+    /// </summary>
+    private static int? FirstId(List<JsonElement> records) =>
+        records?.Count > 0 ? records[0].GetProperty("id").GetInt32() : null;
+
+    /// <inheritdoc/>
+    public async Task<int?> GetProductVariantIdByCodeAsync(string defaultCode)
+    {
+        var records = await CallAsync<List<JsonElement>>("product.product", "search_read", new
+        {
+            domain = new object[] { new object[] { "default_code", "=", defaultCode } },
+            fields = new[] { "id" },
+            limit = 1
+        });
+
+        return FirstId(records);
+    }
+
+    /// <inheritdoc/>
+    public async Task<OdooSaleOrderResponse> FindSaleOrderByOriginAsync(string origin)
+    {
+        var orders = await CallAsync<List<OdooSaleOrderResponse>>("sale.order", "search_read", new
+        {
+            domain = new object[]
+            {
+                new object[] { "origin", "=", origin },
+                new object[] { "state", "!=", "cancel" }
+            },
+            fields = SaleOrderFields,
+            limit = 1,
+            order = "id"
+        });
+
+        return orders?.FirstOrDefault();
+    }
+
+    /// <inheritdoc/>
+    public async Task<OdooSaleOrderResponse> GetSaleOrderAsync(int saleOrderId)
+    {
+        var orders = await CallAsync<List<OdooSaleOrderResponse>>("sale.order", "search_read", new
+        {
+            domain = new object[] { new object[] { "id", "=", saleOrderId } },
+            fields = SaleOrderFields,
+            limit = 1
+        });
+
+        return orders?.FirstOrDefault();
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> CreateSaleOrderAsync(IDictionary<string, object> values)
+    {
+        var ids = await CallAsync<List<int>>("sale.order", "create", new { vals_list = new[] { values } });
+
+        return ids?.Count > 0 ? ids[0] : throw new OdooApiException("Odoo created no sale order and gave no reason.");
+    }
+
+    /// <inheritdoc/>
+    public Task ConfirmSaleOrderAsync(int saleOrderId) =>
+        CallAsync<JsonElement>("sale.order", "action_confirm", new { ids = new[] { saleOrderId } });
+
+    /// <inheritdoc/>
+    public Task CancelSaleOrderAsync(int saleOrderId) =>
+        // disable_cancel_warning: cancel at once rather than answer with the confirmation wizard
+        CallAsync<JsonElement>("sale.order", "action_cancel", new
+        {
+            ids = new[] { saleOrderId },
+            context = new { disable_cancel_warning = true }
+        });
+
+    /// <inheritdoc/>
+    public async Task<int?> FindDeliveryPartnerAsync(int companyPartnerId, string street, string zip, string city)
+    {
+        var domain = new List<object>
+        {
+            "|",
+            new object[] { "id", "=", companyPartnerId },
+            new object[] { "parent_id", "=", companyPartnerId },
+            Condition("street", street),
+            Condition("zip", zip),
+            Condition("city", city)
+        };
+
+        var records = await CallAsync<List<JsonElement>>("res.partner", "search_read", new
+        {
+            domain,
+            fields = new[] { "id" },
+            limit = 1,
+            order = "id"
+        });
+
+        return FirstId(records);
+
+        // An empty nop field matches an empty Odoo field; text matches whatever its case.
+        static object[] Condition(string field, string value) => string.IsNullOrWhiteSpace(value)
+            ? new object[] { field, "=", false }
+            : new object[] { field, "=ilike", value.Trim() };
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> CreatePartnerAsync(IDictionary<string, object> values)
+    {
+        var ids = await CallAsync<List<int>>("res.partner", "create", new { vals_list = new[] { values } });
+
+        return ids?.Count > 0 ? ids[0] : throw new OdooApiException("Odoo created no contact and gave no reason.");
+    }
+
+    /// <inheritdoc/>
+    public async Task<int?> GetCountryIdByCodeAsync(string twoLetterIsoCode)
+    {
+        var records = await CallAsync<List<JsonElement>>("res.country", "search_read", new
+        {
+            domain = new object[] { new object[] { "code", "=", twoLetterIsoCode.ToUpperInvariant() } },
+            fields = new[] { "id" },
+            limit = 1
+        });
+
+        return FirstId(records);
+    }
+
+    /// <inheritdoc/>
+    public async Task<int?> GetStateIdByCodeAsync(int countryId, string code)
+    {
+        var records = await CallAsync<List<JsonElement>>("res.country.state", "search_read", new
+        {
+            domain = new object[]
+            {
+                new object[] { "country_id", "=", countryId },
+                new object[] { "code", "=ilike", code }
+            },
+            fields = new[] { "id" },
+            limit = 1
+        });
+
+        return FirstId(records);
+    }
+
+    #endregion
 
     #region Connection
 

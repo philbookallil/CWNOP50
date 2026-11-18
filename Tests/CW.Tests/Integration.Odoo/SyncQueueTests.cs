@@ -85,7 +85,7 @@ public class SyncQueueTests
 
         // The channel is full: the write waits, then is cancelled.
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
-        var act = async () => await queue.TryEnqueueSyncAsync(SyncEventType.Product, cts.Token);
+        var act = async () => await queue.TryEnqueueSyncAsync(SyncEventType.Product, cancellationToken: cts.Token);
         await act.Should().ThrowAsync<OperationCanceledException>();
 
         channel.Reader.TryRead(out _);

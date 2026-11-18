@@ -5,22 +5,22 @@ namespace Nop.Plugin.Integration.Odoo.Models;
 
 public partial record OdooLogEventModel : BaseNopEntityModel
 {
-    [NopResourceDisplayName("Plugins.Integration.Odoo.LogEvent.Fields.Name")]
+    [NopResourceDisplayName("Integration.Odoo.LogEvent.Fields.Name")]
     public string Name { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.LogEvent.Fields.EventType")]
+    [NopResourceDisplayName("Integration.Odoo.LogEvent.Fields.EventType")]
     public string EventType { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.LogEvent.Fields.StartedOn")]
+    [NopResourceDisplayName("Integration.Odoo.LogEvent.Fields.StartedOn")]
     public DateTime StartedOn { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.LogEvent.Fields.FinishedOn")]
+    [NopResourceDisplayName("Integration.Odoo.LogEvent.Fields.FinishedOn")]
     public DateTime? FinishedOn { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.LogEvent.Fields.TraceCount")]
+    [NopResourceDisplayName("Integration.Odoo.LogEvent.Fields.TraceCount")]
     public int TraceCount { get; set; }
 
-    [NopResourceDisplayName("Plugins.Integration.Odoo.LogEvent.Fields.HasErrors")]
+    [NopResourceDisplayName("Integration.Odoo.LogEvent.Fields.HasErrors")]
     public bool HasErrors { get; set; }
 
     /// <summary>
