@@ -5,8 +5,10 @@ using Nop.Core.Domain.Common;
 using Nop.Plugin.CW.Core.Areas.Admin.Factories;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Branches;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Common;
+using Nop.Plugin.CW.Core.Domain.Approvals;
 using Nop.Plugin.CW.Core.Domain.Branches;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.MultiStores;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.Branches;
 using Nop.Plugin.CW.Core.Services.PackNames;
 using Nop.Plugin.CW.Core.Services.Security;
@@ -29,6 +31,8 @@ public class BranchController : BaseAdminController
 {
     #region Fields
 
+    protected readonly IApprovalRuleModelFactory _approvalRuleModelFactory;
+    protected readonly IApprovalRuleService _approvalRuleService;
     protected readonly IBranchModelFactory _branchModelFactory;
     protected readonly IStoreService _storeService;
     protected readonly IBranchService _branchService;
@@ -47,7 +51,9 @@ public class BranchController : BaseAdminController
 
     #region Ctor
 
-    public BranchController(IBranchModelFactory branchModelFactory,
+    public BranchController(IApprovalRuleModelFactory approvalRuleModelFactory,
+        IApprovalRuleService approvalRuleService,
+        IBranchModelFactory branchModelFactory,
         IStoreService storeService,
         IBranchService branchService,
         IAddressService addressService,
@@ -61,6 +67,8 @@ public class BranchController : BaseAdminController
         IPackNameProvisioningService packNameProvisioningService,
         IPackNameShippingMethodService packNameShippingMethodService)
     {
+        _approvalRuleModelFactory = approvalRuleModelFactory;
+        _approvalRuleService = approvalRuleService;
         _branchModelFactory = branchModelFactory;
         _storeService = storeService;
         _branchService = branchService;
@@ -265,6 +273,8 @@ public class BranchController : BaseAdminController
         //the branch keeps its store: the read-only store field posts it from a hidden input
         await ValidateParentBranchAsync(branch.Id, model.ParentBranchId, branch.StoreId);
 
+        await _approvalRuleModelFactory.DropWhenOffAsync(model.ApprovalRule, branch.StoreId, ModelState, nameof(model.ApprovalRule));
+
         if (ModelState.IsValid)
         {
             try
@@ -283,6 +293,10 @@ public class BranchController : BaseAdminController
                     branch.ParentBranchId = null;
 
                 await _branchService.UpdateBranchAsync(branch);
+
+                //only when the form had the panel: without it the post carries no rule
+                if (model.ApprovalRule?.Available == true)
+                    await _approvalRuleService.SaveSetupAsync(branch.StoreId, ApprovalScopeType.Branch, branch.Id, _approvalRuleModelFactory.ToSetup(model.ApprovalRule));
 
                 //activity log
                 await _customerActivityService.InsertActivityAsync("EditBranch",

@@ -4,7 +4,7 @@ using Nop.Plugin.CW.Core.Services.Approvals;
 namespace Nop.Plugin.CW.Core.Factories;
 
 /// <summary>
-/// Prepares the page an approver opens from the e-mail
+/// Prepares the page an approver opens from the e-mail, and the status the customer sees
 /// </summary>
 public interface IOrderApprovalModelFactory
 {
@@ -18,4 +18,15 @@ public interface IOrderApprovalModelFactory
     /// The task result contains the model
     /// </returns>
     Task<OrderApprovalReviewModel> PrepareReviewModelAsync(string token, OrderApprovalResult? result = null);
+
+    /// <summary>
+    /// Prepares where an order's approval stands, for the customer who placed it
+    /// </summary>
+    /// <param name="orderId">Order identifier</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the model; null when there is nothing to say (the order never needed approval, or was
+    /// cancelled while it waited)
+    /// </returns>
+    Task<OrderApprovalStatusModel> PrepareStatusModelAsync(int orderId);
 }

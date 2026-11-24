@@ -21,6 +21,7 @@
     <InternalsVisibleTo Include="CW.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="Content\Admin\Approvals\admin.approval.rule.js" />
     <None Remove="Content\Admin\Approvals\admin.order.approval.js" />
     <None Remove="Content\Admin\MultiStore\admin.packname.bulk.js" />
     <None Remove="Content\Admin\MultiStore\admin.store.navigation.js" />
@@ -32,6 +33,9 @@
     <None Remove="plugin.json" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Admin\Approvals\admin.approval.rule.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Content\Admin\Approvals\admin.order.approval.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -294,6 +298,9 @@
     <None Update="Areas\Admin\Views\ReturnRequest\_CreateOrUpdateReturnRequestReason.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Areas\Admin\Views\Shared\_ApprovalRule.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Areas\Admin\Views\Shared\Components\AclDepartments\Default.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -451,6 +458,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Content\MyAccount\store-credit.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Order\order-approval-status.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Content\Order\packname-order-details.css">
@@ -661,6 +671,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Views\Shared\Components\OrderTotals\Default.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\Shared\Components\OrderApprovalStatus\Default.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Views\Shared\Components\PackNameInfo\Default.cshtml">

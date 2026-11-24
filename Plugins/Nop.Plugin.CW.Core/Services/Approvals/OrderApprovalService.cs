@@ -36,6 +36,7 @@ public class OrderApprovalService : IOrderApprovalService
 {
     #region Fields
 
+    protected readonly IApprovalRuleService _approvalRuleService;
     protected readonly ILocalizationService _localizationService;
     protected readonly ILocker _locker;
     protected readonly ILogger _logger;
@@ -53,7 +54,8 @@ public class OrderApprovalService : IOrderApprovalService
 
     #region Ctor
 
-    public OrderApprovalService(ILocalizationService localizationService,
+    public OrderApprovalService(IApprovalRuleService approvalRuleService,
+        ILocalizationService localizationService,
         ILocker locker,
         ILogger logger,
         IOrderApprovalRuleService orderApprovalRuleService,
@@ -66,6 +68,7 @@ public class OrderApprovalService : IOrderApprovalService
         ISettingService settingService,
         ISubsidyCreditService subsidyCreditService)
     {
+        _approvalRuleService = approvalRuleService;
         _localizationService = localizationService;
         _locker = locker;
         _logger = logger;
@@ -447,6 +450,17 @@ public class OrderApprovalService : IOrderApprovalService
             .AnyAsync(approval => approval.OrderId == orderId && approval.StatusId == (int)OrderApprovalStatus.Pending);
     }
 
+    public virtual async Task<IList<int>> GetHeldOrderIdsAsync(int[] orderIds)
+    {
+        if (orderIds == null || orderIds.Length == 0)
+            return new List<int>();
+
+        return await _orderApprovalRepository.Table
+            .Where(approval => orderIds.Contains(approval.OrderId) && approval.StatusId == (int)OrderApprovalStatus.Pending)
+            .Select(approval => approval.OrderId)
+            .ToListAsync();
+    }
+
     public virtual async Task<IList<OrderApprovalRequest>> GetRequestsAsync(int orderApprovalId)
     {
         return await _requestRepository.Table
@@ -547,7 +561,7 @@ public class OrderApprovalService : IOrderApprovalService
             return OrderApprovalResult.NotFound;
 
         return await DecideAsync(approval.OrderId, OrderApprovalStatus.Approved,
-            $"{request.ApproverName} ({request.ApproverEmail})", request.ApproverId, null, null, request.Id);
+            OrderApprovalEmailHelper.NameAndEmail(request.ApproverName, request.ApproverEmail), request.ApproverId, null, null, request.Id);
     }
 
     public virtual async Task<OrderApprovalResult> DeclineByTokenAsync(string token, string reason)
@@ -563,7 +577,7 @@ public class OrderApprovalService : IOrderApprovalService
             return OrderApprovalResult.NotFound;
 
         return await DecideAsync(approval.OrderId, OrderApprovalStatus.Declined,
-            $"{request.ApproverName} ({request.ApproverEmail})", request.ApproverId, null, reason, request.Id);
+            OrderApprovalEmailHelper.NameAndEmail(request.ApproverName, request.ApproverEmail), request.ApproverId, null, reason, request.Id);
     }
 
     public virtual async Task<OrderApprovalResult> AcceptByAdminAsync(int orderId, Customer admin)
@@ -627,7 +641,7 @@ public class OrderApprovalService : IOrderApprovalService
         name = name?.Trim();
         email = email?.Trim();
 
-        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(email) || !CommonHelper.IsValidEmail(email))
+        if (string.IsNullOrEmpty(name) || name.Length > OrderApprovalEmailHelper.MaxNameLength || !OrderApprovalEmailHelper.IsValid(email))
             return OrderApprovalResult.InvalidApprover;
 
         return await RunLockedAsync(orderId, async () =>
@@ -643,31 +657,7 @@ public class OrderApprovalService : IOrderApprovalService
             if (order == null)
                 return OrderApprovalResult.NotFound;
 
-            //the store's approver with this address, or a new one; an approver the admin names is asked even if it was
-            //switched off, and is switched back on
-            var approver = (await _approverRepository.Table
-                    .Where(item => item.StoreId == order.StoreId && !item.Deleted)
-                    .ToListAsync())
-                .FirstOrDefault(item => string.Equals(item.Email, email, StringComparison.InvariantCultureIgnoreCase));
-
-            if (approver == null)
-            {
-                approver = new Approver
-                {
-                    StoreId = order.StoreId,
-                    Name = name,
-                    Email = email,
-                    Active = true,
-                    CreatedOnUtc = DateTime.UtcNow
-                };
-
-                await _approverRepository.InsertAsync(approver);
-            }
-            else if (!approver.Active)
-            {
-                approver.Active = true;
-                await _approverRepository.UpdateAsync(approver);
-            }
+            var approver = await _approvalRuleService.GetOrCreateApproverAsync(order.StoreId, email, name);
 
             await RevokeRequestsAsync(approval);
 

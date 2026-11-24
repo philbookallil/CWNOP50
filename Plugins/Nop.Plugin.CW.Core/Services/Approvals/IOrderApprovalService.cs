@@ -32,6 +32,16 @@ public interface IOrderApprovalService
     Task<bool> IsOrderHeldAsync(int orderId);
 
     /// <summary>
+    /// Gets which of some orders are held for approval
+    /// </summary>
+    /// <param name="orderIds">Order identifiers</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the identifiers of the held orders
+    /// </returns>
+    Task<IList<int>> GetHeldOrderIdsAsync(int[] orderIds);
+
+    /// <summary>
     /// Gets the links sent for an approval, newest first
     /// </summary>
     /// <param name="orderApprovalId">Order approval identifier</param>

@@ -127,6 +127,7 @@ public class CWMapperConfigurationProfile : BaseMapperProfile
 
         CreateMap<Branch, BranchModel>()
              .ForMember(model => model.StaffCount, options => options.Ignore())
+             .ForMember(model => model.ApprovalRule, options => options.Ignore())
              .ForMember(model => model.AvailableStores, options => options.Ignore())
              .ForMember(model => model.CWAddressSearchModel, options => options.Ignore())
              .ForMember(model => model.AvailableBranches, options => options.Ignore())

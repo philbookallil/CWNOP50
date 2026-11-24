@@ -90,6 +90,11 @@ public class SchemaMigration : Migration
     internal const string SubsidyReminderUniqueIndex = "UX_CORE_SUB_SubsidyReminder_SubsidyPackNameId_PeriodEnd";
 
     /// <summary>
+    /// The unique index of the approval rules, created here and by <see cref="ApprovalRuleUniqueScopeMigration"/>
+    /// </summary>
+    internal const string ApprovalRuleUniqueIndex = "UX_CORE_APR_ApprovalRule_ScopeTypeId_ScopeId";
+
+    /// <summary>
     /// nop's CreateTableIfNotExists&lt;TEntity&gt;, called for each type of the table list
     /// </summary>
     private static readonly MethodInfo _createTableIfNotExists =
@@ -150,6 +155,12 @@ public class SchemaMigration : Migration
             .OnTable(NameCompatibilityManager.GetTableName(typeof(SubsidyReminder)))
             .OnColumn(nameof(SubsidyReminder.SubsidyPackNameId)).Ascending()
             .OnColumn(nameof(SubsidyReminder.PeriodEnd)).Ascending()
+            .WithOptions().Unique();
+
+        Create.Index(ApprovalRuleUniqueIndex)
+            .OnTable(NameCompatibilityManager.GetTableName(typeof(ApprovalRule)))
+            .OnColumn(nameof(ApprovalRule.ScopeTypeId)).Ascending()
+            .OnColumn(nameof(ApprovalRule.ScopeId)).Ascending()
             .WithOptions().Unique();
     }
 

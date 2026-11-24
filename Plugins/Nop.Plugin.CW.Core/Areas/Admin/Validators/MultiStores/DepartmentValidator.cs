@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
 using Nop.Data;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.MultiStores;
+using Nop.Plugin.CW.Core.Areas.Admin.Validators.Approvals;
 using Nop.Plugin.CW.Core.Domain.MultiStores;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Validators;
@@ -29,6 +30,8 @@ public partial class DepartmentValidator : BaseNopValidator<DepartmentModel>
                 return !exists;
             })
             .WithMessageAwait(localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Departments.Department.Field.Name.Unique"));
+
+        RuleFor(x => x.DepartmentApprovalRule).SetValidator(new ApprovalRuleValidator(localizationService));
 
         SetDatabaseValidationRules<Department>();
     }

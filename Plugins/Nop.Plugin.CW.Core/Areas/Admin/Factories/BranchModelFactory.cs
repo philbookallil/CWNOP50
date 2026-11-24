@@ -3,6 +3,7 @@ using Nop.Core;
 using Nop.Core.Domain.Stores;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Branches;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Common;
+using Nop.Plugin.CW.Core.Domain.Approvals;
 using Nop.Plugin.CW.Core.Domain.Branches;
 using Nop.Plugin.CW.Core.Services.Branches;
 using Nop.Plugin.CW.Core.Services.Shipping;
@@ -17,6 +18,7 @@ public class BranchModelFactory : IBranchModelFactory
 {
     #region Fields
 
+    protected readonly IApprovalRuleModelFactory _approvalRuleModelFactory;
     protected readonly IBranchService _branchService;
     protected readonly IStoreContext _storeContext;
     protected readonly IBaseAdminModelFactory _baseAdminModelFactory;
@@ -29,7 +31,8 @@ public class BranchModelFactory : IBranchModelFactory
 
     #region Ctor
 
-    public BranchModelFactory(IBranchService branchService,
+    public BranchModelFactory(IApprovalRuleModelFactory approvalRuleModelFactory,
+        IBranchService branchService,
         IStoreContext storeContext,
         IBaseAdminModelFactory baseAdminModelFactory,
         ICWAddressModelFactory cwAddressModelFactory,
@@ -37,6 +40,7 @@ public class BranchModelFactory : IBranchModelFactory
         ILocalizationService localizationService,
         IPackNameShippingMethodService packNameShippingMethodService)
     {
+        _approvalRuleModelFactory = approvalRuleModelFactory;
         _branchService = branchService;
         _storeContext = storeContext;
         _baseAdminModelFactory = baseAdminModelFactory;
@@ -169,6 +173,8 @@ public class BranchModelFactory : IBranchModelFactory
         {
             store = await _storeService.GetStoreByIdAsync(branch.StoreId);
 
+            var isRefusedPost = model != null;
+
             //fill in model values from the entity
             if (model == null)
             {
@@ -191,6 +197,10 @@ public class BranchModelFactory : IBranchModelFactory
 
             //prepare nested search models
             await _cwAddressModelFactory.PrepareCWAddressSearchModelAsync(model.CWAddressSearchModel, branch.Id);
+
+            //the approval panel; a new branch gets it once it is saved, when its store is settled
+            await _approvalRuleModelFactory.PrepareApprovalRuleModelAsync(model.ApprovalRule, branch.StoreId,
+                ApprovalScopeType.Branch, branch.Id, keepValues: isRefusedPost);
         }
         else
         {
@@ -281,6 +291,9 @@ public class BranchModelFactory : IBranchModelFactory
                 IsNew = true,
             };
         }
+
+        await _approvalRuleModelFactory.PrepareApprovalRuleModelAsync(model.ApprovalRule, storeId,
+            ApprovalScopeType.Branch, model.Id, keepValues: false);
 
         //the methods the freight plugin offers in the store, for the branch's own selection
         foreach (var shippingMethodName in await _packNameShippingMethodService.GetShippingMethodNamesAsync(storeId))

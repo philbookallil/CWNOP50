@@ -37,6 +37,8 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         [PublicWidgetZones.ProductDetailsOverviewBottom] = typeof(BulkOrderProductPageViewComponent),
         [PublicWidgetZones.ProductDetailsBottom] = typeof(BulkOrderProductPageViewComponent),
         [PublicWidgetZones.ContentAfter] = typeof(BulkOrderProductPageViewComponent),
+        [PublicWidgetZones.CheckoutCompletedTop] = typeof(OrderApprovalStatusViewComponent),
+        [PublicWidgetZones.OrderDetailsPageTop] = typeof(OrderApprovalStatusViewComponent),
         [CWWidgetsZones.WIDGET_CREDITNOTES_FOR_CART] = typeof(CreditNotesWidgetsViewComponent),
         [CWWidgetsZones.WIDGET_CREDITNOTES_ORDER_CUSTOMER] = typeof(CreditNotesWidgetsViewComponent),
         [CWWidgetsZones.WIDGET_CREDITNOTES_ORDER_ADMIN] = typeof(CreditNotesWidgetsViewComponent),

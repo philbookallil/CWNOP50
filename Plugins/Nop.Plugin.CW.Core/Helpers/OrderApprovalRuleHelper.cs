@@ -8,6 +8,15 @@ namespace Nop.Plugin.CW.Core.Helpers;
 /// </summary>
 public static class OrderApprovalRuleHelper
 {
+    #region Fields
+
+    /// <summary>
+    /// The largest threshold kept; a decimal(18,4) column holds it
+    /// </summary>
+    public const decimal MaxThreshold = 99_999_999_999_999m;
+
+    #endregion
+
     #region Utilities
 
     /// <summary>
@@ -35,6 +44,13 @@ public static class OrderApprovalRuleHelper
     #endregion
 
     #region Methods
+
+    /// <summary>
+    /// Whether an amount can be a rule's threshold; none can
+    /// </summary>
+    /// <param name="threshold">The amount; null when there is none</param>
+    public static bool IsValidThreshold(decimal? threshold)
+        => threshold is null or (>= decimal.Zero and <= MaxThreshold);
 
     /// <summary>
     /// Matches the rules against an order

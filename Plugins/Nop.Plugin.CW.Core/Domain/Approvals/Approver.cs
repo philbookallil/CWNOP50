@@ -19,7 +19,7 @@ public class Approver : BaseEntity, ISoftDeletedEntity
     public string Name { get; set; }
 
     /// <summary>
-    /// Gets or sets the e-mail address the approval requests go to; unique per store among the live approvers
+    /// Gets or sets the e-mail address the approval requests go to; an address names one live approver of a store
     /// </summary>
     public string Email { get; set; }
 

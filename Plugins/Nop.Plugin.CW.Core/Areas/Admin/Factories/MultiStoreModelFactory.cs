@@ -2,6 +2,7 @@
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Common;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.MultiStores;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.PackNames;
+using Nop.Plugin.CW.Core.Domain.Approvals;
 using Nop.Plugin.CW.Core.Domain.Branches;
 using Nop.Plugin.CW.Core.Domain.MultiStores;
 using Nop.Plugin.CW.Core.Services.Branches;
@@ -14,6 +15,7 @@ public class MultiStoreModelFactory : IMultiStoreModelFactory
 {
     #region Fields
 
+    protected readonly IApprovalRuleModelFactory _approvalRuleModelFactory;
     protected readonly IMultiStoreService _multiStoreService;
     protected readonly IBranchService _branchService;
     protected readonly ICWSettingModelFactory _cwSettingModelFactory;
@@ -23,11 +25,13 @@ public class MultiStoreModelFactory : IMultiStoreModelFactory
 
     #region Ctor
 
-    public MultiStoreModelFactory(IMultiStoreService multiStoreService,
+    public MultiStoreModelFactory(IApprovalRuleModelFactory approvalRuleModelFactory,
+        IMultiStoreService multiStoreService,
         IBranchService branchService,
         ICWSettingModelFactory cwSettingModelFactory,
         ICWAddressModelFactory cwAddressModelFactory)
     {
+        _approvalRuleModelFactory = approvalRuleModelFactory;
         _multiStoreService = multiStoreService;
         _branchService = branchService;
         _cwSettingModelFactory = cwSettingModelFactory;
@@ -222,6 +226,7 @@ public class MultiStoreModelFactory : IMultiStoreModelFactory
     public virtual async Task<DepartmentModel> PrepareDepartmentModelAsync(DepartmentModel model, int storeId, int? departmentId)
     {
         var department = departmentId.HasValue ? await _multiStoreService.GetDepartmentByIdAsync(departmentId.Value) : null;
+        var isRefusedPost = model != null;
 
         if (model == null)
         {
@@ -247,6 +252,9 @@ public class MultiStoreModelFactory : IMultiStoreModelFactory
         {
             await PrepareDepartmentManagerSearchModelAsync(model.DepartmentManagerSearchModel, department.Id, storeId);
         }
+
+        await _approvalRuleModelFactory.PrepareApprovalRuleModelAsync(model.DepartmentApprovalRule, storeId,
+            ApprovalScopeType.Department, department?.Id ?? 0, keepValues: isRefusedPost);
 
         return model;
     }

@@ -157,7 +157,7 @@ Six CW capabilities can be switched on or off **per store**:
 | `Exchanges` | `ExchangesEnable` | The CW return/exchange wizard (replaces nop's standard return request flow) |
 | `CreditNotes` | `CreditNotesEnable` | Store-credit issuance and consumption |
 | `BulkOrder` | `BulkOrderEnable` | The bulk-ordering page, its header link and the product-page grid (§4.12; the bulk-ordering docs) |
-| `Approvals` | `ApprovalsEnable` | Holding new orders that match an approval rule (`Order_Approval_Analysis.md` §9–§10). The department rules also need PackName; the branch rules do not. Orders already held are finished (approver links, admin card, task) whatever the switch says |
+| `Approvals` | `ApprovalsEnable` | Holding new orders that match an approval rule (`Order_Approval_Analysis.md` §9–§10). The department rules also need PackName; the branch rules do not. The approval panel of the branch and department forms shows only while it is on, and a form without the panel leaves the rule alone. Orders already held are finished (approver links, admin card, task) whatever the switch says |
 
 Before this system, gating was done by checking whether a companion plugin was installed
 (`PluginHelper.IsExchangesPluginInstalled()` etc.). That was replaced with a per-store setting and

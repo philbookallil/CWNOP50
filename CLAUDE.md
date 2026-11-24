@@ -280,7 +280,7 @@ across wholesale. Port deliberately, into the 5.00 patterns (§10.5).
 |---|---|---|---|
 | `Nop.Plugin.ExternalAuth.SSO` | Single sign-on with Entra ID (OIDC / SAML 2.0) | **Ported** 2026-10-19; reviewed and extended (plugin version `…_DATA_0.12`); unit tests in `Tests/CW.Tests` (94 cases). OIDC and SAML sign-in pass against Keycloak 26 (2026-10-21); Entra still open (§22 Note C) | `Plugins/Nop.Plugin.ExternalAuth.SSO/References/SSO_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Freight` | Shipping rate computation: flat-rate methods per store, restricted countries; the methods CW.Core's packname checkout offers | **Ported** 2026-10-26 (`2026_10_26_DATA_1.2`); one installation migration, admin fixes. Unit tests in `Tests/CW.Tests` (8 cases); installed on a local site 2026-10-26 and T3–T7 passed (admin pages, cart shipping estimate) | `Plugins/Nop.Plugin.CW.Freight/References/Freight_Plugin_Reference.md` |
-| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Ported** 2026-10-31 — phases 1–5 on the 5.00 beta, then moved to the final 5.00 (M1–M4), phase 6 (outputs) and phase 7 (regression: 173 of 182 pass, none fail) approved, the deferred fixes applied (`2026_10_31_DATA_0.2`); subsidy expiry reminders added 2026-11-10 (`2026_11_09_DATA_0.2`, `subsidy-system.md` §15); the order approval engine added 2026-11-23 (`2026_11_23_DATA_0.1`, `Order_Approval_Analysis.md` §10; its rule screens are still to build). Unit tests in `Tests/CW.Tests/Core` (634 cases). §13–§21 describe its 5.00 code | `CWPlans/CWCore_Port_Reference.md`; the feature references in `CWPlans/` (`subsidy-system.md`, `MultiStore_Management_Reference.md`, `Exchanges_Returns_CreditNotes_Reference.md`, `PackName_Order_Shipments.md`, `BulkOrdering_Design.md`, `Feature_Toggles_Reference.md`) |
+| `Nop.Plugin.CW.Core` | Base CW infrastructure, service overrides, exchanges, subsidies, packnames, admin menu root | **Ported** 2026-10-31 — phases 1–5 on the 5.00 beta, then moved to the final 5.00 (M1–M4), phase 6 (outputs) and phase 7 (regression: 173 of 182 pass, none fail) approved, the deferred fixes applied (`2026_10_31_DATA_0.2`); subsidy expiry reminders added 2026-11-10 (`2026_11_09_DATA_0.2`, `subsidy-system.md` §15); the order approval engine added 2026-11-23 and its screens the same day (`2026_11_24_DATA_0.1`, `Order_Approval_Analysis.md` §10–§11). Unit tests in `Tests/CW.Tests/Core` (634 cases). §13–§21 describe its 5.00 code | `CWPlans/CWCore_Port_Reference.md`; the feature references in `CWPlans/` (`subsidy-system.md`, `MultiStore_Management_Reference.md`, `Exchanges_Returns_CreditNotes_Reference.md`, `PackName_Order_Shipments.md`, `BulkOrdering_Design.md`, `Feature_Toggles_Reference.md`) |
 | `Nop.Plugin.CW.ThemeCore` | Theme framework: accent colours, custom CSS, layout options, logos, Brand Designer with live preview | **Ported** 2026-10-29 (now `2026_11_06_DATA_1.6`); installed on a local site with `CW.Standard` active, Configure page and live preview (home, category, product, cart, checkout) pass. Unit tests in `Tests/CW.Tests` (231 cases; the custom-CSS sanitizer reads CSS the way the browser does, 2026-10-30) | `Plugins/Nop.Plugin.CW.ThemeCore/References/ThemeCore_Plugin_Reference.md` |
 | `Nop.Plugin.CW.Theme.Standard` | Settings for the `CW.Standard` theme (dark nav bar, square corners); the theme's own storefront text | **Ported** 2026-10-29 (`2026_11_06_DATA_1.2`), with ThemeCore (§10.2 framework exception, `DependsOnSystemNames`) | ThemeCore reference doc |
 | `Themes/CW.Standard` | The CW storefront theme | **Ported** 2026-10-29: its views rebased on the 5.00 views, CSS and images on 5.00 `DefaultClean` | ThemeCore reference doc §3 |
@@ -1426,7 +1426,7 @@ Plugins/Nop.Plugin.CW.<Feature>/
 | SystemName | `CW.Core` |
 | Group | `CW` |
 | FriendlyName | `CW Core Plugin` |
-| Supported NOP Version | `5.00` (`plugin.json` `SupportedVersions`; version `2026_10_31_DATA_0.2` at the end of the port, `2026_11_09_DATA_0.2` with the subsidy expiry reminders, `2026_11_23_DATA_0.1` with order approvals) |
+| Supported NOP Version | `5.00` (`plugin.json` `SupportedVersions`; version `2026_10_31_DATA_0.2` at the end of the port, `2026_11_09_DATA_0.2` with the subsidy expiry reminders, `2026_11_24_DATA_0.1` with order approvals) |
 | DLL | `Nop.Plugin.CW.Core.dll` |
 
 ### 13.2 Key Domains
@@ -1457,7 +1457,7 @@ Nop.Plugin.CW.Core/
 │   │                        migrations was not ported, decision D1; the SQL views, functions and procedures are
 │   │                        created by ICWDatabaseService on install and update); a table added since also has
 │   │                        an Update migration for sites already installed (Subsidies/SubsidyReminderMigration)
-│   └── MigrationVersions.cs — InitialSchema, SubsidyReminder, OrderApproval
+│   └── MigrationVersions.cs — InitialSchema, SubsidyReminder, OrderApproval, ApprovalRuleUniqueScope
 ├── Background/            — IBackgroundTaskQueue + QueuedHostedService
 ├── Components/            — Public store ViewComponents (selector, info strip, subsidy bar, widgets)
 ├── Constants/             — Widget zones, activity types, message template / token names
@@ -1527,7 +1527,8 @@ All registered as **Scoped** unless noted:
 | `ICustomersLogic`, `IExchangesLogic`, `IReturnSubmissionLogic`, `IReturnResolutionLogic`, `IBulkOrderLogic` | the business-logic classes (§6.13) |
 | `IPackNamePanelProvider` | `SubsidyPackNamePanelProvider` (§21) |
 | `IOrderApprovalRuleService`, `IOrderApprovalService`, `IOrderApprovalWorkflowMessageService`, `IOrderApprovalInstallService`, `OrderApprovalPlacementContext` (scoped) | Order approvals (`CWPlans/Order_Approval_Analysis.md` §9–§10): the rule check on the placed order (payment method, order total, the ordering customer's branch and departments); the hold, decisions, reminders and expiry (depends on `IOrderProcessingOverrideService`); the e-mails; the install of templates and task; a held plain order's e-mails kept until it is settled |
-| `IOrderApprovalModelFactory` (public), `IOrderApprovalAdminModelFactory` | The approver's review page; the Approval card of the admin order page |
+| `IApprovalRuleService` | `ApprovalRuleService` — the one rule of a branch or department, and the approvers its e-mails name (found or created per store) |
+| `IOrderApprovalModelFactory` (public), `IOrderApprovalAdminModelFactory`, `IApprovalRuleModelFactory` | The approver's review page and the status the customer sees; the Approval card of the admin order page; the approval panel of the branch and department forms |
 | Admin factories | `CustomerOverrideModelFactory` (as nop's `ICustomerModelFactory` too), `BranchModelFactory`, `MultiStoreModelFactory`, `PackNameModelFactory`, `SubsidyModelFactory`, `CWSettingModelFactory`, `CWAddressModelFactory`, `CreditNotesModelFactory`, `ReturnRequestOverrideModelFactory` (CW interface only: the admin return list is nop's), `SubsidyReminderModelFactory`, `ExchangeSettingsModelFactory`, `PackNameOrderModelFactory`, `ReturnRequestExchangeModelFactory` |
 | Public factories | `PackNameModelFactory`, `ShoppingCartOverrideModelFactory` (as nop's `IShoppingCartModelFactory` too), `PackNameCheckoutModelFactory`, `ExchangesModelFactory`, `ReturnRequestItemModelFactory`, `ReturnRequestOverrideModelFactory` (as nop's), `PackNameOrderModelFactory`, `SubsidyCatalogModelFactory`, `CustomerSubsidiesModelFactory`, `OrderOverrideModelFactory` (as nop's `IOrderModelFactory`), `BulkOrderModelFactory` |
 
@@ -1546,7 +1547,7 @@ refused on an order held for approval).
 `ReturnReasonActionDeletedEventConsumer` (a deleted return reason or action takes its CW rules and links with it) and
 `OrderApprovalEventConsumer` (checks and holds an order on `OrderPlacedEvent`, sends a plain order's approval e-mails on
 `PlainOrderSettledEvent`, keeps a held order Pending on `OrderStatusChangedEvent`, ends the approval of a cancelled or
-deleted order).
+deleted order) and `ApprovalRuleEventConsumer` (switches off the approval rule of a deleted branch or department).
 
 The full list is `Infrastructure/NopStartup.cs`; this table names what a reader is likely to look for.
 
@@ -2130,6 +2131,7 @@ Registered in `CWCorePlugin` (`GetWidgetZonesAsync` / `_widgetComponents`):
 - `PublicWidgetZones.HeaderLinksBefore` → `BulkOrderLinkViewComponent`
 - `PublicWidgetZones.HeaderLinksAfter` → `PackNameSelectorViewComponent`
 - `PublicWidgetZones.ContentBefore` → `PackNameInfoViewComponent`
+- `PublicWidgetZones.CheckoutCompletedTop` / `OrderDetailsPageTop` → `OrderApprovalStatusViewComponent` (where the order's approval stands; nothing for an order that never needed one)
 - `PublicWidgetZones.ProductDetailsOverviewBottom` / `ProductDetailsBottom` / `ContentAfter` → `BulkOrderProductPageViewComponent` (draws in the first the theme renders)
 - `AdminWidgetZones.OrderDetailsBlock` → `PackNameOrderAdminDetailsViewComponent`
 - `AdminWidgetZones.ProductDetailsBlock` → `BulkOrderProductPageAdminViewComponent`

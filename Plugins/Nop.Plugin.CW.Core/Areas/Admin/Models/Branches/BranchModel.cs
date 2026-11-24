@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using Nop.Plugin.CW.Core.Areas.Admin.Models.Approvals;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Common;
 using Nop.Web.Framework.Models;
 using Nop.Web.Framework.Mvc.ModelBinding;
@@ -14,6 +15,7 @@ public record BranchModel : BaseNopEntityModel
         AvailableStores = new List<SelectListItem>();
         AvailableBranches = new List<SelectListItem>();
         AvailableShippingMethods = new List<SelectListItem>();
+        ApprovalRule = new ApprovalRuleModel();
         CWAddressSearchModel = new CWAddressSearchModel();
     }
 
@@ -82,6 +84,8 @@ public record BranchModel : BaseNopEntityModel
     public string Breadcrumb { get; set; }
 
     public bool IsNew { get; set; }
+
+    public ApprovalRuleModel ApprovalRule { get; set; }
 
     public CWAddressSearchModel CWAddressSearchModel { get; set; }
 

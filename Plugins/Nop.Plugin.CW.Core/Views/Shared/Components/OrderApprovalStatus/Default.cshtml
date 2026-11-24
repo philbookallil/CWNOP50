@@ -1,0 +1,17 @@
+@model Nop.Plugin.CW.Core.Models.Approvals.OrderApprovalStatusModel
+
+@{
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/Order/order-approval-status.css");
+}
+
+<div class="cw-order-approval-status cw-order-approval-status--@Model.StatusClass" role="status">
+    <strong>@Model.Message</strong>
+    @if (!string.IsNullOrEmpty(Model.Reason))
+    {
+        <div class="cw-order-approval-status-reason">@Model.Reason</div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ReservedMessage))
+    {
+        <div>@Model.ReservedMessage</div>
+    }
+</div>

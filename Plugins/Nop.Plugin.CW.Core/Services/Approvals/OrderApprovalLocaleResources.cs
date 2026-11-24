@@ -24,6 +24,27 @@ public static class OrderApprovalLocaleResources
         ["Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalExpiryDays.Hint"] = "Days after the request before an unanswered order is cancelled and its items go back to the customer's cart. 0 never expires an order.",
         ["Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalDays.NotNegative"] = "Enter 0 or a number of days.",
 
+        //branch and department forms
+        ["Plugins.CW.Core.Admin.ApprovalRule.Title"] = "Order approval",
+        ["Plugins.CW.Core.Admin.ApprovalRule.Required"] = "Employees require authorisation?",
+        ["Plugins.CW.Core.Admin.ApprovalRule.Required.Hint"] = "The orders its employees place on account wait for one of the authorising e-mails to accept them.",
+        ["Plugins.CW.Core.Admin.ApprovalRule.Threshold"] = "Authorise over $",
+        ["Plugins.CW.Core.Admin.ApprovalRule.Threshold.Hint"] = "The order total that once exceeded needs authorisation: what is left to pay after subsidy, store credit, discounts and gift cards. Empty or 0 means every order.",
+        ["Plugins.CW.Core.Admin.ApprovalRule.Threshold.Invalid"] = "Enter 0 or an amount.",
+        ["Plugins.CW.Core.Admin.ApprovalRule.Emails"] = "Authorising emails",
+        ["Plugins.CW.Core.Admin.ApprovalRule.Emails.Hint"] = "The people who may authorise an order, separated by commas. Each gets the order by e-mail, and the first to answer decides. A change applies to new orders; orders already waiting keep the people they were sent to.",
+        ["Plugins.CW.Core.Admin.ApprovalRule.Emails.Required"] = "Enter at least one e-mail address.",
+        ["Plugins.CW.Core.Admin.ApprovalRule.Emails.Invalid"] = "Enter valid e-mail addresses, separated by commas.",
+
+        //customer's order pages
+        ["Plugins.CW.Core.OrderApproval.Customer.OrderStatus"] = "{0} - waiting for approval",
+        ["Plugins.CW.Core.OrderApproval.Customer.Waiting"] = "This order is waiting for approval.",
+        ["Plugins.CW.Core.OrderApproval.Customer.WaitingBy"] = "This order is waiting for approval by {0}.",
+        ["Plugins.CW.Core.OrderApproval.Customer.Reserved"] = "Any subsidy or store credit it used comes back if it is not approved.",
+        ["Plugins.CW.Core.OrderApproval.Customer.Approved"] = "This order was approved by {0}.",
+        ["Plugins.CW.Core.OrderApproval.Customer.Declined"] = "This order was declined by {0}. Its available items went back to your cart.",
+        ["Plugins.CW.Core.OrderApproval.Customer.Expired"] = "This order was not approved in time. Its available items went back to your cart.",
+
         //order notes
         ["Plugins.CW.Core.OrderApproval.Note.Held"] = "The order is waiting for approval by {0} (approval rules {1}).",
         ["Plugins.CW.Core.OrderApproval.Note.Approved"] = "The order was approved by {0}.",

@@ -1,6 +1,6 @@
 # Order Approval — Analysis and Options for 5.00
 
-Status: **the engine is applied** (Part 1, 2026-11-17) **and aligned with 4.1** (2026-11-23, §10; run on the dev site the same day: A1–A18 pass, two with a note, §10.6). Part 2, the screens, is to specify (§10.4 O3). §1–§8 are the original analysis: where they differ, §10 holds.
+Status: **the engine is applied** (Part 1, 2026-11-17) **and aligned with 4.1** (2026-11-23, §10; run on the dev site the same day: A1–A18 pass, two with a note, §10.6). Part 2, the screens, is applied (2026-11-23) and run on the dev site (2026-11-24, B1–B20 pass, §11). §1–§8 are the original analysis: where they differ, §10 holds.
 Gap analysis item C3 / OI 2.2.1
 (`LegacyVersions/NOP41_To_500_Gap_Analysis.md`).
 
@@ -560,7 +560,7 @@ install or update. Test rules: `TestData/OrderApproval_TestData.sql` (local, not
 |---|---|---|
 | O1 | **Odoo sends held orders** (§9.4) | Refuse a held order in `OrderSyncService.SendOrderAsync`; agree it with the developer of that send |
 | O2 | Purchase Order number on the approval e-mail | Only if a client uses it; 5.00 has no Purchase Order payment method |
-| O3 | Part 2: 4.1's panel on the branch forms and the department panel, and the approval status on the storefront (§9.5 G) | Next |
+| O3 | Part 2: 4.1's panel on the branch forms and the department panel, and the approval status on the storefront (§9.5 G) | Applied 2026-11-23: §11 |
 
 ### 10.5 Test plan
 
@@ -593,3 +593,76 @@ A1–A18 pass; none fails. Two carry a note: A9 charged no card (the order's met
 same check); A18 ran with a replacement beside new goods (5027, $758.95, not held), and the replacements-alone case is a unit test. The
 run also covered Part 1's T19, T25 and T27. Part 1's T5 evidence that PayPal was hidden proved nothing: PayPal is not connected on
 that site, so nop always hides it.
+
+---
+
+## 11. Part 2: the screens (applied 2026-11-23)
+
+Eduardo approved the design on 2026-11-23: 4.1's panel on branches and departments, and the approval status on the customer's pages. The
+approver list and the pending report wait until asked for.
+
+### 11.1 The panel
+
+*Order approval*: **Employees require authorisation?**, **Authorise over $**, **Authorising emails** (commas, semicolons, bars or new lines).
+
+| Form | Where the panel is | Saved by |
+|---|---|---|
+| Manage Store → Branches | Branch details, also on a new branch (its store is known) | `MultiStoreController.SaveBranch` |
+| CW Admin → Branches | Its own card on the edit page; not on Create, where the store can still change | `BranchController.Edit` |
+| Manage Store → Departments | Department details, also on a new department | `MultiStoreController.SaveDepartment` |
+
+- Shown only while Approvals is on for the store. The panel posts `ApprovalRule.Available`, so a form loaded **without** it never saves an
+  empty rule over the one it did not show.
+- A refused post without the panel shows the saved rule, not an empty panel. A panel posted after Approvals was switched off is dropped.
+- Checked only while approval is required: an e-mail at least, every e-mail valid, the amount 0 to 99,999,999,999,999.
+- The department form names its panel `DepartmentApprovalRule`: Manage Store keeps both forms on the page, and equal names would give equal ids.
+- One rule per branch or department: unique index on (`ScopeTypeId`, `ScopeId`).
+- Unticking switches the rule off and keeps its amount and e-mails. Deleting the branch or department switches it off too.
+- Approvers are found by address within the store, or created and named by the address. *Change approver* on an order gives such an approver
+  its first name. Changing a rule affects new orders only.
+- Same permission as the form; no new one.
+
+### 11.2 What the customer sees
+
+| Page | What |
+|---|---|
+| Order completed (nop's and the packname one) and order details | `OrderApprovalStatus` in the zones `CheckoutCompletedTop` and `OrderDetailsPageTop`: waiting (by whom, and that subsidy and store credit come back if declined), approved, declined with the reason, not approved in time |
+| My orders | *Pending - waiting for approval* (`OrderOverrideModelFactory`) |
+| Order details | Re-order is hidden while the order is held |
+
+No storefront view is copied, so nothing is added to the theme collision set. An order's status is shown whatever the Approvals switch says now.
+
+### 11.3 Test plan
+
+| # | Do | Expect |
+|---|---|---|
+| B1 | Start the site, update the plugin to the new version | The unique index exists; the new texts show |
+| B2 | Manage Store → Test Branch 1 | The panel shows the rule in the database (over $100, approver@example.com) |
+| B3 | Change the amount and the e-mails, save, reopen | Values kept; the *Saved* stamp; one rule row; approvers created |
+| B4 | Tick with no e-mail, a bad e-mail, a negative amount, an amount over the limit | Each refused with its message; the typed values are shown again |
+| B5 | Untick and save; reopen; tick again | Rule off, values kept; then on again |
+| B6 | A new child branch, with the panel filled | Branch and rule created |
+| B7 | Edit a field of the panel and leave the form | The unsaved-changes question |
+| B8 | CW Admin → Branches: edit the same branch | The same rule; saves; not on Create |
+| B9 | Manage Store → Departments: an existing and a new department | As B2–B6 |
+| B10 | Delete a test branch and a test department that have rules | Their rules are off |
+| B11 | Approvals off: the three forms | No panel. Saving the forms leaves the rules untouched |
+| B12 | A form opened with Approvals off, saved after switching it on: once valid, once refused (a name already used) and then corrected | The rule is untouched |
+| B12a | A form opened with Approvals on, saved after switching it off | Saved; the rule is untouched |
+| B12b | Open a branch, then a department, and click the department panel's labels | The department's own fields answer; the branch form is not changed |
+| B13 | Steve orders over the amount set in B3 | Held by the rule from the panel; e-mails to both addresses, greeted by address |
+| B14 | The completed page, My orders, order details | Waiting by whom; *Pending - waiting for approval*; no Re-order |
+| B15 | An order part-paid by store credit or subsidy, waiting | The line that they come back if declined |
+| B16 | Accept one, decline one; open both as the customer | Approved by / declined by with the reason; decided by an address shown once |
+| B17 | A plain order's completed page (PackName off) | The same status |
+| B18 | An order that needs no approval | Nothing on the three pages |
+| B19 | *Change approver* to an existing address with a name | The approver takes the name; the next change of name is kept out |
+| B20 | Another customer opens the order's details address | nop refuses, as before |
+
+### 11.4 Test run (2026-11-24, dev site, store 1)
+
+B1–B20 with B12a and B12b pass; none fails. B15 ran with store credit ($60 of 5029, returned in full when it was declined); subsidy reads the
+same settlement row and was not run. B12 covers the review's finding: a form opened while Approvals was off, refused once and saved again,
+leaves the rule as it was. No error was logged by the run.
+
+Decided 2026-11-24: nop's "Your order has been successfully processed!" stays on a held order's completed page, under the waiting message.

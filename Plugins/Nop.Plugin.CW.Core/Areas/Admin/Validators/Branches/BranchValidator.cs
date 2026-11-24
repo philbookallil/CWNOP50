@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Branches;
+using Nop.Plugin.CW.Core.Areas.Admin.Validators.Approvals;
 using Nop.Plugin.CW.Core.Domain.Branches;
 using Nop.Services.Localization;
 using Nop.Web.Framework.Validators;
@@ -21,6 +22,8 @@ public partial class BranchValidator : BaseNopValidator<BranchModel>
         RuleFor(x => x.Name)
             .NotEmpty()
             .WithMessageAwait(localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Field.Name.Required"));
+
+        RuleFor(x => x.ApprovalRule).SetValidator(new ApprovalRuleValidator(localizationService));
 
         SetDatabaseValidationRules<Branch>();
     }

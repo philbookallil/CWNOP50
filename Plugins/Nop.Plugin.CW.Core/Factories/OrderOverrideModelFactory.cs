@@ -9,6 +9,7 @@ using Nop.Core.Domain.Shipping;
 using Nop.Core.Domain.Tax;
 using Nop.Core.Domain.Vendors;
 using Nop.Plugin.CW.Core.Models.Orders;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.Orders;
 using Nop.Services.Catalog;
 using Nop.Services.Common;
@@ -48,6 +49,7 @@ public class OrderOverrideModelFactory : OrderModelFactory
     #region Fields
 
     protected readonly ICWOrderService _cwOrderService;
+    protected readonly IOrderApprovalService _orderApprovalService;
     protected readonly IPackNameOrderModelFactory _packNameOrderModelFactory;
 
     #endregion
@@ -91,6 +93,7 @@ public class OrderOverrideModelFactory : OrderModelFactory
         TaxSettings taxSettings,
         VendorSettings vendorSettings,
         ICWOrderService cwOrderService,
+        IOrderApprovalService orderApprovalService,
         IPackNameOrderModelFactory packNameOrderModelFactory)
         : base(addressSettings,
             catalogSettings,
@@ -130,12 +133,31 @@ public class OrderOverrideModelFactory : OrderModelFactory
             vendorSettings)
     {
         _cwOrderService = cwOrderService;
+        _orderApprovalService = orderApprovalService;
         _packNameOrderModelFactory = packNameOrderModelFactory;
     }
 
     #endregion
 
     #region Methods
+
+    /// <summary>
+    /// Says on the customer's order list which orders wait for approval
+    /// </summary>
+    public override async Task<CustomerOrderListModel> PrepareCustomerOrderListModelAsync(int? page, OrderHistoryPeriods limit)
+    {
+        var model = await base.PrepareCustomerOrderListModelAsync(page, limit);
+
+        var pendingOrders = model.Orders.Where(order => order.OrderStatusEnum == OrderStatus.Pending).ToList();
+        var heldOrderIds = await _orderApprovalService.GetHeldOrderIdsAsync(pendingOrders.Select(order => order.Id).ToArray());
+
+        var heldStatus = await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Customer.OrderStatus");
+
+        foreach (var order in pendingOrders.Where(order => heldOrderIds.Contains(order.Id)))
+            order.OrderStatus = string.Format(heldStatus, order.OrderStatus);
+
+        return model;
+    }
 
     /// <summary>
     /// Adds the packname groups and subsidy totals to the customer's order page, and labels each shipment
@@ -170,6 +192,10 @@ public class OrderOverrideModelFactory : OrderModelFactory
         {
             PackNameDetails = await _packNameOrderModelFactory.PreparePackNameOrderDetailsModelAsync(order.Id)
         };
+
+        //a held order waits, and is not ordered again until it is decided: declined, its lines go back to the cart
+        if (await _orderApprovalService.IsOrderHeldAsync(order.Id))
+            model.IsReOrderAllowed = false;
 
         if (model.Shipments.Count == 0)
             return model;

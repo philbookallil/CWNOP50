@@ -24,4 +24,9 @@ public static class MigrationVersions
     /// The order approval tables (CORE_APR_*), on a database installed before they were in the schema
     /// </summary>
     public const string OrderApproval = "2026/11/17 12:00:00";
+
+    /// <summary>
+    /// The unique index of the approval rules, on a database installed before the index was in the schema
+    /// </summary>
+    public const string ApprovalRuleUniqueScope = "2026/11/24 12:00:00";
 }

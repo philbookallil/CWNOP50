@@ -82,6 +82,14 @@
 
                     </div>
                 </div>
+
+                @if (Model.DepartmentApprovalRule.Available)
+                {
+                    <div class="ms-approval-rule">
+                        <h3 class="ms-approval-rule-title">@T("Plugins.CW.Core.Admin.ApprovalRule.Title")</h3>
+                        @await Html.PartialAsync("_ApprovalRule", Model.DepartmentApprovalRule, new ViewDataDictionary(ViewData) { TemplateInfo = { HtmlFieldPrefix = nameof(Model.DepartmentApprovalRule) } })
+                    </div>
+                }
             </div>
         </div>
     </div>

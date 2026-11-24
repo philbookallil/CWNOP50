@@ -6,12 +6,14 @@ using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Stores;
 using Nop.Core.Events;
 using Nop.Plugin.CW.Core.Areas.Admin.Factories;
+using Nop.Plugin.CW.Core.Areas.Admin.Models.Approvals;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Branches;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Common;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.MultiStores;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.PackNames;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Settings;
 using Nop.Plugin.CW.Core.Background;
+using Nop.Plugin.CW.Core.Domain.Approvals;
 using Nop.Plugin.CW.Core.Domain.Branches;
 using Nop.Plugin.CW.Core.Domain.MultiStores;
 using Nop.Plugin.CW.Core.Domain.PackNames;
@@ -19,6 +21,7 @@ using Nop.Plugin.CW.Core.Domain.Settings;
 using Nop.Plugin.CW.Core.Extensions;
 using Nop.Plugin.CW.Core.Filters;
 using Nop.Plugin.CW.Core.Helpers;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.Branches;
 using Nop.Plugin.CW.Core.Services.Customers;
 using Nop.Plugin.CW.Core.Services.MultiStores;
@@ -57,6 +60,8 @@ public class MultiStoreController : BaseAdminController
     protected readonly IMultiStoreService _multiStoreService;
     protected readonly ICustomerActivityService _customerActivityService;
     protected readonly ILocalizationService _localizationService;
+    protected readonly IApprovalRuleModelFactory _approvalRuleModelFactory;
+    protected readonly IApprovalRuleService _approvalRuleService;
     protected readonly ICustomerOverrideService _customerService;
     protected readonly IPackNameService _packNameService;
     protected readonly IGenericAttributeService _genericAttributeService;
@@ -114,7 +119,9 @@ public class MultiStoreController : BaseAdminController
         IPackNameImportService packNameImportService,
         IPackNameBulkService packNameBulkService,
         ILanguageService languageService,
-        IWorkContext workContext)
+        IWorkContext workContext,
+        IApprovalRuleModelFactory approvalRuleModelFactory,
+        IApprovalRuleService approvalRuleService)
     {
         _storeService = storeService;
         _multiStoreModelFactory = multiStoreModelFactory;
@@ -146,6 +153,8 @@ public class MultiStoreController : BaseAdminController
         _packNameBulkService = packNameBulkService;
         _languageService = languageService;
         _workContext = workContext;
+        _approvalRuleModelFactory = approvalRuleModelFactory;
+        _approvalRuleService = approvalRuleService;
     }
 
     #endregion
@@ -598,6 +607,20 @@ public class MultiStoreController : BaseAdminController
 
     #region Branches
 
+    /// <summary>
+    /// Saves the approval panel of a branch or department form, when the form had it
+    /// </summary>
+    /// <param name="model">The posted panel</param>
+    /// <param name="storeId">The store of the branch or department</param>
+    /// <param name="scopeType">What the rule is attached to</param>
+    /// <param name="scopeId">Branch or department identifier</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    protected virtual async Task SaveApprovalRuleAsync(ApprovalRuleModel model, int storeId, ApprovalScopeType scopeType, int scopeId)
+    {
+        if (model?.Available == true)
+            await _approvalRuleService.SaveSetupAsync(storeId, scopeType, scopeId, _approvalRuleModelFactory.ToSetup(model));
+    }
+
     [CheckPermission(CWPermissionConfigManager.ADMIN_ACCESS_MULTISTORE)]
     public async Task<IActionResult> BranchTree(int storeId, string selectedIds = "")
     {
@@ -653,6 +676,8 @@ public class MultiStoreController : BaseAdminController
                     await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Branches.Branch.Field.ParentBranch.WrongStore"));
         }
 
+        await _approvalRuleModelFactory.DropWhenOffAsync(model.ApprovalRule, model.StoreId, ModelState, nameof(model.ApprovalRule));
+
         if (ModelState.IsValid)
         {
             //both paths below take the branch's shipping methods from here
@@ -671,6 +696,8 @@ public class MultiStoreController : BaseAdminController
 
                 //the store may ask for a default packname list on every new branch
                 await _packNameProvisioningService.ProvisionNewBranchAsync(branch);
+
+                await SaveApprovalRuleAsync(model.ApprovalRule, branch.StoreId, ApprovalScopeType.Branch, branch.Id);
 
                 //activity log
                 await _customerActivityService.InsertActivityAsync("AddNewBranch",
@@ -708,6 +735,8 @@ public class MultiStoreController : BaseAdminController
 
                 await _branchService.UpdateBranchAsync(branch);
 
+                await SaveApprovalRuleAsync(model.ApprovalRule, branch.StoreId, ApprovalScopeType.Branch, branch.Id);
+
                 //activity log
                 await _customerActivityService.InsertActivityAsync("EditBranch",
                     string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.ActivityLog.EditBranch"), branch.Id), branch);
@@ -734,6 +763,8 @@ public class MultiStoreController : BaseAdminController
 
         foreach (var shippingMethodName in await _packNameShippingMethodService.GetShippingMethodNamesAsync(model.StoreId))
             model.AvailableShippingMethods.Add(new SelectListItem { Value = shippingMethodName, Text = shippingMethodName });
+
+        await _approvalRuleModelFactory.PrepareApprovalRuleModelAsync(model.ApprovalRule, model.StoreId, ApprovalScopeType.Branch, model.Id, keepValues: true);
 
         model.IsNew = model.Id == 0;
 
@@ -2631,7 +2662,7 @@ public class MultiStoreController : BaseAdminController
         //ForbidResult, not the ArgumentException this used to throw on the edit path: a record
         //deleted in another tab is a refusal the admin can read, not a 500. Same shape as
         //DeleteDepartment (:2302).
-        if (!model.IsNew && existingDepartment == null)
+        if (!model.IsNew && (existingDepartment == null || existingDepartment.Deleted))
             return new ForbidResult();
 
         //ON AN EDIT THE STORE COMES FROM THE ENTITY, so a post cannot move a department between
@@ -2643,6 +2674,8 @@ public class MultiStoreController : BaseAdminController
             return new ForbidResult();
 
         model.StoreId = storeId;
+
+        await _approvalRuleModelFactory.DropWhenOffAsync(model.DepartmentApprovalRule, storeId, ModelState, nameof(model.DepartmentApprovalRule));
 
         if (ModelState.IsValid)
         {
@@ -2657,6 +2690,8 @@ public class MultiStoreController : BaseAdminController
 
                 await _customerService.SaveDepartmentCustomerRole(department);
                 await _multiStoreService.InsertDepartmentAsync(department);
+
+                await SaveApprovalRuleAsync(model.DepartmentApprovalRule, storeId, ApprovalScopeType.Department, department.Id);
 
                 //activity log
                 await _customerActivityService.InsertActivityAsync("AddNewDepartment",
@@ -2678,6 +2713,8 @@ public class MultiStoreController : BaseAdminController
 
                 await _customerService.SaveDepartmentCustomerRole(department);
                 await _multiStoreService.UpdateDepartmentAsync(department);
+
+                await SaveApprovalRuleAsync(model.DepartmentApprovalRule, storeId, ApprovalScopeType.Department, department.Id);
 
                 //activity log
                 await _customerActivityService.InsertActivityAsync("EditDepartment",

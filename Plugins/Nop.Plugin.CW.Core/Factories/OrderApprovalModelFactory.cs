@@ -14,7 +14,7 @@ using Nop.Services.Orders;
 namespace Nop.Plugin.CW.Core.Factories;
 
 /// <summary>
-/// Prepares the page an approver opens from the e-mail
+/// Prepares the page an approver opens from the e-mail, and the status the customer sees
 /// </summary>
 /// <remarks>
 /// The approver is usually not signed in, so nothing here reads the current customer: the order is found from the link.
@@ -158,6 +158,61 @@ public class OrderApprovalModelFactory : IOrderApprovalModelFactory
         }
 
         return model;
+    }
+
+    public virtual async Task<OrderApprovalStatusModel> PrepareStatusModelAsync(int orderId)
+    {
+        var approval = await _orderApprovalService.GetOrderApprovalByOrderIdAsync(orderId);
+
+        switch (approval?.Status)
+        {
+            case OrderApprovalStatus.Pending:
+                var approvers = (await _orderApprovalService.GetRequestsAsync(approval.Id))
+                    .Where(request => request.RevokedOnUtc == null)
+                    //the latest link of each has the approver's present name
+                    .GroupBy(request => request.ApproverId)
+                    .Select(requests => requests.First().ApproverName)
+                    .Distinct(StringComparer.InvariantCultureIgnoreCase)
+                    .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
+                    .ToList();
+
+                return new OrderApprovalStatusModel
+                {
+                    StatusClass = "pending",
+                    Message = approvers.Count == 0
+                        ? await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Customer.Waiting")
+                        : string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Customer.WaitingBy"), string.Join(", ", approvers)),
+                    ReservedMessage = await _cwOrderService.GetOrderSettlementAsync(orderId) == null
+                        ? null
+                        : await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Customer.Reserved")
+                };
+
+            case OrderApprovalStatus.Approved:
+                return new OrderApprovalStatusModel
+                {
+                    StatusClass = "approved",
+                    Message = string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Customer.Approved"), approval.DecidedBy)
+                };
+
+            case OrderApprovalStatus.Declined:
+                return new OrderApprovalStatusModel
+                {
+                    StatusClass = "declined",
+                    Message = string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Customer.Declined"), approval.DecidedBy),
+                    Reason = approval.DecisionComment
+                };
+
+            case OrderApprovalStatus.Expired:
+                return new OrderApprovalStatusModel
+                {
+                    StatusClass = "expired",
+                    Message = await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Customer.Expired"),
+                    Reason = approval.DecisionComment
+                };
+
+            default:
+                return null;
+        }
     }
 
     #endregion

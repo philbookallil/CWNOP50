@@ -152,6 +152,14 @@
                         </div>
                     </div>
 
+                    @if (Model.ApprovalRule.Available)
+                    {
+                        <div class="ms-approval-rule">
+                            <h3 class="ms-approval-rule-title">@T("Plugins.CW.Core.Admin.ApprovalRule.Title")</h3>
+                            @await Html.PartialAsync("_ApprovalRule", Model.ApprovalRule, new ViewDataDictionary(ViewData) { TemplateInfo = { HtmlFieldPrefix = nameof(Model.ApprovalRule) } })
+                        </div>
+                    }
+
                 </form>
             </div>
         </div>

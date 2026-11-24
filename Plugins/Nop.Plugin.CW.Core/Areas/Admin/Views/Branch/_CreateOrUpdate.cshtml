@@ -10,6 +10,14 @@
 
     const string hideAddressesBlockAttributeName = "BranchPage.HideAddressesBlock";
     var hideAddressesBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideAddressesBlockAttributeName, defaultValue: true);
+
+    const string hideApprovalBlockAttributeName = "BranchPage.HideApprovalBlock";
+    var hideApprovalBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideApprovalBlockAttributeName);
+
+    if (Model.ApprovalRule.Available)
+    {
+        NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Approvals/admin.approval.rule.js");
+    }
 }
 
 <section class="content">
@@ -17,6 +25,14 @@
         <div class="form-horizontal">
             <nop-cards id="branch-cards">
                 <nop-card asp-name="branch-info" asp-icon="fas fa-info" asp-title="@T("Plugins.CW.Core.Admin.Branches.Branch.Info")" asp-hide-block-attribute-name="@hideInfoBlockAttributeName" asp-hide="@hideInfoBlock" asp-advanced="false">@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Branch/_CreateOrUpdate.Info.cshtml", Model)</nop-card>
+                @if (Model.ApprovalRule.Available)
+                {
+                    <nop-card asp-name="branch-approval" asp-icon="fas fa-user-check" asp-title="@T("Plugins.CW.Core.Admin.ApprovalRule.Title")" asp-hide-block-attribute-name="@hideApprovalBlockAttributeName" asp-hide="@hideApprovalBlock" asp-advanced="false">
+                        <div class="card-body">
+                            @await Html.PartialAsync("_ApprovalRule", Model.ApprovalRule, new ViewDataDictionary(ViewData) { TemplateInfo = { HtmlFieldPrefix = nameof(Model.ApprovalRule) } })
+                        </div>
+                    </nop-card>
+                }
                 @if (Model.Id > 0)
                 {
                     <nop-card asp-name="branch-address" asp-icon="far fa-address-book" asp-title="@T("Plugins.CW.Core.Admin.Branches.Branch.Addresses")" asp-hide-block-attribute-name="@hideAddressesBlockAttributeName" asp-hide="@hideAddressesBlock" asp-advanced="true">@await Html.PartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Branch/_CreateOrUpdate.Addresses.cshtml", Model)</nop-card>

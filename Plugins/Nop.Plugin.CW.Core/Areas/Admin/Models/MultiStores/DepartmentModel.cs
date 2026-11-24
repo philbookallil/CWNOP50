@@ -1,4 +1,5 @@
-﻿using Nop.Web.Framework.Models;
+﻿using Nop.Plugin.CW.Core.Areas.Admin.Models.Approvals;
+using Nop.Web.Framework.Models;
 using Nop.Web.Framework.Mvc.ModelBinding;
 
 namespace Nop.Plugin.CW.Core.Areas.Admin.Models.MultiStores;
@@ -9,6 +10,7 @@ public record DepartmentModel : BaseNopEntityModel
 
     public DepartmentModel()
     {
+        DepartmentApprovalRule = new ApprovalRuleModel();
         DepartmentManagerSearchModel = new DepartmentManagerSearchModel();
     }
 
@@ -26,6 +28,12 @@ public record DepartmentModel : BaseNopEntityModel
     public bool Active { get; set; }
 
     public bool IsNew { get; set; }
+
+    /// <summary>
+    /// Gets or sets the approval panel; not named as the branch form's, since Manage Store keeps both forms on the page
+    /// and the fields' ids come from the name
+    /// </summary>
+    public ApprovalRuleModel DepartmentApprovalRule { get; set; }
 
     public DepartmentManagerSearchModel DepartmentManagerSearchModel { get; set; }
 
