@@ -503,6 +503,27 @@ that action.
 Coupons and gift cards stay out of the packname checkout (decision 14, phase 7): the `/cart` POSTs keep answering 403
 and the page has no boxes; phase 6 settles any discount against the customer's share only, so nothing is at risk.
 
+### 9.0a What a packname order checks (2026-11-24)
+
+A cart can hold, beside the packname lines, a line of no packname: added while PackName was off, or with nobody selected.
+The packname order does not contain it, so it is not checked and does not count towards nop's minimum order amounts.
+`PreparePlacePackNameOrderDetailsAsync` runs `PrepareAndValidatePackNameCartAndCheckoutAttributesAsync`, nop's
+`PrepareAndValidateShoppingCartAndCheckoutAttributesAsync` with the packname cart loaded (`CLAUDE.md` §10.3). Through
+nop's own method that line was checked as the **selected** packname and could refuse the whole order ("Product is not
+published" with a packname limited to allocated products selected).
+
+| Path | Lines checked |
+|---|---|
+| Packname checkout | The packname lines |
+| Payment method that places its own order | The whole cart has to be packname lines, or it is refused: it charges for the whole cart |
+| Exchange return order | Its own cart, built in memory; neither method runs |
+| Plain nop order | Every line of the cart (nop's method) |
+| Replacement line of a closed packname | Not in the order, so not checked |
+
+Tests: `Tests/CW.Tests/Core/Services/Orders/PackNamePlacementCartTests.cs`. Dev-site run 2026-11-24: orders 5036–5038
+(`Deprecated/Open_Item_4.23_Ordered_Lines.md`). Still reading the whole cart: nop's checks across lines and the checkout's
+refreshes (`Subsidy_PackName_Open_Items.md` 4.24, 4.25).
+
 ## 9.1 Nor may nop's admin order screens edit one
 
 **Phase 2b part 1, decision 14.** The doors above stop an ordinary order becoming a packname order.

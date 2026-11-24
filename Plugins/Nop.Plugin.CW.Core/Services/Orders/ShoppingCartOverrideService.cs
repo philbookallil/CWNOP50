@@ -551,8 +551,8 @@ public class ShoppingCartOverrideService : ShoppingCartService, IShoppingCartOve
     /// <para>
     /// The exemption belongs to the ROW, not to the moment it was written. Exempting only while the
     /// approval runs lets the authorisation succeed and then strands the customer: nop revalidates every
-    /// line when the order is placed (OrderProcessingService.PrepareAndValidateShoppingCartAndCheckoutAttributesAsync,
-    /// which the packname checkout inherits) and throws on the same rule, with the returned goods already
+    /// line when the order is placed (OrderProcessingService.PrepareAndValidateShoppingCartAndCheckoutAttributesAsync, and
+    /// the packname placement's own copy of it) and throws on the same rule, with the returned goods already
     /// gone. So the scope covers creation, when there is no row id yet, and the recorded link covers every
     /// moment after.
     /// </para>

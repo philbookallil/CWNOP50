@@ -713,4 +713,4 @@ the store closed, the link opens; the response says `no-store`. One flaw, fixed 
 address; decided the same day to show it (`GetPlainDeliveryAsync`), in the packname blocks' order. nop's own address line starts with the
 country, so only its fields are used. C11, after the rebuild, passes: 5035 (plain, still held) shows the method, the name and the address.
 
-Found on the way and not part of this: `Subsidy_PackName_Open_Items.md` 4.23 (a leftover plain cart line can refuse a packname order).
+Found on the way and not part of this: a leftover plain cart line could refuse a packname order. Fixed 2026-11-24 (`PackName_Order_Shipments.md` §9.0a).

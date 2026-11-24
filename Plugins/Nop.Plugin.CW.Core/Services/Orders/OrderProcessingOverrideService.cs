@@ -926,6 +926,66 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
     }
 
     /// <summary>
+    /// Loads the packname cart and validates it, with the checkout attributes and nop's minimum order amounts
+    /// </summary>
+    /// <remarks>
+    /// nop's method, on the lines the order is made of. The customer's whole cart, which nop's method loads, can also
+    /// hold a line of no packname (added while the feature was off, or with no packname selected). Such a line is not
+    /// ordered, so it is not checked - its check would run as the selected packname - and it does not count towards
+    /// the minimum order amounts.
+    /// </remarks>
+    /// <param name="details">PlaceOrder container</param>
+    /// <param name="processPaymentRequest">payment info holder</param>
+    /// <param name="currentCurrency">The working currency</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    /// <exception cref="NopException">Validation problems</exception>
+    protected virtual async Task PrepareAndValidatePackNameCartAndCheckoutAttributesAsync(PlacePackNameOrderContainer details, ProcessPaymentRequest processPaymentRequest, Currency currentCurrency)
+    {
+        //checkout attributes
+        details.CheckoutAttributesXml = await _genericAttributeService.GetAttributeAsync<string>(details.Customer, NopCustomerDefaults.CheckoutAttributes, processPaymentRequest.StoreId);
+        details.CheckoutAttributeDescription = await _checkoutAttributeFormatter.FormatAttributesAsync(details.CheckoutAttributesXml, details.Customer);
+
+        //load the packname shopping cart
+        details.PackNamesCart = await _shoppingCartService.GetPackNameShoppingCartItemsAsync(details.Customer, 0, processPaymentRequest.StoreId);
+        details.Cart = details.PackNamesCart.Cast<ShoppingCartItem>().ToList();
+
+        if (!details.Cart.Any())
+            throw new NopException("Cart is empty");
+
+        //validate the entire shopping cart
+        var warnings = await _shoppingCartService.GetShoppingCartWarningsAsync(details.Cart, details.CheckoutAttributesXml, true);
+        if (warnings.Any())
+            throw new NopException(warnings.Aggregate(string.Empty, (current, next) => $"{current}{next};"));
+
+        //validate individual cart items
+        foreach (var sci in details.Cart)
+        {
+            var product = await _productService.GetProductByIdAsync(sci.ProductId);
+
+            var sciWarnings = await _shoppingCartService.GetShoppingCartItemWarningsAsync(details.Customer,
+                sci.ShoppingCartType, product, processPaymentRequest.StoreId, sci.AttributesXml,
+                sci.CustomerEnteredPrice, sci.RentalStartDateUtc, sci.RentalEndDateUtc, sci.Quantity, false, sci.Id);
+            if (sciWarnings.Any())
+                throw new NopException(sciWarnings.Aggregate(string.Empty, (current, next) => $"{current}{next};"));
+        }
+
+        //min totals validation
+        if (!await ValidateMinOrderSubtotalAmountAsync(details.Cart))
+        {
+            var minOrderSubtotalAmount = await _currencyService.ConvertFromPrimaryStoreCurrencyAsync(_orderSettings.MinOrderSubtotalAmount, currentCurrency);
+            throw new NopException(string.Format(await _localizationService.GetResourceAsync("Checkout.MinOrderSubtotalAmount"),
+                await _priceFormatter.FormatPriceAsync(minOrderSubtotalAmount, true, false)));
+        }
+
+        if (!await ValidateMinOrderTotalAmountAsync(details.Cart))
+        {
+            var minOrderTotalAmount = await _currencyService.ConvertFromPrimaryStoreCurrencyAsync(_orderSettings.MinOrderTotalAmount, currentCurrency);
+            throw new NopException(string.Format(await _localizationService.GetResourceAsync("Checkout.MinOrderTotalAmount"),
+                await _priceFormatter.FormatPriceAsync(minOrderTotalAmount, true, false)));
+        }
+    }
+
+    /// <summary>
     /// Prepare details to place an order. It also sets some properties to "processPaymentRequest"
     /// </summary>
     /// <param name="processPaymentRequest">Process payment request</param>
@@ -939,11 +999,7 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
 
         var currentCurrency = await _workContext.GetWorkingCurrencyAsync();
         await PrepareAndValidateCustomerAsync(details, processPaymentRequest, currentCurrency);
-        await PrepareAndValidateShoppingCartAndCheckoutAttributesAsync(details, processPaymentRequest, currentCurrency);
-
-        //We need to use the packName shopping cart items
-        details.PackNamesCart = await _shoppingCartService.GetPackNameShoppingCartItemsAsync(details.Customer, 0, processPaymentRequest.StoreId);
-        details.Cart = details.PackNamesCart.Cast<ShoppingCartItem>().ToList();
+        await PrepareAndValidatePackNameCartAndCheckoutAttributesAsync(details, processPaymentRequest, currentCurrency);
 
         await PrepareAndValidateBillingAddressAsync(details);
         await PrepareAndValidatePackNameShippingInfoAsync(details, processPaymentRequest);
