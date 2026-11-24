@@ -25,6 +25,9 @@
 
     const string hideBulkOrderBlockAttributeName = "MultiStoreSettings.HideBulkOrderBlock";
     var hideBulkOrderBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideBulkOrderBlockAttributeName);
+
+    const string hideApprovalsBlockAttributeName = "MultiStoreSettings.HideApprovalsBlock";
+    var hideApprovalsBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideApprovalsBlockAttributeName);
 }
 
 <form id="cw-default-settings-form" asp-controller="MultiStore" asp-action="Settings" method="post">
@@ -436,6 +439,47 @@
                             </div>
                         </div>
                     </nop-card>
+                    <nop-card asp-name="approvals-defaults" asp-icon="fas fa-user-check" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalsSection")" asp-hide-block-attribute-name="@hideApprovalsBlockAttributeName" asp-hide="@hideApprovalsBlock" asp-advanced="false">
+                        <div class="card-body">
+                            <div class="form-group row">
+                                <div class="col-md-3"><nop-label asp-for="ApprovalsEnable" /></div>
+                                <div class="col-md-9">
+                                    <nop-editor asp-for="ApprovalsEnable" />
+                                    <span asp-validation-for="ApprovalsEnable"></span>
+                                </div>
+                            </div>
+                            <div id="pnlApprovalSettings">
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="ApprovalPaymentMethods" /></div>
+                                    <div class="col-md-9">
+                                        <nop-select asp-for="ApprovalPaymentMethods" asp-items="Model.AvailableApprovalPaymentMethods" asp-multiple="true" />
+                                        <span asp-validation-for="ApprovalPaymentMethods"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="ApprovalFirstReminderDays" /></div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="ApprovalFirstReminderDays" />
+                                        <span asp-validation-for="ApprovalFirstReminderDays"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="ApprovalSecondReminderDays" /></div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="ApprovalSecondReminderDays" />
+                                        <span asp-validation-for="ApprovalSecondReminderDays"></span>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col-md-3"><nop-label asp-for="ApprovalExpiryDays" /></div>
+                                    <div class="col-md-9">
+                                        <nop-editor asp-for="ApprovalExpiryDays" />
+                                        <span asp-validation-for="ApprovalExpiryDays"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </nop-card>
                 </nop-cards>
             </div>
         </div>
@@ -492,5 +536,7 @@
         toggleRow('#pnlBulkOrderSettings', bulkOrder);
         toggleRow('#pnlBulkOrderProductImageSize', bulkOrder && isChecked('@Html.IdFor(model => model.BulkOrderShowProductImages)'));
         toggleRow('#pnlBulkOrderAttributeImageSize', bulkOrder && isChecked('@Html.IdFor(model => model.BulkOrderShowAttributeImages)'));
+
+        toggleRow('#pnlApprovalSettings', isChecked('@Html.IdFor(model => model.ApprovalsEnable)'));
     }
 </script>

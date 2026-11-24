@@ -14,6 +14,7 @@ public class CWPermissionConfigManager : IPermissionConfigManager
     public const string ADMIN_ACCESS_CREDITNOTES = "CW.CORE.Admin.AccessCreditNotes";
     public const string ADMIN_ACCESS_EXCHANGES = "CW.CORE.Admin.AccessExchanges";
     public const string PUBLIC_ACCESS_BULKORDERING = "CW.CORE.PublicStore.AccessBulkOrdering";
+    public const string ADMIN_MANAGE_ORDER_APPROVALS = "CW.CORE.Admin.ManageOrderApprovals";
 
     /// <summary>
     /// Gets all permission configurations
@@ -30,5 +31,6 @@ public class CWPermissionConfigManager : IPermissionConfigManager
             new("Admin area. CW Plugin. Exchanges and Returns.", ADMIN_ACCESS_EXCHANGES , nameof(StandardPermission.Orders), NopCustomerDefaults.AdministratorsRoleName),
             new("Admin area. CW Plugin. Credit Notes.", ADMIN_ACCESS_CREDITNOTES , nameof(StandardPermission.Customers), NopCustomerDefaults.AdministratorsRoleName),
             new("Public store. CW Plugin. Access bulk ordering.", PUBLIC_ACCESS_BULKORDERING, nameof(StandardPermission.PublicStore), NopCustomerDefaults.RegisteredRoleName, NopCustomerDefaults.AdministratorsRoleName),
+            new("Admin area. CW Plugin. Approve, decline and re-send order approvals.", ADMIN_MANAGE_ORDER_APPROVALS, nameof(StandardPermission.Orders), NopCustomerDefaults.AdministratorsRoleName),
         };
 }

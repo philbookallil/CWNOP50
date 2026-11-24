@@ -19,4 +19,9 @@ public static class MigrationVersions
     /// CORE_SUB_SubsidyReminder, on a database installed before the table was in the schema
     /// </summary>
     public const string SubsidyReminder = "2026/11/09 12:00:00";
+
+    /// <summary>
+    /// The order approval tables (CORE_APR_*), on a database installed before they were in the schema
+    /// </summary>
+    public const string OrderApproval = "2026/11/17 12:00:00";
 }

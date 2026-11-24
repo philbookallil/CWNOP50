@@ -148,7 +148,7 @@ model.DisplayCreditNotes = model.CreditNotesEnabled
 ## 1. What this is and the rule that governs it
 
 CW runs many customer-facing "stores" off one nopCommerce install (`Nop.Core.Domain.Stores.Store`).
-Five CW capabilities can be switched on or off **per store**:
+Six CW capabilities can be switched on or off **per store**:
 
 | Feature | Backing setting (`MultiStoreSettings`) | What it gates |
 |---|---|---|
@@ -157,6 +157,7 @@ Five CW capabilities can be switched on or off **per store**:
 | `Exchanges` | `ExchangesEnable` | The CW return/exchange wizard (replaces nop's standard return request flow) |
 | `CreditNotes` | `CreditNotesEnable` | Store-credit issuance and consumption |
 | `BulkOrder` | `BulkOrderEnable` | The bulk-ordering page, its header link and the product-page grid (§4.12; the bulk-ordering docs) |
+| `Approvals` | `ApprovalsEnable` | Holding new orders that match an approval rule (`Order_Approval_Analysis.md` §9–§10). The department rules also need PackName; the branch rules do not. Orders already held are finished (approver links, admin card, task) whatever the switch says |
 
 Before this system, gating was done by checking whether a companion plugin was installed
 (`PluginHelper.IsExchangesPluginInstalled()` etc.). That was replaced with a per-store setting and
@@ -300,17 +301,19 @@ public enum CWFeature
     /// <summary>Credit notes (MultiStoreSettings.CreditNotesEnable)</summary>
     CreditNotes = 4,
     /// <summary>Bulk ordering (MultiStoreSettings.BulkOrderEnable)</summary>
-    BulkOrder = 5
+    BulkOrder = 5,
+    /// <summary>Order approvals (MultiStoreSettings.ApprovalsEnable)</summary>
+    Approvals = 6
 }
 ```
 
 ### 2.2 `Domain/Settings/CWFeatureSet.cs`
 
-An immutable snapshot of all five flags for one store, so a view or factory that needs several
+An immutable snapshot of all six flags for one store, so a view or factory that needs several
 checks pays for **one** settings materialisation.
 
 ```csharp
-public readonly record struct CWFeatureSet(bool PackName, bool Subsidy, bool Exchanges, bool CreditNotes, bool BulkOrder)
+public readonly record struct CWFeatureSet(bool PackName, bool Subsidy, bool Exchanges, bool CreditNotes, bool BulkOrder, bool Approvals)
 {
     public bool this[CWFeature feature] => feature switch
     {
@@ -319,6 +322,7 @@ public readonly record struct CWFeatureSet(bool PackName, bool Subsidy, bool Exc
         CWFeature.Exchanges => Exchanges,
         CWFeature.CreditNotes => CreditNotes,
         CWFeature.BulkOrder => BulkOrder,
+        CWFeature.Approvals => Approvals,
         _ => false
     };
 
@@ -332,7 +336,8 @@ public readonly record struct CWFeatureSet(bool PackName, bool Subsidy, bool Exc
             Subsidy: settings.SubsidyEnable && settings.PackNameEnable,
             Exchanges: settings.ExchangesEnable,
             CreditNotes: settings.CreditNotesEnable,
-            BulkOrder: settings.BulkOrderEnable);
+            BulkOrder: settings.BulkOrderEnable,
+            Approvals: settings.ApprovalsEnable);
     }
 }
 ```
@@ -417,7 +422,7 @@ admin menu node hides.
 Two invariants to preserve if this is ever touched:
 
 - **The `Subsidy = SubsidyEnable && PackName` implication must not be re-derived here.** The loop
-  builds a `MultiStoreSettings` from the five flags and passes it through `CWFeatureSet.From`, so
+  builds a `MultiStoreSettings` from the six flags and passes it through `CWFeatureSet.From`, so
   that rule keeps living in exactly one place (§2.2).
 - **Do not reach for `ISettingService.GetAllSettingsAsync()`** to index the rows yourself. It is
   called with `cache => default`, i.e. **uncached — it hits the database on every call**. Indexing

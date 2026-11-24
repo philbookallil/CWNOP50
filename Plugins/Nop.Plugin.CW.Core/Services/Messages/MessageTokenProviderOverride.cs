@@ -386,6 +386,19 @@ public class MessageTokenProviderOverride : MessageTokenProvider, IMessageTokenP
                     TokenGroupNames.CustomerTokens,
                     CWTokenGroupNames.SubsidyExpiryTokens
                 };
+            case CWMessageTemplateSystemNames.OrderApprovalApproverRequest:
+            case CWMessageTemplateSystemNames.OrderApprovalApproverReminder:
+            case CWMessageTemplateSystemNames.OrderApprovalAwaitingCustomer:
+            case CWMessageTemplateSystemNames.OrderApprovalApprovedCustomer:
+            case CWMessageTemplateSystemNames.OrderApprovalDeclinedCustomer:
+            case CWMessageTemplateSystemNames.OrderApprovalExpiredCustomer:
+                return new[]
+                {
+                    TokenGroupNames.StoreTokens,
+                    TokenGroupNames.OrderTokens,
+                    TokenGroupNames.CustomerTokens,
+                    CWTokenGroupNames.OrderApprovalTokens
+                };
             default:
                 return base.GetTokenGroups(messageTemplate);
         }

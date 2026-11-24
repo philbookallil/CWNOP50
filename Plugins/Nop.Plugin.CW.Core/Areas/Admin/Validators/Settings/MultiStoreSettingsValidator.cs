@@ -18,5 +18,19 @@ public partial class MultiStoreSettingsValidator : BaseNopValidator<MultiStoreSe
             .When(x => x.PackNameEnable && x.SubsidyEnable && x.AllowManagersToAddPackNames && x.AllowSubsidySelection && x.AllowToAddByExcel
                 && (x.StoreId == 0 || x.AllowSubsidyCountByExcel_OverrideForStore))
             .WithMessageAwait(localizationService.GetResourceAsync("Plugins.CW.Core.Admin.MultiStores.Settings.AllowSubsidyCountByExcel.Range"));
+
+        //the approval days: posted the same way, and shown while approvals are on; 0 switches each one off
+        RuleFor(x => x.ApprovalFirstReminderDays)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.ApprovalsEnable && (x.StoreId == 0 || x.ApprovalFirstReminderDays_OverrideForStore))
+            .WithMessageAwait(localizationService.GetResourceAsync("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalDays.NotNegative"));
+        RuleFor(x => x.ApprovalSecondReminderDays)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.ApprovalsEnable && (x.StoreId == 0 || x.ApprovalSecondReminderDays_OverrideForStore))
+            .WithMessageAwait(localizationService.GetResourceAsync("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalDays.NotNegative"));
+        RuleFor(x => x.ApprovalExpiryDays)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.ApprovalsEnable && (x.StoreId == 0 || x.ApprovalExpiryDays_OverrideForStore))
+            .WithMessageAwait(localizationService.GetResourceAsync("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalDays.NotNegative"));
     }
 }

@@ -8,6 +8,7 @@ using Nop.Plugin.CW.Core.Components;
 using Nop.Plugin.CW.Core.Constants;
 using Nop.Plugin.CW.Core.Domain.Messages;
 using Nop.Plugin.CW.Core.Domain.Settings;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.DataBase;
 using Nop.Plugin.CW.Core.Services.Subsidies;
 using Nop.Services.Cms;
@@ -60,6 +61,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
     private readonly IEmailAccountService _emailAccountService;
     private readonly EmailAccountSettings _emailAccountSettings;
     private readonly IScheduleTaskService _scheduleTaskService;
+    private readonly IOrderApprovalInstallService _orderApprovalInstallService;
 
     #endregion
 
@@ -74,7 +76,8 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         IMessageTemplateService messageTemplateService,
         IEmailAccountService emailAccountService,
         EmailAccountSettings emailAccountSettings,
-        IScheduleTaskService scheduleTaskService)
+        IScheduleTaskService scheduleTaskService,
+        IOrderApprovalInstallService orderApprovalInstallService)
     {
         _settingService = settingService;
         _widgetSettings = widgetSettings;
@@ -85,6 +88,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         _emailAccountService = emailAccountService;
         _emailAccountSettings = emailAccountSettings;
         _scheduleTaskService = scheduleTaskService;
+        _orderApprovalInstallService = orderApprovalInstallService;
     }
 
     #endregion
@@ -100,6 +104,7 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         await InstallCustomerRegistrationTemplateAsync();
         await InstallSubsidyExpiryReminderTemplatesAsync();
         await InstallSubsidyExpiryReminderTaskAsync();
+        await _orderApprovalInstallService.InstallOrUpdateAsync();
         await AddPackNameToReturnReceiptTemplateAsync();
         await AddAdditionalFeeToPaymentTemplateAsync();
         await PointCustomerRegistrationTemplateAtSubsidyDetailsAsync();
@@ -2319,6 +2324,8 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
             ["Admin.Common.Actions"] = "Actions",
             ["Admin.Common.Create"] = "Create",
         });
+
+        await _localizationService.AddOrUpdateLocaleResourceAsync(OrderApprovalLocaleResources.Resources);
     }
 
     #endregion
@@ -2372,6 +2379,8 @@ public class CWCorePlugin : BasePlugin, IWidgetPlugin
         var subsidyExpiryTask = await _scheduleTaskService.GetTaskByTypeAsync(SubsidyReminderDefaults.ExpiryTaskTypeFullName);
         if (subsidyExpiryTask != null)
             await _scheduleTaskService.DeleteTaskAsync(subsidyExpiryTask);
+
+        await _orderApprovalInstallService.UninstallAsync();
 
         await base.UninstallAsync();
     }

@@ -8,6 +8,7 @@ using Nop.Plugin.CW.Core.Areas.Admin.Factories;
 using Nop.Plugin.CW.Core.Background;
 using Nop.Plugin.CW.Core.BusinessLogic;
 using Nop.Plugin.CW.Core.Filters;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.Branches;
 using Nop.Plugin.CW.Core.Services.BulkOrder;
 using Nop.Plugin.CW.Core.Services.Catalog;
@@ -150,6 +151,13 @@ public class NopStartup : INopStartup
 
         services.AddScoped<ICustomerRegistrationService, CustomerRegistrationOverrideService>();
 
+        //order approvals; the placement context keeps a held plain order's e-mails until the order is settled
+        services.AddScoped<IOrderApprovalRuleService, OrderApprovalRuleService>();
+        services.AddScoped<IOrderApprovalService, OrderApprovalService>();
+        services.AddScoped<IOrderApprovalWorkflowMessageService, OrderApprovalWorkflowMessageService>();
+        services.AddScoped<IOrderApprovalInstallService, OrderApprovalInstallService>();
+        services.AddScoped<OrderApprovalPlacementContext>();
+
         //scoped == per request, which is the whole point: the consumer resolves it, the head decides on the
         //stylesheet from it, and the widget zone renders from it, all in one request and without rebuilding
         services.AddScoped<BulkOrderProductPageContext>();
@@ -173,6 +181,7 @@ public class NopStartup : INopStartup
 
         services.AddScoped<IPackNameOrderModelFactory, PackNameOrderModelFactory>();
         services.AddScoped<IReturnRequestExchangeModelFactory, ReturnRequestExchangeModelFactory>();
+        services.AddScoped<IOrderApprovalAdminModelFactory, OrderApprovalAdminModelFactory>();
 
         //public store factories
         services.AddScoped<Factories.IPackNameModelFactory, Factories.PackNameModelFactory>();
@@ -188,6 +197,7 @@ public class NopStartup : INopStartup
         services.AddScoped<Web.Factories.IReturnRequestModelFactory, Factories.ReturnRequestOverrideModelFactory>();
         services.AddScoped<Factories.IReturnRequestOverrideModelFactory, Factories.ReturnRequestOverrideModelFactory>();
         services.AddScoped<Factories.IBulkOrderModelFactory, Factories.BulkOrderModelFactory>();
+        services.AddScoped<Factories.IOrderApprovalModelFactory, Factories.OrderApprovalModelFactory>();
 
         // - Business Logic Layer classes (global - not specific to any plugin)
         services.AddScoped<ICustomersLogic, CustomersLogic>();
@@ -216,6 +226,7 @@ public class NopStartup : INopStartup
             options.Filters.Add<ReturnRequestSubmitFilter>(1);
             options.Filters.Add<ReturnReasonActionDeleteGuardFilter>(1);
             options.Filters.Add<SubsidyRemindersSaveFilter>(1);
+            options.Filters.Add<OrderApprovalAdminGuardFilter>(1);
         });
     }
 

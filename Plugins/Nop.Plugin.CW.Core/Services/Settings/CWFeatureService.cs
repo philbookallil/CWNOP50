@@ -98,8 +98,9 @@ public class CWFeatureService : ICWFeatureService
             var exchangesKey = _settingService.GetSettingKey(probe, x => x.ExchangesEnable);
             var creditNotesKey = _settingService.GetSettingKey(probe, x => x.CreditNotesEnable);
             var bulkOrderKey = _settingService.GetSettingKey(probe, x => x.BulkOrderEnable);
+            var approvalsKey = _settingService.GetSettingKey(probe, x => x.ApprovalsEnable);
 
-            var result = new CWFeatureSet(false, false, false, false, false);
+            var result = new CWFeatureSet(false, false, false, false, false, false);
 
             foreach (var store in await _storeService.GetAllStoresAsync())
             {
@@ -109,7 +110,8 @@ public class CWFeatureService : ICWFeatureService
                     SubsidyEnable = await GetFlagForStoreAsync(subsidyKey, store.Id),
                     ExchangesEnable = await GetFlagForStoreAsync(exchangesKey, store.Id),
                     CreditNotesEnable = await GetFlagForStoreAsync(creditNotesKey, store.Id),
-                    BulkOrderEnable = await GetFlagForStoreAsync(bulkOrderKey, store.Id)
+                    BulkOrderEnable = await GetFlagForStoreAsync(bulkOrderKey, store.Id),
+                    ApprovalsEnable = await GetFlagForStoreAsync(approvalsKey, store.Id)
                 };
 
                 //feature implications live only in CWFeatureSet.From - never re-derive them here
@@ -120,10 +122,11 @@ public class CWFeatureService : ICWFeatureService
                     result.Subsidy || features.Subsidy,
                     result.Exchanges || features.Exchanges,
                     result.CreditNotes || features.CreditNotes,
-                    result.BulkOrder || features.BulkOrder);
+                    result.BulkOrder || features.BulkOrder,
+                    result.Approvals || features.Approvals);
 
                 //every feature is already enabled somewhere - the remaining stores cannot change the answer
-                if (result.PackName && result.Subsidy && result.Exchanges && result.CreditNotes && result.BulkOrder)
+                if (result.PackName && result.Subsidy && result.Exchanges && result.CreditNotes && result.BulkOrder && result.Approvals)
                     break;
             }
 

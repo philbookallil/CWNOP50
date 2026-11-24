@@ -35,7 +35,7 @@ public class SubsidiesMenuItemTests
         var workContext = new Mock<IWorkContext>();
         workContext.Setup(context => context.GetCurrentCustomerAsync()).ReturnsAsync(new Customer { Id = 5 });
         var featureService = new Mock<ICWFeatureService>();
-        featureService.Setup(service => service.GetFeaturesAsync(null)).ReturnsAsync(new CWFeatureSet(true, true, false, false, false));
+        featureService.Setup(service => service.GetFeaturesAsync(null)).ReturnsAsync(new CWFeatureSet(true, true, false, false, false, false));
         var packNameContext = new Mock<IPackNameContext>();
         packNameContext.Setup(context => context.GetCurrentPackNameAsync(It.IsAny<Customer>())).ReturnsAsync(new PackName { Id = 9 });
         _subsidyService = new Mock<ISubsidyService>();

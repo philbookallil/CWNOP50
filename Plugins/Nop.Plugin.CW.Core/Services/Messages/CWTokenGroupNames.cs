@@ -35,4 +35,9 @@ public static class CWTokenGroupNames
     /// given back
     /// </summary>
     public const string ReturnCreditTokens = "Return credit tokens";
+
+    /// <summary>
+    /// Represents the tokens of the order approval e-mails: the approver, the link, the amount, the decision
+    /// </summary>
+    public const string OrderApprovalTokens = "Order approval tokens";
 }

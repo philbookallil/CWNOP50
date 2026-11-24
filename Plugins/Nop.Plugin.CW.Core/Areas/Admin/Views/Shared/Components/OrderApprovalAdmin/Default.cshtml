@@ -1,0 +1,106 @@
+@model Nop.Plugin.CW.Core.Areas.Admin.Models.Approvals.OrderApprovalAdminModel
+
+@{
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Approvals/admin.order.approval.js");
+
+    const string hideApprovalBlockAttributeName = "OrderPage.HideApprovalBlock";
+    var hideApprovalBlock = await genericAttributeService.GetAttributeAsync<bool>(await workContext.GetCurrentCustomerAsync(), hideApprovalBlockAttributeName);
+}
+
+<nop-card asp-name="order-approval" asp-icon="fas fa-user-check" asp-title="@T("Plugins.CW.Core.Admin.OrderApproval.Title")" asp-hide-block-attribute-name="@hideApprovalBlockAttributeName" asp-hide="@hideApprovalBlock" asp-advanced="false">
+    <div class="card-body cw-order-approval">
+        <div class="form-group row">
+            <div class="col-md-3"><label class="col-form-label">@T("Plugins.CW.Core.Admin.OrderApproval.Status")</label></div>
+            <div class="col-md-9"><div class="form-text-row">@Model.Status</div></div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-3"><label class="col-form-label">@T("Plugins.CW.Core.Admin.OrderApproval.MeasuredAmount")</label></div>
+            <div class="col-md-9"><div class="form-text-row">@Model.MeasuredAmount</div></div>
+        </div>
+        <div class="form-group row">
+            <div class="col-md-3"><label class="col-form-label">@T("Plugins.CW.Core.Admin.OrderApproval.RequestedOn")</label></div>
+            <div class="col-md-9"><div class="form-text-row">@Model.RequestedOn</div></div>
+        </div>
+        @if (Model.IsPending)
+        {
+            <div class="form-group row">
+                <div class="col-md-3"><label class="col-form-label">@T("Plugins.CW.Core.Admin.OrderApproval.Reminders")</label></div>
+                <div class="col-md-9"><div class="form-text-row">@Model.LastReminderNumber</div></div>
+            </div>
+        }
+        else
+        {
+            <div class="form-group row">
+                <div class="col-md-3"><label class="col-form-label">@T("Plugins.CW.Core.Admin.OrderApproval.DecidedBy")</label></div>
+                <div class="col-md-9"><div class="form-text-row">@Model.DecidedBy @(string.IsNullOrEmpty(Model.DecidedOn) ? "" : $"({Model.DecidedOn})")</div></div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.DecisionComment))
+            {
+                <div class="form-group row">
+                    <div class="col-md-3"><label class="col-form-label">@T("Plugins.CW.Core.Admin.OrderApproval.DecisionComment")</label></div>
+                    <div class="col-md-9"><div class="form-text-row">@Model.DecisionComment</div></div>
+                </div>
+            }
+        }
+
+        <table class="table table-bordered table-sm">
+            <thead>
+                <tr>
+                    <th>@T("Plugins.CW.Core.Admin.OrderApproval.Requests.Approver")</th>
+                    <th>@T("Plugins.CW.Core.Admin.OrderApproval.Requests.Email")</th>
+                    <th>@T("Plugins.CW.Core.Admin.OrderApproval.Requests.SentOn")</th>
+                    <th>@T("Plugins.CW.Core.Admin.OrderApproval.Requests.Live")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var request in Model.Requests)
+                {
+                    <tr>
+                        <td>@request.ApproverName</td>
+                        <td>@request.ApproverEmail</td>
+                        <td>@request.SentOn</td>
+                        <td>@(request.IsLive ? T("Admin.Common.Yes").Text : T("Admin.Common.No").Text)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.IsPending && Model.CanManage)
+        {
+            @*No name attributes: these inputs sit inside nop's order form, and must not be posted with it*@
+            <div class="form-group row">
+                <div class="col-md-3"><label class="col-form-label" for="cw-approval-reason">@T("Plugins.CW.Core.Admin.OrderApproval.Reason")</label></div>
+                <div class="col-md-9"><textarea id="cw-approval-reason" class="form-control" rows="2"></textarea></div>
+            </div>
+            <div class="form-group row">
+                <div class="col-md-3"></div>
+                <div class="col-md-9">
+                    <button type="button" class="btn btn-success cw-approval-approve">@T("Plugins.CW.Core.Admin.OrderApproval.Approve")</button>
+                    <button type="button" class="btn btn-danger cw-approval-decline">@T("Plugins.CW.Core.Admin.OrderApproval.Decline")</button>
+                    <button type="button" class="btn btn-default cw-approval-resend">@T("Plugins.CW.Core.Admin.OrderApproval.Resend")</button>
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col-md-3"><label class="col-form-label">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprover")</label></div>
+                <div class="col-md-9 form-inline">
+                    <input id="cw-approval-name" type="text" class="form-control mr-2" placeholder="@T("Plugins.CW.Core.Admin.OrderApproval.ApproverName")" />
+                    <input id="cw-approval-email" type="email" class="form-control mr-2" placeholder="@T("Plugins.CW.Core.Admin.OrderApproval.ApproverEmail")" />
+                    <button type="button" class="btn btn-primary cw-approval-change">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprover.Button")</button>
+                </div>
+            </div>
+
+            <div class="cw-order-approval-config"
+                 data-order-id="@Model.OrderId"
+                 data-approve-url="@Url.Action("Approve", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-decline-url="@Url.Action("Decline", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-resend-url="@Url.Action("Resend", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-change-url="@Url.Action("ChangeApprover", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-confirm-approve="@T("Plugins.CW.Core.Admin.OrderApproval.Confirm.Approve")"
+                 data-confirm-decline="@T("Plugins.CW.Core.Admin.OrderApproval.Confirm.Decline")"
+                 data-confirm-resend="@T("Plugins.CW.Core.Admin.OrderApproval.Confirm.Resend")"
+                 data-confirm-change="@T("Plugins.CW.Core.Admin.OrderApproval.Confirm.Change")"
+                 data-error-text="@T("Plugins.CW.Core.Admin.OrderApproval.Result.Failed")"
+                 style="display: none;"></div>
+        }
+    </div>
+</nop-card>

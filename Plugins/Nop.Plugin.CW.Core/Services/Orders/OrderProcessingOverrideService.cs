@@ -11,11 +11,13 @@ using Nop.Core.Domain.Tax;
 using Nop.Core.Events;
 using Nop.Data;
 using Nop.Plugin.CW.Core.Constants;
+using Nop.Plugin.CW.Core.Domain.Approvals;
 using Nop.Plugin.CW.Core.Domain.Exchanges;
 using Nop.Plugin.CW.Core.Domain.Orders;
 using Nop.Plugin.CW.Core.Domain.Orders.Views;
 using Nop.Plugin.CW.Core.Domain.Settings;
 using Nop.Plugin.CW.Core.Helpers;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.Common;
 using Nop.Plugin.CW.Core.Services.CreditNotes;
 using Nop.Plugin.CW.Core.Services.Customers;
@@ -73,6 +75,8 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
     protected readonly ISettlementPipeline _settlementPipeline;
     protected readonly ICWFeatureService _cwFeatureService;
     protected readonly IMultiStoreService _multiStoreService;
+    protected readonly OrderApprovalPlacementContext _orderApprovalPlacementContext;
+    protected readonly IRepository<OrderApproval> _orderApprovalRepository;
 
     #endregion
 
@@ -142,7 +146,9 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
         ILocker locker,
         ISettlementPipeline settlementPipeline,
         ICWFeatureService cwFeatureService,
-        IMultiStoreService multiStoreService) : base(currencySettings,
+        IMultiStoreService multiStoreService,
+        OrderApprovalPlacementContext orderApprovalPlacementContext,
+        IRepository<OrderApproval> orderApprovalRepository) : base(currencySettings,
             addressService,
             affiliateService,
             checkoutAttributeFormatter,
@@ -209,6 +215,8 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
         _settlementPipeline = settlementPipeline;
         _cwFeatureService = cwFeatureService;
         _multiStoreService = multiStoreService;
+        _orderApprovalPlacementContext = orderApprovalPlacementContext;
+        _orderApprovalRepository = orderApprovalRepository;
     }
 
     #endregion
@@ -1539,6 +1547,14 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
         return await PlacePackNameOrderAsync(processPaymentRequest);
     }
 
+    /// <summary>
+    /// Gets a value indicating whether an order is waiting for its approver
+    /// </summary>
+    /// <param name="orderId">Order identifier</param>
+    protected virtual async Task<bool> IsOrderHeldForApprovalAsync(int orderId)
+        => await _orderApprovalRepository.Table
+            .AnyAsync(approval => approval.OrderId == orderId && approval.StatusId == (int)OrderApprovalStatus.Pending);
+
     #endregion
 
     #region Overrides
@@ -1616,10 +1632,46 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
             settleableTotal = (await _orderTotalCalculationService.QuoteCartSettlementAsync(cart)).SettleableAmount;
         }
 
-        var result = await base.PlaceOrderAsync(processPaymentRequest);
+        PlaceOrderResult result;
 
-        if (!result.Success || result.PlacedOrder is null)
+        //a held order's approval e-mails wait until the order is settled below
+        _orderApprovalPlacementContext.BeginPlainPlacement(processPaymentRequest.CustomerId);
+
+        try
+        {
+            result = await base.PlaceOrderAsync(processPaymentRequest);
+        }
+        finally
+        {
+            _orderApprovalPlacementContext.EndPlainPlacement(processPaymentRequest.CustomerId);
+        }
+
+        if (result.PlacedOrder is null)
             return result;
+
+        //a held order's approval e-mails go whether or not the rest succeeds: the order exists and waits for an answer
+        try
+        {
+            await SettlePlainOrderAsync(result, settleableTotal);
+        }
+        finally
+        {
+            await _eventPublisher.PublishAsync(new PlainOrderSettledEvent(result.PlacedOrder));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Settles the store credit of a plain order nop's placement succeeded with
+    /// </summary>
+    /// <param name="result">What nop's placement returned, with its order</param>
+    /// <param name="settleableTotal">The total quoted from the cart before it was cleared; 0 when there was no quote</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    protected virtual async Task SettlePlainOrderAsync(PlaceOrderResult result, decimal settleableTotal)
+    {
+        if (!result.Success)
+            return;
 
         // No live cart means no quote was possible — a plugin that places its own order can reach
         // PlaceOrderAsync with an empty cart. In that case nothing has been netted off, so the order's
@@ -1630,8 +1682,6 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
 
         if (settleableTotal > decimal.Zero)
             await SettleOrderAsync(result.PlacedOrder, settleableTotal, packNameCart: [], orderItemIdByCartItemId: new Dictionary<int, int>());
-
-        return result;
     }
 
     /// <summary>
@@ -1679,6 +1729,11 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
     public override async Task<IList<string>> ReOrderAsync(Order order)
     {
         ArgumentNullException.ThrowIfNull(order);
+
+        //An order waiting for approval is not re-ordered: if it is then declined, its lines go back to the cart a second
+        //time.
+        if (await IsOrderHeldForApprovalAsync(order.Id))
+            return [await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.ReOrderHeld")];
 
         var customer = await _customerService.GetCustomerByIdAsync(order.CustomerId);
 
@@ -2148,6 +2203,27 @@ public class OrderProcessingOverrideService : OrderProcessingService, IOrderProc
 
         if (changed)
             await _customerService.UpdateCustomerAsync(customer);
+    }
+
+    #endregion
+
+    #region Order approvals
+
+    /// <summary>
+    /// Releases an order its approver accepted: a held order is Pending, and moves to Processing through nop's own
+    /// status change, then nop checks it as it checks any order (paid and shipped orders move on)
+    /// </summary>
+    /// <param name="order">The order</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    public virtual async Task ReleaseApprovedOrderAsync(Order order)
+    {
+        ArgumentNullException.ThrowIfNull(order);
+
+        //the customer is told by the approval e-mail, not by nop's "order processing" one
+        if (order.OrderStatus == OrderStatus.Pending)
+            await SetOrderStatusAsync(order, OrderStatus.Processing, false);
+
+        await CheckOrderStatusAsync(order);
     }
 
     #endregion

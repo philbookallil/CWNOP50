@@ -1,4 +1,5 @@
 ﻿using Nop.Data.Mapping;
+using Nop.Plugin.CW.Core.Domain.Approvals;
 using Nop.Plugin.CW.Core.Domain.Branches;
 using Nop.Plugin.CW.Core.Domain.CreditNotes;
 using Nop.Plugin.CW.Core.Domain.CreditNotes.Views;
@@ -99,6 +100,13 @@ public class CWNameCompatibility : INameCompatibility
         { typeof(SubsidyInOrderingPeriod), "vw_CORE_SUB_SubsidyInOrderingPeriod" },
         { typeof(SubsidyVariationInOrderingPeriod), "vw_CORE_SUB_SubsidyVariationInOrderingPeriod" },
         { typeof(StoreSubsidyVariationSetting), "vw_CORE_SUB_StoreSubsidyVariationSetting" },
+
+        //Order approvals
+        { typeof(Approver), "CORE_APR_Approver" },
+        { typeof(ApprovalRule), "CORE_APR_ApprovalRule" },
+        { typeof(ApprovalRuleApprover), "CORE_APR_ApprovalRuleApprover" },
+        { typeof(OrderApproval), "CORE_APR_OrderApproval" },
+        { typeof(OrderApprovalRequest), "CORE_APR_OrderApprovalRequest" },
     };
 
     public Dictionary<(Type, string), string> ColumnName => new()

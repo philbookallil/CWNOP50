@@ -147,4 +147,29 @@ public class MultiStoreSettings : ISettings
     public List<string> OwnPlacementPaymentMethods { get; set; } = ["Payments.PayPalCommerce"];
 
     #endregion
+
+    #region Order approvals
+
+    /// <summary>Master switch. Backs CWFeature.Approvals.</summary>
+    public bool ApprovalsEnable { get; set; }
+
+    /// <summary>
+    /// System names of the payment methods whose orders wait for approval: methods that do not take the money at
+    /// checkout. An order paid another way, or with nothing left to pay, is never held.
+    /// </summary>
+    public List<string> ApprovalPaymentMethods { get; set; } = ["Payments.CheckMoneyOrder"];
+
+    /// <summary>Days after the request before the approvers are reminded; 0 sends no first reminder.</summary>
+    public int ApprovalFirstReminderDays { get; set; } = 3;
+
+    /// <summary>Days after the request before the approvers are reminded again; 0 sends no second reminder.</summary>
+    public int ApprovalSecondReminderDays { get; set; } = 7;
+
+    /// <summary>
+    /// Days after the request before an unanswered order is cancelled and its lines go back to the cart; 0 never
+    /// expires an order.
+    /// </summary>
+    public int ApprovalExpiryDays { get; set; }
+
+    #endregion
 }

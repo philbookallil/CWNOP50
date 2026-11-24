@@ -82,6 +82,8 @@
             <div class="form-horizontal">
 
                 <nop-cards id="order-cards">
+                    @await Component.InvokeAsync("OrderApprovalAdmin", new { orderId = Model.Id })
+
                     <nop-card asp-name="order-info" asp-icon="fas fa-info" asp-title="@T("Admin.Orders.Info")" asp-hide-block-attribute-name="@hideInfoBlockAttributeName" asp-hide="@hideInfoBlock" asp-advanced="false">@await Html.PartialAsync("_CWOrderDetails.Info", Model)</nop-card>
 
                     <nop-card asp-name="order-billing-shipping" asp-icon="fas fa-truck" asp-title="@T("Admin.Orders.BillingShippingInfo")" asp-hide-block-attribute-name="@hideBillingAndShippingBlockAttributeName" asp-hide="@hideBillingAndShippingBlock" asp-advanced="false">

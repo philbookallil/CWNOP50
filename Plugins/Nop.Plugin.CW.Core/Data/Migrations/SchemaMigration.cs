@@ -2,6 +2,7 @@
 using Nop.Data.Extensions;
 using Nop.Data.Mapping;
 using Nop.Data.Migrations;
+using Nop.Plugin.CW.Core.Domain.Approvals;
 using Nop.Plugin.CW.Core.Domain.Branches;
 using Nop.Plugin.CW.Core.Domain.CreditNotes;
 using Nop.Plugin.CW.Core.Domain.Customers;
@@ -75,7 +76,12 @@ public class SchemaMigration : Migration
         typeof(SubsidyTopup),
         typeof(SubsidyTopupHistory),
         typeof(SubsidyVariation),
-        typeof(SubsidyVariationHistory)
+        typeof(SubsidyVariationHistory),
+        typeof(Approver),
+        typeof(ApprovalRule),
+        typeof(ApprovalRuleApprover),
+        typeof(OrderApproval),
+        typeof(OrderApprovalRequest)
     ];
 
     /// <summary>

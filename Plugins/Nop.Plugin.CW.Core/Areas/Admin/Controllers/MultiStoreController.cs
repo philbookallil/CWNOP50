@@ -2938,6 +2938,13 @@ public class MultiStoreController : BaseAdminController
             await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.BulkOrderEnableOnProductPage, model.BulkOrderEnableOnProductPage_OverrideForStore, storeId, false);
             await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.SubsidySendUserAfterLogin, model.SubsidySendUserAfterLogin_OverrideForStore, storeId, false);
 
+            storeSettings.ApprovalPaymentMethods = (model.ApprovalPaymentMethods ?? []).Where(name => !string.IsNullOrWhiteSpace(name)).Distinct().ToList();
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalsEnable, model.ApprovalsEnable_OverrideForStore, storeId, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalPaymentMethods, model.ApprovalPaymentMethods_OverrideForStore, storeId, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalFirstReminderDays, model.ApprovalFirstReminderDays_OverrideForStore, storeId, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalSecondReminderDays, model.ApprovalSecondReminderDays_OverrideForStore, storeId, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalExpiryDays, model.ApprovalExpiryDays_OverrideForStore, storeId, false);
+
             model.DefaultPackNameCustomerRoleIds ??= [];
 
             storeSettings.DefaultPackNameCustomerRoleIds = model.DefaultPackNameCustomerRoleIds.ToList();
@@ -3209,6 +3216,13 @@ public class MultiStoreController : BaseAdminController
             await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.BulkOrderSendUserAfterLogin, model.BulkOrderSendUserAfterLogin_OverrideForStore, storeId, false);
             await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.BulkOrderEnableOnProductPage, model.BulkOrderEnableOnProductPage_OverrideForStore, storeId, false);
             await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.SubsidySendUserAfterLogin, model.SubsidySendUserAfterLogin_OverrideForStore, storeId, false);
+
+            storeSettings.ApprovalPaymentMethods = (model.ApprovalPaymentMethods ?? []).Where(name => !string.IsNullOrWhiteSpace(name)).Distinct().ToList();
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalsEnable, model.ApprovalsEnable_OverrideForStore, storeId, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalPaymentMethods, model.ApprovalPaymentMethods_OverrideForStore, storeId, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalFirstReminderDays, model.ApprovalFirstReminderDays_OverrideForStore, storeId, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalSecondReminderDays, model.ApprovalSecondReminderDays_OverrideForStore, storeId, false);
+            await _settingService.SaveSettingOverridablePerStoreAsync(storeSettings, x => x.ApprovalExpiryDays, model.ApprovalExpiryDays_OverrideForStore, storeId, false);
 
             if (clearPreSelectedShippingAddress)
             {

@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents the enabled state of every CW feature for a single store
 /// </summary>
-public readonly record struct CWFeatureSet(bool PackName, bool Subsidy, bool Exchanges, bool CreditNotes, bool BulkOrder)
+public readonly record struct CWFeatureSet(bool PackName, bool Subsidy, bool Exchanges, bool CreditNotes, bool BulkOrder, bool Approvals)
 {
     /// <summary>Gets a value indicating whether the specified feature is enabled</summary>
     public bool this[CWFeature feature] => feature switch
@@ -13,6 +13,7 @@ public readonly record struct CWFeatureSet(bool PackName, bool Subsidy, bool Exc
         CWFeature.Exchanges => Exchanges,
         CWFeature.CreditNotes => CreditNotes,
         CWFeature.BulkOrder => BulkOrder,
+        CWFeature.Approvals => Approvals,
         _ => false
     };
 
@@ -28,6 +29,7 @@ public readonly record struct CWFeatureSet(bool PackName, bool Subsidy, bool Exc
             Subsidy: settings.SubsidyEnable && settings.PackNameEnable,
             Exchanges: settings.ExchangesEnable,
             CreditNotes: settings.CreditNotesEnable,
-            BulkOrder: settings.BulkOrderEnable);
+            BulkOrder: settings.BulkOrderEnable,
+            Approvals: settings.ApprovalsEnable);
     }
 }

@@ -15,6 +15,8 @@ public record MultiStoreSettingsModel : BaseNopModel, ISettingsModel
         AvailableProductAttributes = new List<SelectListItem>();
         AvailableBulkOrderViewModes = new List<SelectListItem>();
         BulkOrderAxisAttributeIds = new List<int>();
+        ApprovalPaymentMethods = new List<string>();
+        AvailableApprovalPaymentMethods = new List<SelectListItem>();
     }
 
     #endregion
@@ -244,6 +246,31 @@ public record MultiStoreSettingsModel : BaseNopModel, ISettingsModel
     [NopResourceDisplayName("Plugins.CW.Core.Admin.MultiStores.Settings.BulkOrderEnableOnProductPage")]
     public bool BulkOrderEnableOnProductPage { get; set; }
     public bool BulkOrderEnableOnProductPage_OverrideForStore { get; set; }
+
+    #endregion
+
+    #region Order approvals
+
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalsEnable")]
+    public bool ApprovalsEnable { get; set; }
+    public bool ApprovalsEnable_OverrideForStore { get; set; }
+
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalPaymentMethods")]
+    public IList<string> ApprovalPaymentMethods { get; set; }
+    public bool ApprovalPaymentMethods_OverrideForStore { get; set; }
+    public IList<SelectListItem> AvailableApprovalPaymentMethods { get; set; }
+
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalFirstReminderDays")]
+    public int ApprovalFirstReminderDays { get; set; }
+    public bool ApprovalFirstReminderDays_OverrideForStore { get; set; }
+
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalSecondReminderDays")]
+    public int ApprovalSecondReminderDays { get; set; }
+    public bool ApprovalSecondReminderDays_OverrideForStore { get; set; }
+
+    [NopResourceDisplayName("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalExpiryDays")]
+    public int ApprovalExpiryDays { get; set; }
+    public bool ApprovalExpiryDays_OverrideForStore { get; set; }
 
     #endregion
 

@@ -21,6 +21,7 @@
     <InternalsVisibleTo Include="CW.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="Content\Admin\Approvals\admin.order.approval.js" />
     <None Remove="Content\Admin\MultiStore\admin.packname.bulk.js" />
     <None Remove="Content\Admin\MultiStore\admin.store.navigation.js" />
     <None Remove="Content\Admin\Orders\admin.order.badges.js" />
@@ -31,6 +32,9 @@
     <None Remove="plugin.json" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Admin\Approvals\admin.order.approval.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Content\Admin\MultiStore\admin.packname.bulk.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -318,6 +322,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Areas\Admin\Views\Shared\Components\FeeConcept\ReShippingFee.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\Components\OrderApprovalAdmin\Default.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Areas\Admin\Views\Shared\Components\OrderListBadges\Default.cshtml">
@@ -684,6 +691,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Views\SubsidyCatalog\ChangeTopupProductGroup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\OrderApproval\Review.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Views\SubsidyCatalog\ChangeTopupSubsidy.cshtml">

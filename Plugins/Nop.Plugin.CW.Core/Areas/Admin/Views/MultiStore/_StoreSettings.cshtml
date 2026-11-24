@@ -20,6 +20,9 @@
 
     const string hideBulkOrderBlockAttributeName = "MultiStoreSettings.HideBulkOrderBlock";
     var hideBulkOrderBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideBulkOrderBlockAttributeName);
+
+    const string hideApprovalsBlockAttributeName = "MultiStoreSettings.HideApprovalsBlock";
+    var hideApprovalsBlock = await genericAttributeService.GetAttributeAsync<bool>(customer, hideApprovalsBlockAttributeName);
 }
 
 <form id="multistore-settings-form" asp-controller="MultiStore" asp-action="StoreSettings" method="post">
@@ -561,6 +564,62 @@
                 </div>
             </div>
         </nop-card>
+        <nop-card asp-name="approvals-defaults" asp-icon="fas fa-user-check" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.ApprovalsSection")" asp-hide-block-attribute-name="@hideApprovalsBlockAttributeName" asp-hide="@hideApprovalsBlock" asp-advanced="false">
+            <div class="card-body">
+                <div class="form-group row">
+                    <div class="col-md-3">
+                        <nop-override-store-checkbox asp-for="ApprovalsEnable_OverrideForStore" asp-input="ApprovalsEnable" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                        <nop-label asp-for="ApprovalsEnable" />
+                    </div>
+                    <div class="col-md-9">
+                        <nop-editor asp-for="ApprovalsEnable" />
+                        <span asp-validation-for="ApprovalsEnable"></span>
+                    </div>
+                </div>
+                <div id="pnlApprovalSettings">
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ApprovalPaymentMethods_OverrideForStore" asp-input="ApprovalPaymentMethods" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="ApprovalPaymentMethods" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-select asp-for="ApprovalPaymentMethods" asp-items="Model.AvailableApprovalPaymentMethods" asp-multiple="true" />
+                            <span asp-validation-for="ApprovalPaymentMethods"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ApprovalFirstReminderDays_OverrideForStore" asp-input="ApprovalFirstReminderDays" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="ApprovalFirstReminderDays" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="ApprovalFirstReminderDays" />
+                            <span asp-validation-for="ApprovalFirstReminderDays"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ApprovalSecondReminderDays_OverrideForStore" asp-input="ApprovalSecondReminderDays" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="ApprovalSecondReminderDays" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="ApprovalSecondReminderDays" />
+                            <span asp-validation-for="ApprovalSecondReminderDays"></span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-3">
+                            <nop-override-store-checkbox asp-for="ApprovalExpiryDays_OverrideForStore" asp-input="ApprovalExpiryDays" asp-store-scope="@Model.ActiveStoreScopeConfiguration" />
+                            <nop-label asp-for="ApprovalExpiryDays" />
+                        </div>
+                        <div class="col-md-9">
+                            <nop-editor asp-for="ApprovalExpiryDays" />
+                            <span asp-validation-for="ApprovalExpiryDays"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nop-card>
         <nop-card asp-name="register-defaults" asp-icon="fas fa-user" asp-title="@T("Plugins.CW.Core.Admin.MultiStores.Settings.Registration")" asp-hide-block-attribute-name="@hideRegisterBlockAttributeName" asp-hide="@hideRegisterBlock" asp-advanced="false">
             <div class="card-body">
                 <div class="form-group row pnlPackNameOnly">
@@ -595,7 +654,8 @@
         ["allowToAddByExcel"]            = Html.IdFor(model => model.AllowToAddByExcel).ToString(),
         ["bulkOrderEnable"]              = Html.IdFor(model => model.BulkOrderEnable).ToString(),
         ["bulkOrderShowProductImages"]   = Html.IdFor(model => model.BulkOrderShowProductImages).ToString(),
-        ["bulkOrderShowAttributeImages"] = Html.IdFor(model => model.BulkOrderShowAttributeImages).ToString()
+        ["bulkOrderShowAttributeImages"] = Html.IdFor(model => model.BulkOrderShowAttributeImages).ToString(),
+        ["approvalsEnable"]              = Html.IdFor(model => model.ApprovalsEnable).ToString()
     };
 }
 
@@ -672,6 +732,9 @@
         toggleRow('#pnlBulkOrderSettings', bulkOrder);
         toggleRow('#pnlBulkOrderProductImageSize', bulkOrder && isChecked('bulkOrderShowProductImages'));
         toggleRow('#pnlBulkOrderAttributeImageSize', bulkOrder && isChecked('bulkOrderShowAttributeImages'));
+
+        //Order approvals card
+        toggleRow('#pnlApprovalSettings', isChecked('approvalsEnable'));
     }
 
     //ONE GENERATOR FOR BOTH BUTTONS. The two markup scripts were the same twenty lines with three

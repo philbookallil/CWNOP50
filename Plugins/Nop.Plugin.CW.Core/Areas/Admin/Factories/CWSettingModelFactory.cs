@@ -7,6 +7,7 @@ using Nop.Services.Catalog;
 using Nop.Services.Configuration;
 using Nop.Services.Customers;
 using Nop.Services.Localization;
+using Nop.Services.Payments;
 using Nop.Web.Areas.Admin.Infrastructure.Mapper.Extensions;
 
 namespace Nop.Plugin.CW.Core.Areas.Admin.Factories;
@@ -20,6 +21,7 @@ public class CWSettingModelFactory : ICWSettingModelFactory
     protected readonly ICustomerService _customerService;
     protected readonly ILocalizationService _localizationService;
     protected readonly IPackNameShippingMethodService _packNameShippingMethodService;
+    protected readonly IPaymentPluginManager _paymentPluginManager;
 
     #endregion
 
@@ -29,13 +31,15 @@ public class CWSettingModelFactory : ICWSettingModelFactory
         IProductAttributeService productAttributeService,
         ICustomerService customerService,
         ILocalizationService localizationService,
-        IPackNameShippingMethodService packNameShippingMethodService)
+        IPackNameShippingMethodService packNameShippingMethodService,
+        IPaymentPluginManager paymentPluginManager)
     {
         _settingService = settingService;
         _productAttributeService = productAttributeService;
         _customerService = customerService;
         _localizationService = localizationService;
         _packNameShippingMethodService = packNameShippingMethodService;
+        _paymentPluginManager = paymentPluginManager;
     }
 
     #endregion
@@ -186,6 +190,13 @@ public class CWSettingModelFactory : ICWSettingModelFactory
 
             model.DefaultPackNameCustomerRoleIds = storeSettings.DefaultPackNameCustomerRoleIds;
             model.DefaultPackNameCustomerRoleIds_OverrideForStore = await _settingService.SettingExistsAsync(storeSettings, x => x.DefaultPackNameCustomerRoleIds, storeId);
+
+            model.ApprovalPaymentMethods = storeSettings.ApprovalPaymentMethods;
+            model.ApprovalsEnable_OverrideForStore = await _settingService.SettingExistsAsync(storeSettings, x => x.ApprovalsEnable, storeId);
+            model.ApprovalPaymentMethods_OverrideForStore = await _settingService.SettingExistsAsync(storeSettings, x => x.ApprovalPaymentMethods, storeId);
+            model.ApprovalFirstReminderDays_OverrideForStore = await _settingService.SettingExistsAsync(storeSettings, x => x.ApprovalFirstReminderDays, storeId);
+            model.ApprovalSecondReminderDays_OverrideForStore = await _settingService.SettingExistsAsync(storeSettings, x => x.ApprovalSecondReminderDays, storeId);
+            model.ApprovalExpiryDays_OverrideForStore = await _settingService.SettingExistsAsync(storeSettings, x => x.ApprovalExpiryDays, storeId);
         }
 
         //fill in additional values (not existing in the entity)
@@ -195,6 +206,14 @@ public class CWSettingModelFactory : ICWSettingModelFactory
         //the methods the freight plugin offers in the store; the picker is empty without them
         foreach (var shippingMethodName in await _packNameShippingMethodService.GetShippingMethodNamesAsync(storeId))
             model.AvailableShippingMethods.Add(new SelectListItem { Value = shippingMethodName, Text = shippingMethodName });
+
+        //every installed payment method, active or not, so a method can be listed before it is switched on
+        foreach (var paymentMethod in await _paymentPluginManager.LoadAllPluginsAsync(storeId: storeId))
+            model.AvailableApprovalPaymentMethods.Add(new SelectListItem
+            {
+                Value = paymentMethod.PluginDescriptor.SystemName,
+                Text = paymentMethod.PluginDescriptor.FriendlyName
+            });
 
         return model;
     }

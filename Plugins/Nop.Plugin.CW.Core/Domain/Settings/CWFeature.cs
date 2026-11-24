@@ -18,5 +18,8 @@ public enum CWFeature
     CreditNotes = 4,
 
     /// <summary>Bulk ordering (MultiStoreSettings.BulkOrderEnable)</summary>
-    BulkOrder = 5
+    BulkOrder = 5,
+
+    /// <summary>Order approvals (MultiStoreSettings.ApprovalsEnable)</summary>
+    Approvals = 6
 }

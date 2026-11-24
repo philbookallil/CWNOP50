@@ -44,4 +44,12 @@ public interface IOrderProcessingOverrideService : IOrderProcessingService
     /// <param name="packNameCart">The packname cart being paid</param>
     /// <returns>A task that represents the asynchronous operation</returns>
     Task PrepareCustomerPaymentAddressesAsync(Customer customer, int storeId, IList<PackNameShoppingCartItem> packNameCart);
+
+    /// <summary>
+    /// Releases an order its approver accepted: it moves from Pending to Processing through nop's own status change,
+    /// without nop's "order processing" e-mail, and is then checked as any order is
+    /// </summary>
+    /// <param name="order">The order</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
+    Task ReleaseApprovedOrderAsync(Order order);
 }
