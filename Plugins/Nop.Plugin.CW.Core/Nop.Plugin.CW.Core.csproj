@@ -460,6 +460,12 @@
     <None Update="Content\MyAccount\store-credit.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Content\Approvals\order-approval.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Approvals\order-approval.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Content\Order\order-approval-status.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -704,6 +710,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Views\SubsidyCatalog\ChangeTopupProductGroup.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Views\OrderApproval\_ReviewLines.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Views\OrderApproval\Review.cshtml">

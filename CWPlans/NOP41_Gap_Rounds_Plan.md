@@ -77,7 +77,7 @@ The manager has not answered `Manager_Questions_4.1_Gaps.md`. **From 2026-11-12,
 questions, Claude asks Eduardo that question when the item is taken up**; he answers it himself where he can, or sends
 that single question to the manager again. Each answer goes onto the gap list item (and Open Items) before the work.
 The ones rated High or blocking: D3 / Q8 (returns on part-shipped orders, OI 2.1.3), D2 / Q10 (cross-store completion,
-OI 2.1.2), C1 / Q1 (order per packname / per branch), C3 / Q3 (order authorisation, OI 2.2.1), A1 / Q14 (the store
+OI 2.1.2), C1 / Q1 (order per packname / per branch), ~~C3 / Q3 (order authorisation, OI 2.2.1)~~ done 2026-11-24, A1 / Q14 (the store
 settings page).
 
 Already answered: the 5.00.1 product-description question (not one of Q1–Q21) — *Allow JavaScript in rich editor*

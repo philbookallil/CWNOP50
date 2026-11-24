@@ -1,6 +1,6 @@
 # Order Approval — Analysis and Options for 5.00
 
-Status: **the engine is applied** (Part 1, 2026-11-17) **and aligned with 4.1** (2026-11-23, §10; run on the dev site the same day: A1–A18 pass, two with a note, §10.6). Part 2, the screens, is applied (2026-11-23) and run on the dev site (2026-11-24, B1–B20 pass, §11). §1–§8 are the original analysis: where they differ, §10 holds.
+Status: **the engine is applied** (Part 1, 2026-11-17) **and aligned with 4.1** (2026-11-23, §10; run on the dev site the same day: A1–A18 pass, two with a note, §10.6). Part 2, the screens, is applied (2026-11-23) and run on the dev site (2026-11-24, B1–B20 pass, §11). The approver's page was redesigned and run on the dev site on 2026-11-24 (C1–C11 pass, §12). §1–§8 are the original analysis: where they differ, §10 holds.
 Gap analysis item C3 / OI 2.2.1
 (`LegacyVersions/NOP41_To_500_Gap_Analysis.md`).
 
@@ -666,3 +666,51 @@ same settlement row and was not run. B12 covers the review's finding: a form ope
 leaves the rule as it was. No error was logged by the run.
 
 Decided 2026-11-24: nop's "Your order has been successfully processed!" stays on a held order's completed page, under the waiting message.
+
+---
+
+## 12. The approver's page (2026-11-24)
+
+Redesigned after Eduardo saw it plain and as one flat list. Nothing changes in the hold, the e-mails or the links.
+
+### 12.1 What it shows
+
+- **Header:** order number, who placed it and when, and the status. **Summary:** people, items, payable.
+- **One block per packname** (`<details>`): name with its colour, branch, department and cost centre, items and total; open it for the products
+  and the delivery (method, address, and with whom when at most three share it). Five blocks or fewer are open; more are closed, with
+  *Expand all* (`order-approval.js`, the only thing that needs the script). An order without packnames is one list, with its method and address above it (no address when collected in store); a line for no packname in a
+  packname order has its own block, *Other products*.
+- **Totals that add up:** products, delivery, subsidy, store credit, *Discounts and fees* (whatever else makes the total: discounts, gift cards,
+  reward points, fees, priced checkout attributes; a cent is rounding), payable. All incl. tax.
+- **Decision:** *Accept order*; *Decline order* opens the reason. A decline that did not go through keeps the form open with what was typed.
+- A link that no longer decides shows the status and the decision, not what was ordered, as before.
+
+Files: `Views/OrderApproval/Review.cshtml`, `_ReviewLines.cshtml`, `Content/Approvals/order-approval.css` / `.js`,
+`OrderApprovalModelFactory` (`PrepareGroupsAsync`, `PrepareTotalsAsync`), `OrderApprovalReviewModel`. Plugin version `2026_11_24_DATA_0.2`.
+Resources no longer read (rows stay until deleted by hand): `Plugins.CW.Core.OrderApproval.Intro`, `.Status`, `.Column.For`, `.Totals.Gross`.
+
+### 12.2 Test plan
+
+| # | Do | Expect |
+|---|---|---|
+| C1 | Open the link of 5019 (one packname) | Header, summary, one open block, totals, decision |
+| C2 | An order for several packnames with two deliveries, subsidy | One block each, totals per person, rows add up to payable |
+| C3 | An order for six or more packnames | Closed blocks, *Expand all* / *Collapse all*; opening one by one changes the button |
+| C4 | A plain order (PackName off) | One list, no people, no block to open |
+| C5 | Phone width | Everything stacks; no sideways scroll |
+| C6 | Decline with no reason; with a reason | The browser asks for it; posted empty, the form comes back open with the message; then declined |
+| C7 | Accept; open the link again | The message and status; no products |
+| C8 | A wrong link | The message only |
+| C9 | Signed out, and with the store closed | As before |
+| C10 | A customer whose first name is HTML; an order line for a person with a second address line | The name shows as text; the delivery names the second line |
+
+### 12.3 Test run (2026-11-24, dev site, store 1)
+
+C1–C11 pass; none fails. Orders: 5019 (one packname, still held), 5031 (four packnames, three deliveries, subsidy and store credit; accepted),
+5032 (six packnames; declined), 5033 (plain, PackName off, paid gift wrapping; accepted), 5034 (two packnames, still held). Signed out, and with
+the store closed, the link opens; the response says `no-store`. One flaw, fixed in `order-approval.css`: the theme's `.attributes` rule left
+20px above and below a product's size and colour (seen fixed the same day). A plain order showed its shipping method without the
+address; decided the same day to show it (`GetPlainDeliveryAsync`), in the packname blocks' order. nop's own address line starts with the
+country, so only its fields are used. C11, after the rebuild, passes: 5035 (plain, still held) shows the method, the name and the address.
+
+Found on the way and not part of this: `Subsidy_PackName_Open_Items.md` 4.23 (a leftover plain cart line can refuse a packname order).

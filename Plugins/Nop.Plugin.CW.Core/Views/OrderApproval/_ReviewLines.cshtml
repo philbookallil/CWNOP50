@@ -1,0 +1,29 @@
+@model Nop.Plugin.CW.Core.Models.Approvals.OrderApprovalReviewGroupModel
+
+<table class="order-approval-lines">
+    <thead>
+        <tr>
+            <th scope="col" class="product">@T("Plugins.CW.Core.OrderApproval.Column.Product")</th>
+            <th scope="col" class="quantity">@T("Plugins.CW.Core.OrderApproval.Column.Quantity")</th>
+            <th scope="col" class="price">@T("Plugins.CW.Core.OrderApproval.Column.Price")</th>
+            <th scope="col" class="amount">@T("Plugins.CW.Core.OrderApproval.Column.Total")</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var line in Model.Lines)
+        {
+            <tr>
+                <td class="product">
+                    @line.ProductName
+                    @if (!string.IsNullOrEmpty(line.AttributeInfo))
+                    {
+                        <div class="attributes">@Html.Raw(line.AttributeInfo)</div>
+                    }
+                </td>
+                <td class="quantity">@line.Quantity</td>
+                <td class="price">@line.UnitPrice</td>
+                <td class="amount">@line.Total</td>
+            </tr>
+        }
+    </tbody>
+</table>

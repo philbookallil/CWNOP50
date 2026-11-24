@@ -7,119 +7,167 @@
 
     NopHtml.AddTitleParts(T("Plugins.CW.Core.OrderApproval.PageTitle").Text);
     NopHtml.AppendPageCssClassParts("html-order-approval-page");
+    NopHtml.AppendCssFileParts("~/Plugins/CW.Core/Content/Approvals/order-approval.css");
+    NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Approvals/order-approval.js");
 }
 
 <div class="page order-approval-page">
-    <div class="page-title">
-        <h1>@T("Plugins.CW.Core.OrderApproval.PageTitle")</h1>
-    </div>
-    <div class="page-body">
-        @if (!string.IsNullOrEmpty(Model.Message))
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="order-approval-message @(Model.MessageIsError ? "order-approval-message--error" : "order-approval-message--done")" role="status">@Model.Message</div>
+    }
+
+    @if (!Model.ShowOrder)
+    {
+        <h1 class="order-approval-title">@T("Plugins.CW.Core.OrderApproval.PageTitle")</h1>
+    }
+    else
+    {
+        <div class="order-approval-header">
+            <div>
+                @*formatted as text: T writes its arguments without encoding them, and the customer types the name*@
+                <h1 class="order-approval-title">@string.Format(T("Plugins.CW.Core.OrderApproval.OrderTitle").Text, Model.OrderNumber)</h1>
+                <p class="order-approval-placed">@string.Format(T("Plugins.CW.Core.OrderApproval.PlacedBy").Text, Model.CustomerName, Model.CreatedOn)</p>
+            </div>
+            <span class="order-approval-status order-approval-status--@Model.StatusClass">@Model.Status</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.DecidedBy))
         {
-            <div class="@(Model.MessageIsError ? "message-error" : "result")">@Model.Message</div>
+            <p class="order-approval-decided"><strong>@T("Plugins.CW.Core.OrderApproval.DecidedBy")</strong> @Model.DecidedBy</p>
+        }
+        @if (!string.IsNullOrEmpty(Model.DecisionComment))
+        {
+            <p class="order-approval-decided"><strong>@T("Plugins.CW.Core.OrderApproval.DecisionComment")</strong> @Model.DecisionComment</p>
         }
 
-        @if (Model.ShowOrder)
+        @*what was ordered, and the decision, only while this link decides the order*@
+        @if (Model.CanDecide)
         {
-            <div class="section order-approval-info">
-                <p>@T("Plugins.CW.Core.OrderApproval.Intro", Model.CustomerName, Model.OrderNumber, Model.CreatedOn)</p>
-                <p><strong>@T("Plugins.CW.Core.OrderApproval.Status")</strong> @Model.Status</p>
-                @if (!string.IsNullOrEmpty(Model.DecidedBy))
+            <div class="order-approval-summary">
+                @if (Model.PackNameCount > 0)
                 {
-                    <p><strong>@T("Plugins.CW.Core.OrderApproval.DecidedBy")</strong> @Model.DecidedBy</p>
+                    <span>@T("Plugins.CW.Core.OrderApproval.People") <strong>@Model.PackNameCount</strong></span>
                 }
-                @if (!string.IsNullOrEmpty(Model.DecisionComment))
+                <span>@T("Plugins.CW.Core.OrderApproval.Items") <strong>@Model.ItemCount</strong></span>
+                <span>@T("Plugins.CW.Core.OrderApproval.Totals.Payable") <strong>@Model.Payable</strong></span>
+                @if (!Model.GroupsOpen)
                 {
-                    <p><strong>@T("Plugins.CW.Core.OrderApproval.DecisionComment")</strong> @Model.DecisionComment</p>
+                    @*works only with the script, which shows it*@
+                    <button type="button" class="order-approval-expand" hidden
+                            data-expand-text="@T("Plugins.CW.Core.OrderApproval.ExpandAll").Text"
+                            data-collapse-text="@T("Plugins.CW.Core.OrderApproval.CollapseAll").Text">@T("Plugins.CW.Core.OrderApproval.ExpandAll")</button>
                 }
             </div>
 
-            @*what was ordered, and the decision, only while this link decides the order*@
-            @if (Model.CanDecide)
-            {
-            <div class="section products">
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th class="name">@T("Plugins.CW.Core.OrderApproval.Column.Product")</th>
-                                <th class="packname">@T("Plugins.CW.Core.OrderApproval.Column.For")</th>
-                                <th class="unit-price">@T("Plugins.CW.Core.OrderApproval.Column.Price")</th>
-                                <th class="quantity">@T("Plugins.CW.Core.OrderApproval.Column.Quantity")</th>
-                                <th class="total">@T("Plugins.CW.Core.OrderApproval.Column.Total")</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var line in Model.Lines)
+            <div class="order-approval-groups">
+                @foreach (var group in Model.Groups)
+                {
+                    //an order without packnames is one list of products, with no one to name
+                    if (!group.HasPackName && Model.PackNameCount == 0)
+                    {
+                        <div class="order-approval-group">
+                            @if (!string.IsNullOrEmpty(group.Delivery))
                             {
-                                <tr>
-                                    <td class="product">
-                                        <em>@line.ProductName</em>
-                                        @if (!string.IsNullOrEmpty(line.AttributeInfo))
-                                        {
-                                            <div class="attributes">@Html.Raw(line.AttributeInfo)</div>
-                                        }
-                                    </td>
-                                    <td class="packname">@line.PackName</td>
-                                    <td class="unit-price">@line.UnitPrice</td>
-                                    <td class="quantity">@line.Quantity</td>
-                                    <td class="total">@line.Total</td>
-                                </tr>
+                                <p class="order-approval-delivery">@Html.CWIcon("cw-icon-truck", "order-approval-icon") <span>@group.Delivery</span></p>
                             }
-                        </tbody>
-                    </table>
-                </div>
+                            @await Html.PartialAsync("_ReviewLines", group)
+                        </div>
+                    }
+                    else
+                    {
+                        <details class="order-approval-group" open="@Model.GroupsOpen">
+                            <summary>
+                                @if (group.HasPackName)
+                                {
+                                    <span class="order-approval-dot" style="background-color: @group.Colour"></span>
+                                    <span class="order-approval-name">@group.PackName</span>
+                                    @if (!string.IsNullOrEmpty(group.Details))
+                                    {
+                                        <span class="order-approval-details">@group.Details</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="order-approval-name">@T("Plugins.CW.Core.OrderApproval.OtherProducts")</span>
+                                }
+                                <span class="order-approval-count">
+                                    @if (group.ItemCount == 1)
+                                    {
+                                        @T("Plugins.CW.Core.OrderApproval.ItemsOne")
+                                    }
+                                    else
+                                    {
+                                        @T("Plugins.CW.Core.OrderApproval.ItemsMany", group.ItemCount)
+                                    }
+                                </span>
+                                <span class="order-approval-amount">@group.Total</span>
+                            </summary>
+                            @if (!string.IsNullOrEmpty(group.Delivery))
+                            {
+                                <p class="order-approval-delivery">@Html.CWIcon("cw-icon-truck", "order-approval-icon") <span>@group.Delivery</span></p>
+                            }
+                            @await Html.PartialAsync("_ReviewLines", group)
+                        </details>
+                    }
+                }
             </div>
 
-            <div class="section totals">
-                <table class="cart-total">
-                    <tbody>
-                        <tr>
-                            <td class="cart-total-left"><label>@T("Plugins.CW.Core.OrderApproval.Totals.Gross")</label></td>
-                            <td class="cart-total-right"><span class="value-summary">@Model.Gross</span></td>
-                        </tr>
-                        @if (!string.IsNullOrEmpty(Model.Subsidy))
-                        {
-                            <tr>
-                                <td class="cart-total-left"><label>@T("Plugins.CW.Core.OrderApproval.Totals.Subsidy")</label></td>
-                                <td class="cart-total-right"><span class="value-summary">-@Model.Subsidy</span></td>
-                            </tr>
-                        }
-                        @if (!string.IsNullOrEmpty(Model.StoreCredit))
-                        {
-                            <tr>
-                                <td class="cart-total-left"><label>@T("Plugins.CW.Core.OrderApproval.Totals.StoreCredit")</label></td>
-                                <td class="cart-total-right"><span class="value-summary">-@Model.StoreCredit</span></td>
-                            </tr>
-                        }
-                        <tr class="order-total">
-                            <td class="cart-total-left"><label>@T("Plugins.CW.Core.OrderApproval.Totals.Payable")</label></td>
-                            <td class="cart-total-right"><span class="value-summary"><strong>@Model.Payable</strong></span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <div class="order-approval-end">
+                <dl class="order-approval-totals">
+                    <div>
+                        <dt>@T("Plugins.CW.Core.OrderApproval.Totals.Subtotal")</dt>
+                        <dd>@Model.Subtotal</dd>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Delivery))
+                    {
+                        <div>
+                            <dt>@T("Plugins.CW.Core.OrderApproval.Totals.Delivery")</dt>
+                            <dd>@Model.Delivery</dd>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Subsidy))
+                    {
+                        <div>
+                            <dt>@T("Plugins.CW.Core.OrderApproval.Totals.Subsidy")</dt>
+                            <dd>@Model.Subsidy</dd>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.StoreCredit))
+                    {
+                        <div>
+                            <dt>@T("Plugins.CW.Core.OrderApproval.Totals.StoreCredit")</dt>
+                            <dd>@Model.StoreCredit</dd>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Other))
+                    {
+                        <div>
+                            <dt>@T("Plugins.CW.Core.OrderApproval.Totals.Other")</dt>
+                            <dd>@Model.Other</dd>
+                        </div>
+                    }
+                    <div class="order-approval-payable">
+                        <dt>@T("Plugins.CW.Core.OrderApproval.Totals.Payable")</dt>
+                        <dd>@Model.Payable</dd>
+                    </div>
+                </dl>
 
-                <div class="section order-approval-decision">
+                <div class="order-approval-decision">
                     <form asp-route="@OrderApprovalDefaults.AcceptRouteName" asp-route-token="@Model.Token" method="post">
-                        <div class="buttons">
-                            <button type="submit" class="button-1">@T("Plugins.CW.Core.OrderApproval.Accept")</button>
-                        </div>
+                        <button type="submit" class="order-approval-accept">@T("Plugins.CW.Core.OrderApproval.Accept")</button>
                     </form>
 
-                    <form asp-route="@OrderApprovalDefaults.DeclineRouteName" asp-route-token="@Model.Token" method="post">
-                        <div class="form-fields">
-                            <div class="inputs">
-                                <label for="declineReason">@T("Plugins.CW.Core.OrderApproval.DeclineReason")</label>
-                                <textarea id="declineReason" name="declineReason" rows="4" maxlength="@OrderApprovalDefaults.DecisionCommentMaxLength" required>@Model.DeclineReason</textarea>
-                            </div>
-                        </div>
-                        <div class="buttons">
-                            <button type="submit" class="button-2">@T("Plugins.CW.Core.OrderApproval.Decline")</button>
-                        </div>
-                    </form>
+                    <details class="order-approval-decline" open="@Model.DeclineOpen">
+                        <summary>@T("Plugins.CW.Core.OrderApproval.Decline")</summary>
+                        <form asp-route="@OrderApprovalDefaults.DeclineRouteName" asp-route-token="@Model.Token" method="post">
+                            <label for="declineReason">@T("Plugins.CW.Core.OrderApproval.DeclineReason")</label>
+                            <textarea id="declineReason" name="declineReason" rows="4" maxlength="@OrderApprovalDefaults.DecisionCommentMaxLength" required>@Model.DeclineReason</textarea>
+                            <button type="submit" class="order-approval-confirm-decline">@T("Plugins.CW.Core.OrderApproval.ConfirmDecline")</button>
+                        </form>
+                    </details>
                 </div>
-            }
+            </div>
         }
-    </div>
+    }
 </div>

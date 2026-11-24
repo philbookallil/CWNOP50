@@ -7,7 +7,9 @@ using Nop.Plugin.CW.Core.Factories;
 using Nop.Plugin.CW.Core.Models.Approvals;
 using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.Orders;
+using Nop.Plugin.CW.Core.Services.PackNames;
 using Nop.Services.Catalog;
+using Nop.Services.Common;
 using Nop.Services.Customers;
 using Nop.Services.Directory;
 using Nop.Services.Helpers;
@@ -54,13 +56,15 @@ public class OrderApprovalStatusModelTests
         localizationService.Setup(mock => mock.GetResourceAsync(It.IsAny<string>()))
             .ReturnsAsync((string key) => key.Split('.').Last() + " {0}");
 
-        _factory = new OrderApprovalModelFactory(new Mock<ICurrencyService>().Object,
+        _factory = new OrderApprovalModelFactory(new Mock<IAddressService>().Object,
+            new Mock<ICurrencyService>().Object,
             new Mock<ICustomerService>().Object,
             cwOrderService.Object,
             new Mock<IDateTimeHelper>().Object,
             localizationService.Object,
             approvalService.Object,
             new Mock<IOrderService>().Object,
+            new Mock<IPackNameService>().Object,
             new Mock<IPriceFormatter>().Object,
             new Mock<IProductService>().Object,
             new Mock<IWorkContext>().Object);

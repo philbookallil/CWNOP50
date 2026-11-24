@@ -44,11 +44,12 @@ public class OrderApprovalController : BasePublicController
 
     /// <summary>
     /// The review page: the link's token is in its address, so the browser is told not to pass the address on to any
-    /// page the approver goes to from here
+    /// page the approver goes to from here, nor to keep a page that shows who is ordered for and where it is delivered
     /// </summary>
     protected virtual IActionResult ReviewView(object model)
     {
         Response.Headers["Referrer-Policy"] = "no-referrer";
+        Response.Headers["Cache-Control"] = "no-store";
 
         return View("~/Plugins/CW.Core/Views/OrderApproval/Review.cshtml", model);
     }
@@ -87,8 +88,9 @@ public class OrderApprovalController : BasePublicController
         var result = await _orderApprovalService.DeclineByTokenAsync(token, declineReason);
         var model = await _orderApprovalModelFactory.PrepareReviewModelAsync(token, result);
 
-        //a decline refused for its missing reason keeps what was typed (nothing) and the form open
-        model.DeclineReason = result == OrderApprovalResult.ReasonRequired ? declineReason : null;
+        //a decline that did not go through keeps the form open with what was typed
+        model.DeclineOpen = model.CanDecide;
+        model.DeclineReason = model.CanDecide ? declineReason : null;
 
         return ReviewView(model);
     }

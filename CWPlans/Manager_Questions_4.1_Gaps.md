@@ -101,7 +101,8 @@ pays only for the manager's own items.
 **Purchase Order** above an amount set for the branch, the order was held and the branch leaders received an e-mail
 with a link to **approve or decline** it. Unanswered requests were re-sent, for up to 90 days.
 
-**What 5.00 does today.** No approval. Orders are placed straight away.
+**What 5.00 does today.** Built (2026-11-24) as 4.1 did it, with approvers on departments as well, after the manager asked for it on
+2026-11-23 (`Order_Approval_Analysis.md`). **Answered:** yes, it is needed.
 
 **The question.**
 
