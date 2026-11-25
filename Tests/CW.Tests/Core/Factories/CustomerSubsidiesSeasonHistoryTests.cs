@@ -7,6 +7,7 @@ using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Localization;
 using Nop.Plugin.CW.Core.Domain.Subsidies.Views;
 using Nop.Plugin.CW.Core.Factories;
+using Nop.Plugin.CW.Core.Helpers;
 using Nop.Plugin.CW.Core.Models.Subsidies;
 using Nop.Services.Catalog;
 using Nop.Services.Directory;
@@ -63,6 +64,23 @@ public class CustomerSubsidiesSeasonHistoryTests
     private IList<List<SubsidyHistory>> BySeason(params SubsidyHistory[] history) =>
         (IList<List<SubsidyHistory>>)typeof(CustomerSubsidiesModelFactory).GetMethod("HistoryBySeason", BindingFlags.Instance | BindingFlags.NonPublic)!
             .Invoke(_factory, [history.ToList(), Seasons])!;
+
+    [Test]
+    public void What_waits_for_approval_is_the_money_of_every_kind_and_the_units_of_the_held_orders()
+    {
+        var history = new List<SubsidyHistory>
+        {
+            Row(HistoryType.SubsidyUsed, 2026, 2, 1, orderId: 11, credit: 3.50m, topup: 1m),
+            Row(HistoryType.SubsidyUsedForShipping, 2026, 2, 1, orderId: 11, credit: 4.98m),
+            new() { HistoryType = HistoryType.ProductGroupUsed, OrderId = 11, ProductGroupCredit = 40m, ProductGroupCreditTopup = 2m, Quantity = 2, QuantityTopup = 1 },
+            Row(HistoryType.Refund, 2026, 2, 1, orderId: 11, credit: 99m),
+            Row(HistoryType.SubsidyUsed, 2026, 3, 1, orderId: 12, credit: 70m),
+            Row(HistoryType.SubsidyTopUp, 2026, 1, 1, topup: 20m)
+        };
+
+        CustomerSubsidyHelper.WaitingForApproval(history, [11]).Should().Be((51.48m, 3));
+        CustomerSubsidyHelper.WaitingForApproval(history, []).Should().Be((0m, 0));
+    }
 
     [Test]
     public void Top_ups_and_orders_stay_in_their_season_and_the_assignment_stands_in_every_one()

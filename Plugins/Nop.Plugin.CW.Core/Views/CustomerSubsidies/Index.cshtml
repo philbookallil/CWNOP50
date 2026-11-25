@@ -199,6 +199,22 @@
                     </div>
                 }
 
+                @if (!string.IsNullOrEmpty(subsidy.WaitingCreditFormatted) || subsidy.WaitingUnits > 0)
+                {
+                    <div class="subsidy-waiting-total">
+                        <span class="subsidy-waiting">@T("Plugins.CW.Core.OrderApproval.Status.Pending")</span>
+                        @if (!string.IsNullOrEmpty(subsidy.WaitingCreditFormatted))
+                        {
+                            <b>@subsidy.WaitingCreditFormatted</b>
+                        }
+                        @if (subsidy.WaitingUnits > 0)
+                        {
+                            <b>@T("Plugins.CW.Core.CustomerSubsidies.Units", subsidy.WaitingUnits)</b>
+                        }
+                        <span class="subsidy-dim">@T("Plugins.CW.Core.CustomerSubsidies.WaitingNote")</span>
+                    </div>
+                }
+
                 <details class="subsidy-history" id="@historyId">
                     <summary>@T("Plugins.CW.Core.CustomerSubsidies.History")</summary>
                     @if (subsidy.History.Count == 0)

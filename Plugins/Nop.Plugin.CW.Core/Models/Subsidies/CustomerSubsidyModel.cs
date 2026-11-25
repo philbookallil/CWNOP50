@@ -68,6 +68,16 @@ public record CustomerSubsidyModel : BaseNopModel
     public IList<CustomerSubsidyHistoryModel> History { get; set; } = new List<CustomerSubsidyHistoryModel>();
 
     /// <summary>
+    /// What the season's orders waiting for approval hold, formatted; empty when they hold no money
+    /// </summary>
+    public string WaitingCreditFormatted { get; set; }
+
+    /// <summary>
+    /// The product group units the season's orders waiting for approval hold
+    /// </summary>
+    public int WaitingUnits { get; set; }
+
+    /// <summary>
     /// The seasons before it, newest first; empty for a one-off subsidy or the first season
     /// </summary>
     public IList<CustomerSubsidySeasonModel> EarlierSeasons { get; set; } = new List<CustomerSubsidySeasonModel>();

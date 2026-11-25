@@ -3,6 +3,11 @@
 @{
     NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Approvals/admin.order.approval.js");
 
+    if (Model.IsPending && Model.CanManage)
+    {
+        await Html.RenderPartialAsync("~/Plugins/CW.Core/Areas/Admin/Views/Shared/_ApproverPickerAssets.cshtml");
+    }
+
     const string hideApprovalBlockAttributeName = "OrderPage.HideApprovalBlock";
     var hideApprovalBlock = await genericAttributeService.GetAttributeAsync<bool>(await workContext.GetCurrentCustomerAsync(), hideApprovalBlockAttributeName);
 }
@@ -81,11 +86,13 @@
                 </div>
             </div>
             <div class="form-group row">
-                <div class="col-md-3"><label class="col-form-label">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprover")</label></div>
-                <div class="col-md-9 form-inline">
-                    <input id="cw-approval-name" type="text" class="form-control mr-2" placeholder="@T("Plugins.CW.Core.Admin.OrderApproval.ApproverName")" />
-                    <input id="cw-approval-email" type="email" class="form-control mr-2" placeholder="@T("Plugins.CW.Core.Admin.OrderApproval.ApproverEmail")" />
-                    <button type="button" class="btn btn-primary cw-approval-change">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprover.Button")</button>
+                <div class="col-md-3"><label class="col-form-label" for="cw-approval-emails">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprovers.Emails")</label></div>
+                <div class="col-md-9">
+                    <input type="text" id="cw-approval-emails" class="form-control mb-2 cw-approver-picker" autocomplete="off" value="@Model.WaitingEmails"
+                           data-approvers="@System.Text.Json.JsonSerializer.Serialize(Model.Suggestions)"
+                           data-add-text="@T("Plugins.CW.Core.Admin.ApproverPicker.Add")" />
+                    <p class="text-muted mb-2">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprovers.Note")</p>
+                    <button type="button" class="btn btn-primary cw-approval-change">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprovers.Button")</button>
                 </div>
             </div>
 
@@ -94,7 +101,7 @@
                  data-approve-url="@Url.Action("Approve", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
                  data-decline-url="@Url.Action("Decline", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
                  data-resend-url="@Url.Action("Resend", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
-                 data-change-url="@Url.Action("ChangeApprover", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-change-url="@Url.Action("ChangeApprovers", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
                  data-confirm-approve="@T("Plugins.CW.Core.Admin.OrderApproval.Confirm.Approve")"
                  data-confirm-decline="@T("Plugins.CW.Core.Admin.OrderApproval.Confirm.Decline")"
                  data-confirm-resend="@T("Plugins.CW.Core.Admin.OrderApproval.Confirm.Resend")"

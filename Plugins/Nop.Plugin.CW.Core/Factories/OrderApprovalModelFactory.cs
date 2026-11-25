@@ -315,14 +315,7 @@ public class OrderApprovalModelFactory : IOrderApprovalModelFactory
         switch (approval?.Status)
         {
             case OrderApprovalStatus.Pending:
-                var approvers = (await _orderApprovalService.GetRequestsAsync(approval.Id))
-                    .Where(request => request.RevokedOnUtc == null)
-                    //the latest link of each has the approver's present name
-                    .GroupBy(request => request.ApproverId)
-                    .Select(requests => requests.First().ApproverName)
-                    .Distinct(StringComparer.InvariantCultureIgnoreCase)
-                    .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
-                    .ToList();
+                var approvers = await _orderApprovalService.GetWaitingApproverNamesAsync(approval.Id);
 
                 return new OrderApprovalStatusModel
                 {

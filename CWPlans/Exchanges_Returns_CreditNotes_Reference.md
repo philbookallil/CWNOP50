@@ -295,7 +295,8 @@ inserted.
 **Order cancellation needs no explicit step here.** `vw_CORE_EX_CreditNoteRemain` excludes any
 `CreditNoteHistory` row belonging to a cancelled order from its running sum, so a cancelled order's
 consumption stops counting the instant `OrderStatusId` becomes Cancelled — no code runs, no history rows
-are deleted.
+are deleted. Both histories therefore still list it, labelled "Order cancelled, returned"
+(`GetGivenBackOrderIdsAsync`); a use by an order waiting for approval is labelled too (`Order_Approval_Analysis.md` §13.4).
 
 **Payment-method labelling** (in `OrderProcessingOverrideService.ApplySettlementPaymentMethodAsync`, not the
 service): after settlement, an order whose `PaymentMethodSystemName` is still **empty** takes `"CreditNote"`,

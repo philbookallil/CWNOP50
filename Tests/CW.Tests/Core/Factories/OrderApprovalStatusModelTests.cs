@@ -30,7 +30,7 @@ public class OrderApprovalStatusModelTests
     private const int OrderId = 1;
 
     private OrderApproval? _approval;
-    private List<OrderApprovalRequest> _requests = null!;
+    private List<string> _waitingFor = null!;
     private OrderSettlement? _settlement;
     private OrderApprovalModelFactory _factory = null!;
 
@@ -42,12 +42,12 @@ public class OrderApprovalStatusModelTests
     public void SetUp()
     {
         _approval = new OrderApproval { Id = 5, OrderId = OrderId, Status = OrderApprovalStatus.Pending };
-        _requests = [];
+        _waitingFor = [];
         _settlement = null;
 
         var approvalService = new Mock<IOrderApprovalService>();
         approvalService.Setup(mock => mock.GetOrderApprovalByOrderIdAsync(OrderId)).ReturnsAsync(() => _approval);
-        approvalService.Setup(mock => mock.GetRequestsAsync(5)).ReturnsAsync(() => _requests);
+        approvalService.Setup(mock => mock.GetWaitingApproverNamesAsync(5)).ReturnsAsync(() => _waitingFor);
 
         var cwOrderService = new Mock<ICWOrderService>();
         cwOrderService.Setup(mock => mock.GetOrderSettlementAsync(OrderId)).ReturnsAsync(() => _settlement);
@@ -87,14 +87,9 @@ public class OrderApprovalStatusModelTests
     }
 
     [Test]
-    public async Task An_order_that_waits_names_the_approvers_whose_links_work_each_once()
+    public async Task An_order_that_waits_names_the_approvers_it_waits_for()
     {
-        //latest first: Ann was still named by the address when the first link was sent
-        _requests.Add(new OrderApprovalRequest { ApproverId = 2, ApproverName = "Bob" });
-        _requests.Add(new OrderApprovalRequest { ApproverId = 1, ApproverName = "Ann" });
-        _requests.Add(new OrderApprovalRequest { ApproverId = 1, ApproverName = "ann@x.com" });
-        _requests.Add(new OrderApprovalRequest { ApproverId = 4, ApproverName = "ann" });
-        _requests.Add(new OrderApprovalRequest { ApproverId = 3, ApproverName = "Cat", RevokedOnUtc = DateTime.UtcNow });
+        _waitingFor.AddRange(["Ann", "Bob"]);
 
         var model = await PrepareAsync();
 

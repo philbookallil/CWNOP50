@@ -26,6 +26,11 @@ public record CustomerSubsidyHistoryModel : BaseNopModel
     public bool AssignmentRemoved { get; set; }
 
     /// <summary>
+    /// True when the order is waiting for approval: what it uses is reserved, and comes back if it is not approved.
+    /// </summary>
+    public bool WaitingForApproval { get; set; }
+
+    /// <summary>
     /// True when the order is the viewing customer's own, the only case nop's order page lets them open it.
     /// A manager reading an employee's page, or an employee whose manager placed the order, sees the row unlinked.
     /// </summary>

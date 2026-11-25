@@ -36,12 +36,22 @@ public enum OrderApprovalResult
     ReasonRequired = 50,
 
     /// <summary>
-    /// The approver's name or e-mail address is missing or not valid
+    /// There is no approver's e-mail address, or one that is not valid
     /// </summary>
     InvalidApprover = 60,
 
     /// <summary>
     /// The order could not be cancelled or released; the approval is still pending and the error is logged
     /// </summary>
-    Failed = 70
+    Failed = 70,
+
+    /// <summary>
+    /// There is no approver left to send the order to
+    /// </summary>
+    NobodyToAsk = 80,
+
+    /// <summary>
+    /// The approvers are not the ones the change started from: somebody else changed them
+    /// </summary>
+    ChangedMeanwhile = 90
 }

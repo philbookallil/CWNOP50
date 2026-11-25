@@ -7,6 +7,7 @@ using Nop.Core.Domain.Directory;
 using Nop.Plugin.CW.Core.Controllers;
 using Nop.Plugin.CW.Core.Domain.CreditNotes;
 using Nop.Plugin.CW.Core.Models.CreditNotes;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.CreditNotes;
 using Nop.Services.Catalog;
 using Nop.Services.Directory;
@@ -24,6 +25,7 @@ public class StoreCreditPageTests
     private static readonly Currency Euro = new() { Id = 2, CurrencyCode = "EUR" };
 
     private Mock<ICreditNotesService> _creditNotesService = null!;
+    private Mock<IOrderApprovalService> _orderApprovalService = null!;
     private CreditNotesController _controller = null!;
 
     [SetUp]
@@ -55,6 +57,11 @@ public class StoreCreditPageTests
             .ReturnsAsync((DateTime date, DateTimeKind _) => date);
 
         _controller = (CreditNotesController)RuntimeHelpers.GetUninitializedObject(typeof(CreditNotesController));
+        _orderApprovalService = new Mock<IOrderApprovalService>();
+        _orderApprovalService.Setup(service => service.GetHeldOrderIdsAsync(It.IsAny<int[]>())).ReturnsAsync(new List<int>());
+        _creditNotesService.Setup(service => service.GetGivenBackOrderIdsAsync(It.IsAny<int[]>())).ReturnsAsync(new List<int>());
+
+        SetField("_orderApprovalService", _orderApprovalService.Object);
         SetField("_creditNotesService", _creditNotesService.Object);
         SetField("_workContext", workContext.Object);
         SetField("_currencyService", currencyService.Object);
@@ -81,6 +88,18 @@ public class StoreCreditPageTests
         section.IssuedCreditNotes.Single().Amount.Should().Be("€60.00");
         section.IssuedCreditNotes.Single().Remaining.Should().Be("€20.00");
         section.Ledger.Select(entry => entry.AmountApplied).Should().Contain("€30.00");
+    }
+
+    [Test]
+    public async Task The_ledger_says_which_orders_wait_for_approval_and_which_gave_the_credit_back()
+    {
+        _orderApprovalService.Setup(service => service.GetHeldOrderIdsAsync(It.IsAny<int[]>())).ReturnsAsync(new List<int> { 101 });
+        _creditNotesService.Setup(service => service.GetGivenBackOrderIdsAsync(It.IsAny<int[]>())).ReturnsAsync(new List<int> { 100 });
+
+        var section = await PageAsync();
+
+        section.Ledger.Select(entry => (entry.OrderId, entry.WaitingForApproval, entry.GivenBack))
+            .Should().Equal((101, true, false), (100, false, true), (102, false, false));
     }
 
     [Test]

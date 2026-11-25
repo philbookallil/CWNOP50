@@ -44,6 +44,30 @@
     color: #6c757d;
 }
 
+/* ---- Where a use of credit stands: its order waits for approval, or was cancelled and the credit came back ---- */
+.store-credit-page .store-credit-label {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    white-space: nowrap;
+    background-color: #eceff1;
+    color: #455a64;
+}
+
+    .store-credit-page .store-credit-label.store-credit-label-waiting {
+        background-color: #fdf1d8;
+        color: #7a4f00;
+    }
+
+.store-credit-page .store-credit-given-back td {
+    color: #6c757d;
+}
+
+    .store-credit-page .store-credit-given-back td.store-credit-applied {
+        text-decoration: line-through;
+    }
+
 .store-credit-page .store-credit-table-wrapper {
     overflow-x: auto;
     margin-top: 14px;

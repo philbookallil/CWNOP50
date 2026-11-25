@@ -1,0 +1,64 @@
+/* The boxes of approvers: tags with the approver's name and address, as AdminLTE's fields look. */
+
+.ts-wrapper.cw-approver-picker {
+    height: auto;
+    min-height: calc(2.25rem + 2px);
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+    .ts-wrapper.cw-approver-picker .ts-control {
+        min-height: calc(2.25rem + 2px);
+        padding: 5px 8px 2px;
+        border: 1px solid #ced4da;
+        border-radius: .25rem;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    /* as the tags: the admin sets its text fields smaller */
+    .ts-wrapper.cw-approver-picker .ts-control > input {
+        font-size: 1rem;
+    }
+
+    .ts-wrapper.cw-approver-picker.focus .ts-control {
+        border-color: #80bdff;
+        box-shadow: none;
+    }
+
+    .ts-wrapper.cw-approver-picker.multi .ts-control > .item {
+        margin: 0 4px 3px 0;
+        padding: 1px 7px;
+        border: 1px solid #d5dbe1;
+        border-radius: 4px;
+        background: #eef1f4;
+        color: #343a40;
+        overflow-wrap: anywhere;
+    }
+
+    .ts-wrapper.cw-approver-picker.multi .ts-control > .item.active {
+        border-color: #80bdff;
+        background: #dbeafe;
+    }
+
+    /* an address that cannot be one: the save would refuse it */
+    .ts-wrapper.cw-approver-picker.multi .ts-control > .item.cw-approver-invalid {
+        border-color: #b3372f;
+        background: #fbe6e4;
+        color: #8c261f;
+    }
+
+    .ts-wrapper.cw-approver-picker .cw-approver-email {
+        color: #6c757d;
+    }
+
+    /* a tag is a flex box, which drops the space between the two */
+    .ts-wrapper.cw-approver-picker .ts-control .cw-approver-email {
+        margin-left: .35em;
+    }
+
+    .ts-wrapper.cw-approver-picker .ts-dropdown {
+        font-size: 1rem;
+        z-index: 1060;
+    }

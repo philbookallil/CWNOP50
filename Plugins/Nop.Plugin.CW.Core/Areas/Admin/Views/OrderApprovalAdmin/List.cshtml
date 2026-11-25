@@ -1,0 +1,190 @@
+@model OrderApprovalSearchModel
+
+@using Nop.Plugin.CW.Core.Areas.Admin.Models.Approvals
+
+@{
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.OrderApprovals").Text;
+    //active menu item (system name)
+    NopHtml.SetActiveMenuItemSystemName(CWCoreDefaults.OrderApprovalsListAdminMenuSystemName);
+
+    await Html.RenderPartialAsync("_ApproverPickerAssets");
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Approvals/admin.approval.lists.js");
+
+    const string hideSearchBlockAttributeName = "OrderApprovalsPage.HideSearchBlock";
+    var hideSearchBlock = await genericAttributeService.GetAttributeAsync<bool>(await workContext.GetCurrentCustomerAsync(), hideSearchBlockAttributeName);
+}
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        @T("Plugins.CW.Core.Admin.OrderApprovals")
+    </h1>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal" id="cw-approval-orders">
+            <div class="cards-group">
+                <div class="card card-default card-search">
+                    <div class="card-body">
+                        <div class="row search-row @(!hideSearchBlock ? "opened" : "")" data-hideAttribute="@hideSearchBlockAttributeName">
+                            <div class="search-text">@T("Admin.Common.Search")</div>
+                            <div class="icon-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></div>
+                            <div class="icon-collapse"><i class="far fa-angle-@(!hideSearchBlock ? "up" : "down")" aria-hidden="true"></i></div>
+                        </div>
+
+                        <div class="search-body @(hideSearchBlock ? "closed" : "")">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="SearchStatusId" /></div>
+                                        <div class="col-md-8"><nop-select asp-for="SearchStatusId" asp-items="Model.AvailableStatuses" /></div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="SearchApproverId" /></div>
+                                        <div class="col-md-8"><nop-select asp-for="SearchApproverId" asp-items="Model.AvailableApprovers" /></div>
+                                    </div>
+                                    <div class="form-group row" @(Model.ShowStores ? null : Html.Raw("style=\"display: none;\""))>
+                                        <div class="col-md-4"><nop-label asp-for="SearchStoreId" /></div>
+                                        <div class="col-md-8"><nop-select asp-for="SearchStoreId" asp-items="Model.AvailableStores" /></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-7">
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="SearchOrderNumber" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="SearchOrderNumber" /></div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="SearchCustomer" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="SearchCustomer" /></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="text-center col-12">
+                                    <button type="button" id="search-order-approvals" class="btn btn-primary btn-search">
+                                        <i class="fas fa-magnifying-glass"></i>
+                                        @T("Admin.Common.Search")
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-default">
+                    <div class="card-body">
+                        <p class="text-muted">@T("Plugins.CW.Core.Admin.OrderApprovals.Note")</p>
+                        @await Html.PartialAsync("Table", new DataTablesModel
+                        {
+                            Name = "order-approvals-grid",
+                            UrlRead = new DataUrl("List", "OrderApprovalAdmin", null),
+                            SearchButtonId = "search-order-approvals",
+                            Length = Model.PageSize,
+                            LengthMenu = Model.AvailablePageSizes,
+                            Filters = new List<FilterParameter>
+                            {
+                                new FilterParameter(nameof(Model.SearchStatusId)),
+                                new FilterParameter(nameof(Model.SearchStoreId)),
+                                new FilterParameter(nameof(Model.SearchOrderNumber)),
+                                new FilterParameter(nameof(Model.SearchCustomer)),
+                                new FilterParameter(nameof(Model.SearchApproverId))
+                            },
+                            ColumnCollection = new List<ColumnProperty>
+                            {
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.OrderNumber))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Order").Text,
+                                    Width = "70"
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.StoreName))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Store").Text,
+                                    Visible = Model.ShowStores
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.Customer))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Customer").Text
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.Branch))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Branch").Text
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.CreatedOn))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.CreatedOn").Text,
+                                    Width = "120"
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.Payable))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Payable").Text,
+                                    Width = "90"
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.Subsidy))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Subsidy").Text,
+                                    Width = "90"
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.StoreCredit))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.StoreCredit").Text,
+                                    Width = "90"
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.Status))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Status").Text
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.Approvers))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Approvers").Text
+                                },
+                                new ColumnProperty(nameof(OrderApprovalListItemModel.Id))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Actions").Text,
+                                    Width = "260",
+                                    Render = new RenderCustom("CW.ApprovalLists.renderOrderActions")
+                                }
+                            }
+                        })
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="cw-approval-change-modal" tabindex="-1" role="dialog" aria-labelledby="cw-approval-change-title">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title" id="cw-approval-change-title">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprovers")</h4>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="@T("Admin.Common.Cancel")"><span aria-hidden="true">&times;</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong id="cw-approval-change-order"></strong></p>
+                            <div class="form-group">
+                                <label for="cw-approval-change-emails">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprovers.Emails")</label>
+                                <input type="text" id="cw-approval-change-emails" class="form-control cw-approver-picker" autocomplete="off"
+                                       data-add-text="@T("Plugins.CW.Core.Admin.ApproverPicker.Add")" />
+                            </div>
+                            <p class="text-muted">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprovers.Note")</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">@T("Admin.Common.Cancel")</button>
+                            <button type="button" class="btn btn-primary" id="cw-approval-change-save">@T("Plugins.CW.Core.Admin.OrderApproval.ChangeApprovers.Button")</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cw-approval-lists-config"
+                 data-view-url="@Url.Action("Edit", "Order", new { area = AreaNames.ADMIN })"
+                 data-resend-url="@Url.Action("Resend", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-change-url="@Url.Action("ChangeApprovers", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-view-text="@T("Admin.Common.View")"
+                 data-resend-text="@T("Plugins.CW.Core.Admin.OrderApprovals.Resend")"
+                 data-change-text="@T("Plugins.CW.Core.Admin.OrderApprovals.Change")"
+                 data-order-text="@T("Plugins.CW.Core.OrderApproval.OrderTitle").Text"
+                 data-confirm-resend="@T("Plugins.CW.Core.Admin.OrderApproval.Confirm.Resend")"
+                 data-error-text="@T("Plugins.CW.Core.Admin.OrderApproval.Result.Failed")"
+                 style="display: none;"></div>
+        </div>
+    </div>
+</section>

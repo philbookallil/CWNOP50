@@ -9,6 +9,7 @@ using Nop.Plugin.CW.Core.Domain.Settings;
 using Nop.Plugin.CW.Core.Domain.Subsidies;
 using Nop.Plugin.CW.Core.Domain.Subsidies.DTOs;
 using Nop.Plugin.CW.Core.Domain.Subsidies.Views;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.PackNames;
 using Nop.Plugin.CW.Core.Services.Subsidies;
 using Nop.Services.Catalog;
@@ -45,6 +46,7 @@ public class SubsidyModelFactory : ISubsidyModelFactory
     protected readonly IPackNameService _packNameService;
     protected readonly IDateTimeHelper _dateTimeHelper;
     protected readonly ISubsidyReportingService _subsidyReportingService;
+    protected readonly IOrderApprovalService _orderApprovalService;
 
     #endregion
 
@@ -65,7 +67,8 @@ public class SubsidyModelFactory : ISubsidyModelFactory
         ISettingService settingService,
         IPackNameService packNameService,
         IDateTimeHelper dateTimeHelper,
-        ISubsidyReportingService subsidyReportingService)
+        ISubsidyReportingService subsidyReportingService,
+        IOrderApprovalService orderApprovalService)
     {
         _subsidyService = subsidyService;
         _urlRecordService = urlRecordService;
@@ -83,6 +86,7 @@ public class SubsidyModelFactory : ISubsidyModelFactory
         _packNameService = packNameService;
         _dateTimeHelper = dateTimeHelper;
         _subsidyReportingService = subsidyReportingService;
+        _orderApprovalService = orderApprovalService;
     }
 
     #endregion
@@ -1131,6 +1135,9 @@ public class SubsidyModelFactory : ISubsidyModelFactory
 
         var history = await _subsidyReportingService.GetSubsidyPackNameHistoryAsync(subsidyPackName.PackNameId, subsidyPackName.SubsidyId, pageIndex: searchModel.Page - 1, pageSize: searchModel.PageSize);
 
+        //not gated by the Approvals switch: an order already held waits whatever the switch says now
+        var heldOrderIds = await _orderApprovalService.GetHeldOrderIdsAsync(history.Where(item => item.OrderId > 0).Select(item => item.OrderId).Distinct().ToArray());
+
         var currency = await _workContext.GetWorkingCurrencyAsync();
         var languageId = (await _workContext.GetWorkingLanguageAsync()).Id;
 
@@ -1182,6 +1189,9 @@ public class SubsidyModelFactory : ISubsidyModelFactory
                         historyModel.Reason = item.Reason;
                         break;
                 }
+
+                if (heldOrderIds.Contains(item.OrderId))
+                    historyModel.Reason = string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.PackName.Subsidies.Subsidy.History.Field.Reason.Waiting"), historyModel.Reason);
 
                 return historyModel;
             });

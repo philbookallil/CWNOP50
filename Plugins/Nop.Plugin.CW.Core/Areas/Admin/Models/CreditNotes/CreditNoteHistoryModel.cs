@@ -27,5 +27,10 @@ public record CreditNoteHistoryModel : BaseNopEntityModel
 
     public string CreatedOn { get; set; }
 
+    /// <summary>
+    /// Where the use stands: its order waits for approval, or was cancelled and the credit came back; empty otherwise
+    /// </summary>
+    public string Status { get; set; }
+
     #endregion 
 }

@@ -1,6 +1,6 @@
 # Order Approval — Analysis and Options for 5.00
 
-Status: **the engine is applied** (Part 1, 2026-11-17) **and aligned with 4.1** (2026-11-23, §10; run on the dev site the same day: A1–A18 pass, two with a note, §10.6). Part 2, the screens, is applied (2026-11-23) and run on the dev site (2026-11-24, B1–B20 pass, §11). The approver's page was redesigned and run on the dev site on 2026-11-24 (C1–C11 pass, §12). §1–§8 are the original analysis: where they differ, §10 holds.
+Status: **the engine is applied** (Part 1, 2026-11-17) **and aligned with 4.1** (2026-11-23, §10; run on the dev site the same day: A1–A18 pass, two with a note, §10.6). Part 2, the screens, is applied (2026-11-23) and run on the dev site (2026-11-24, B1–B20 pass, §11). The approver's page was redesigned and run on the dev site on 2026-11-24 (C1–C11 pass, §12). The lists of orders and approvers, and the labels of the subsidy and store credit histories, are applied and run on the dev site (2026-11-24, D1–D16 pass, §13). §1–§8 are the original analysis: where they differ, §10 holds.
 Gap analysis item C3 / OI 2.2.1
 (`LegacyVersions/NOP41_To_500_Gap_Analysis.md`).
 
@@ -714,3 +714,122 @@ address; decided the same day to show it (`GetPlainDeliveryAsync`), in the packn
 country, so only its fields are used. C11, after the rebuild, passes: 5035 (plain, still held) shows the method, the name and the address.
 
 Found on the way and not part of this: a leftover plain cart line could refuse a packname order. Fixed 2026-11-24 (`PackName_Order_Shipments.md` §9.0a).
+
+---
+
+## 13. The lists and the histories (2026-11-24)
+
+Asked for by Eduardo: the orders waiting for approval, the approvers, and how subsidy and store credit look while an order waits.
+
+### 13.1 What each version shows
+
+| | 4.1 | 4.6 | 5.00 |
+|---|---|---|---|
+| Balance while the order waits | Reserved | Reserved | Reserved |
+| Subsidy history | An ordinary use | "Pre-order: {0}. Consumed $ allowance (pending approval)" | Marked, below |
+| Store credit history | An ordinary use | Credit notes were not part of its approvals | Marked, below |
+| After a decline | Never given back (it skipped nop's cancel) | Given back | Given back |
+| List of waiting orders | None | Yes | §13.2 |
+| List of approvers | None, e-mails on the branch | Yes | §13.3 |
+
+### 13.2 Order approvals › Orders
+
+*CW Admin › Order approvals › Orders* (`OrderApprovalAdmin/List`): waiting orders by default; filters by status, store (when there are several),
+order number, customer and approver. An approver finds the waiting orders with a link of theirs that still works, and every decided one they were
+asked about. Each row: order, customer and branch, placed on, payable, subsidy, store credit, status, who it waits for (with the reminders sent) or
+who decided. *View* opens the order page, where it is accepted or declined, so nobody decides without seeing it; *Send again* and *Change* post the
+actions of the Approval card. *Send again* (here and on the card) asks those the order waits for now: before, it also asked the approver the order
+had been changed from, whose new link worked. *Change* (here and on the card, 2026-11-25) is one box with the addresses the order waits for, edited
+freely: those kept keep their link and are not e-mailed again, those taken out lose theirs, those added are sent one (`ChangeApproversAsync`). It
+used to replace them all with one person. Refused when somebody else changed them meanwhile. When no e-mail can be queued for the new ones nothing
+changes (*Send again* too: the old links go on working). Reminders go to the addresses waited for, not to an approver's newer address. A new person is named by the address; their name is set in *Approvers*. `OrderApprovalReportService`, `OrderApprovalListModelFactory`, `admin.approval.lists.js`.
+
+### 13.3 Order approvals › Approvers
+
+*CW Admin › Order approvals › Approvers* (`OrderApprovalAdmin/Approvers`): name, e-mail, the branches and departments that ask each one (with the
+amount, or *off*), how many orders wait, and how many it accepted and declined. No *Add*: an approver is created by typing the address on a branch or
+department, so none is unused (4.6's trap). `ApproverService`.
+
+- **Edit:** name and address; an address names one approver of a store. A new name shows at once on the waiting orders (list and customer's
+  order) and on who decides (`GetWaitingApproverNamesAsync`, changed 2026-11-25: they showed the name on the link). After a change of address the
+  orders already waiting keep the links, and the name, sent to the old one. The Approval card's list of links keeps what was sent.
+- **Replace:** another approver (found by address in the same store, or created) takes every rule of this one. Orders already waiting keep theirs.
+- **Remove:** only when no rule in force names it and no order waits for it. It is taken out of the rules that are off.
+
+**The boxes of approvers** (2026-11-25; *Change* on the list and the card, *Replace*, the panel of the branch and department forms): the store's
+approvers are suggested by name or address while typing, each chosen one is a tag, and a new address can still be typed. What is posted is the same
+list of addresses. An address that cannot be one is a red tag, and the server refuses it. An approver's whole name typed and left counts too, when
+only one has it. The suggestions come with the page, or with the grid's rows on the two lists, so a change made on the list shows at once (`ApproverSuggestionModel`,
+approvers not switched off). Enter takes a whole address as typed, never an approver whose address only contains it, and submits nothing;
+`admin.approver.picker.js` over Tom Select, registered by `_ApproverPickerAssets`.
+
+Both pages need *Manage order approvals* and show in the menu while Approvals is on for any store, or any order ever needed approval: they are not
+gated on the switch, because a held order still has to be decided.
+
+### 13.4 The histories
+
+- **My Subsidies:** "Waiting for approval" on each use by a held order, and under the figures what the season's held orders hold (money of every
+  kind, and units) — not a part of *Used*, which counts only the subsidy's global credit (`CustomerSubsidyHelper.WaitingForApproval`).
+- **Admin packname subsidy history:** "(waiting for approval)" after the reason.
+- **My Store Credit and the admin credit note history:** "Waiting for approval", and "Order cancelled, returned" on the uses of a cancelled order
+  (`ICreditNotesService.GetGivenBackOrderIdsAsync`, the orders the balance views leave out). Before, a declined order's credit still read as applied.
+- The balances, the views and the history procedure are unchanged; the labels read `GetHeldOrderIdsAsync`.
+
+Plugin version `2026_11_25_DATA_0.4` (texts). No tables.
+
+### 13.5 Test plan
+
+| # | Do | Expect |
+|---|---|---|
+| D1 | Menu, with Approvals on; off in every store | Both items; still there (orders exist) |
+| D2 | Orders list | 5019, 5034, 5035 waiting, newest first; amounts as on their pages |
+| D3 | Each filter; status All, Declined | Rows as filtered; decided rows name who decided and have only View |
+| D4 | Send again on a row | Asked to confirm; message; a new e-mail; the old link replaced; the list reloads |
+| D5 | Change on a row: empty, bad address, good | Refused with the message, what was typed stays; then the row names the new approver |
+| D5a | Send again after a Change | Only the new approver gets a link; the first one's links stay stopped |
+| D5b | Change: take one of two out, add another, keep one; the same list again; a list with a bad address; an empty box | The kept one is not e-mailed and their old link works; the one out cannot answer; the new one gets a link. Nothing sent or noted. Refused, what was typed stays |
+| D5c | The same on the order page's Approval card | The same |
+| D6 | View | The order page, with its Approval card |
+| D7 | Approvers list, search | Each with its branches and departments, *off* where off; counts as the database |
+| D8 | Edit: empty name, another's address, a new name | Refused twice; saved, and the branch panel shows a changed address |
+| D9 | Replace with a new address; with one already in the rule; with itself | Moved and created; named once; refused. A waiting order keeps its approver |
+| D10 | Remove one not used; one used (posted directly) | Gone from the list; refused |
+| D11 | My Subsidies of Liam (5034 waits) | Labels on 5034's rows only; waiting total |
+| D12 | Admin packname subsidy history of Liam | The same, in words |
+| D13 | My Store Credit of Steve; admin credit note history | 5029 and 5026 "Order cancelled, returned"; a held order with credit "Waiting for approval" |
+| D14 | Decline that order | Its rows: gone from the subsidy history, "returned" in store credit; balances back |
+| D15 | A name with HTML on an approver | Shown as text in both lists and both dialogs |
+| D16 | Without *Manage order approvals* | No menu; the pages and actions refuse |
+
+| D17 | Change on a row, with the picker: type part of a name, part of an address, a new address; Enter, comma, Tab; paste three | Suggested and added as tags; the new one offered as "Add new approver"; three tags; saved as D5b |
+| D17a | Type ann@acme.com + Enter with joann@acme.com an approver; focus and Enter; arrow down and Enter; a half name and Enter | Ann's address, new; nothing; the one gone to; the first match |
+| D18 | Type an address and press Save at once (with the mouse, tags filling the line); type "jane" and leave; a wrong address | Kept and saved; the whole name of one approver is them; a red tag, refused, it stays |
+| D19 | Change on an order of another store; the same order's box opened twice; Cancel and open again | Only that store's approvers; the box starts from the order's addresses each time |
+| D20 | The order page's Approval card: the picker, Enter in it, Change with nothing edited | Works as the list; Enter submits nothing; nothing sent |
+| D21 | Replace: the approver itself is not suggested; pick one; type a new one | One tag only, a new one typed takes its place; several pasted are refused; after an Edit, the new address is suggested, not the old; saved as D9 |
+| D22 | Branch page, Manage Store branch and department: open, leave without editing; edit and save; a wrong address | No unsaved-changes question; saved; red tag and the message |
+| D23 | An approver with HTML in the name; one switched off | Shown as text in the suggestions and the tag; not suggested |
+
+### 13.6 Test run (2026-11-24, dev site, store 1)
+
+D1–D16 pass; none fails; no error was logged by it. 5034 was sent again, changed and sent again (only the new approver got the last link). Test Approver
+and Second Approver were replaced and their rules put back by hand. 5039 (Liam's subsidy, $80 store credit) was held and declined: its subsidy rows
+left the history, its credit reads "Order cancelled, returned", and both balances came back.
+
+D8a (2026-11-25): an approver renamed to Jane Manager shows at once on 5019, with "(1 reminder sent)"; 5034, whose approver's address changed
+after the link was sent, keeps the name sent.
+
+D5b and D5c (2026-11-25) pass: 5035 on the list and 5034 on the card. The kept person's link of the day before still opens the order and they got no
+e-mail; the one taken out reads "This link no longer works"; an old box is refused. With the request template off, *Save approvers* and *Send again*
+fail and every link that worked goes on.
+
+D17–D23 (2026-11-25, the approver picker) pass, with real keys and clicks: 5034 and 5035 each got new approvers typed and saved with the address still in the
+box; only the new ones were e-mailed. D19 was checked with an approver of another store added to the page's suggestions, as the second store has none.
+The rules of Test Branch 1, Test Branch 1.1 and Department 1 were edited and put back. Fixed after it (CSS): the space between a tag's name and its
+address, and the size of the text being typed.
+
+Seen, not caused by it: on Manage Store, a branch save that is refused hides the branch's packname lists, cost centres and addresses until the branch is opened
+again.
+
+Fixed after the run and seen on 2026-11-25: nop's "incl tax" beside every amount of the two lists; the message for a name or address that
+is not valid.

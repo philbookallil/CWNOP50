@@ -17,6 +17,7 @@
     if (Model.ApprovalRule.Available)
     {
         NopHtml.AppendScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Approvals/admin.approval.rule.js");
+        await Html.RenderPartialAsync("_ApproverPickerAssets");
     }
 }
 

@@ -2,10 +2,12 @@
 using Nop.Core;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.CreditNotes;
 using Nop.Plugin.CW.Core.Domain.CreditNotes;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.CreditNotes;
 using Nop.Services.Catalog;
 using Nop.Services.Customers;
 using Nop.Services.Helpers;
+using Nop.Services.Localization;
 using Nop.Services.Orders;
 using Nop.Services.Stores;
 using Nop.Web.Framework.Models.Extensions;
@@ -26,7 +28,8 @@ public class CreditNotesModelFactory : ICreditNotesModelFactory
     protected readonly IOrderService _orderService;
     protected readonly IStoreService _storeService;
     protected readonly ICustomerService _customerService;
-
+    protected readonly ILocalizationService _localizationService;
+    protected readonly IOrderApprovalService _orderApprovalService;
 
     #endregion
 
@@ -38,7 +41,9 @@ public class CreditNotesModelFactory : ICreditNotesModelFactory
         IDateTimeHelper dateTimeHelper,
         IOrderService orderService,
         IStoreService storeService,
-        ICustomerService customerService)
+        ICustomerService customerService,
+        ILocalizationService localizationService,
+        IOrderApprovalService orderApprovalService)
     {
         _creditNotesService = creditNotesService;
         _workContext = workContext;
@@ -47,6 +52,8 @@ public class CreditNotesModelFactory : ICreditNotesModelFactory
         _orderService = orderService;
         _storeService = storeService;
         _customerService = customerService;
+        _localizationService = localizationService;
+        _orderApprovalService = orderApprovalService;
     }
 
     #endregion
@@ -122,6 +129,13 @@ public class CreditNotesModelFactory : ICreditNotesModelFactory
         var history = await _creditNotesService.GetCreditNoteHistoriesByCreditNoteAsync(searchModel.CreditNoteId);
         var paged = new PagedList<CreditNoteHistory>(history.ToList(), searchModel.Page - 1, searchModel.PageSize);
 
+        //not gated by the Approvals switch: an order already held waits whatever the switch says now
+        var orderIds = paged.Select(h => h.OrderId).Distinct().ToArray();
+        var heldOrderIds = await _orderApprovalService.GetHeldOrderIdsAsync(orderIds);
+        var givenBackOrderIds = await _creditNotesService.GetGivenBackOrderIdsAsync(orderIds);
+        var waitingText = await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Status.Pending");
+        var givenBackText = await _localizationService.GetResourceAsync("Plugins.CW.Core.StoreCredit.GivenBack");
+
         var model = await new CreditNoteHistoryListModel().PrepareToGridAsync(searchModel, paged, () =>
         {
             return paged.SelectAwait(async h => new CreditNoteHistoryModel
@@ -133,7 +147,10 @@ public class CreditNotesModelFactory : ICreditNotesModelFactory
                 Remain = h.Remain,
                 AmountFormated = await _priceFormatter.FormatPriceAsync(h.Amount, true, false),
                 RemainFormated = await _priceFormatter.FormatPriceAsync(h.Remain, true, false),
-                CreatedOn = (await _dateTimeHelper.ConvertToUserTimeAsync(h.CreatedOnUtc, DateTimeKind.Utc)).ToString("g")
+                CreatedOn = (await _dateTimeHelper.ConvertToUserTimeAsync(h.CreatedOnUtc, DateTimeKind.Utc)).ToString("g"),
+                Status = givenBackOrderIds.Contains(h.OrderId) ? givenBackText
+                    : heldOrderIds.Contains(h.OrderId) ? waitingText
+                    : string.Empty
             });
         });
 

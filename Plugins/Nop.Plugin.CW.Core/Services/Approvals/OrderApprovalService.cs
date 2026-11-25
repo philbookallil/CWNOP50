@@ -105,28 +105,40 @@ public class OrderApprovalService : IOrderApprovalService
     /// Stops every live link of an approval
     /// </summary>
     protected virtual async Task RevokeRequestsAsync(OrderApproval approval)
-    {
-        var live = await _requestRepository.Table
-            .Where(request => request.OrderApprovalId == approval.Id && request.RevokedOnUtc == null)
-            .ToListAsync();
+        => await RevokeRequestsAsync(await GetLiveRequestsAsync(approval.Id));
 
-        if (live.Count == 0)
+    /// <summary>
+    /// Stops some links
+    /// </summary>
+    protected virtual async Task RevokeRequestsAsync(IList<OrderApprovalRequest> requests)
+    {
+        if (requests.Count == 0)
             return;
 
         var now = DateTime.UtcNow;
-        foreach (var request in live)
+        foreach (var request in requests)
             request.RevokedOnUtc = now;
 
-        await _requestRepository.UpdateAsync(live);
+        await _requestRepository.UpdateAsync(requests);
     }
+
+    /// <summary>
+    /// The links of an approval that work, newest first
+    /// </summary>
+    protected virtual async Task<IList<OrderApprovalRequest>> GetLiveRequestsAsync(int orderApprovalId)
+        => (await GetRequestsAsync(orderApprovalId)).Where(request => request.RevokedOnUtc == null).ToList();
 
     /// <summary>
     /// Sends each approver a new link to the order. A link whose e-mail could not be queued is logged and noted on the
     /// order; the others still go.
     /// </summary>
-    /// <returns>The approvers' names, comma separated</returns>
-    protected virtual async Task<string> SendRequestsAsync(Order order, OrderApproval approval, IList<Approver> approvers, bool reminder)
+    /// <returns>The links, and whether the e-mail of any was queued: only the e-mails carry them</returns>
+    protected virtual async Task<(IList<OrderApprovalRequest> Requests, bool AnyQueued)> SendRequestsAsync(Order order, OrderApproval approval,
+        IList<Approver> approvers, bool reminder)
     {
+        var requests = new List<OrderApprovalRequest>();
+        var anyQueued = false;
+
         foreach (var approver in approvers)
         {
             var token = OrderApprovalTokenHelper.CreateToken();
@@ -142,20 +154,38 @@ public class OrderApprovalService : IOrderApprovalService
             };
 
             await _requestRepository.InsertAsync(request);
+            requests.Add(request);
+
+            var queued = false;
+            Exception failure = null;
 
             try
             {
-                await _messageService.SendApproverRequestAsync(order, approval, request, token, reminder);
+                //none without an error: the store has no active template
+                queued = (await _messageService.SendApproverRequestAsync(order, approval, request, token, reminder))?.Count > 0;
             }
             catch (Exception exception)
             {
-                await _logger.ErrorAsync($"[Approvals] Order {order.Id}: the approval e-mail to {approver.Email} could not be queued.", exception);
-                await AddOrderNoteAsync(order, string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Note.EmailFailed"), approver.Email));
+                failure = exception;
             }
+
+            if (queued)
+            {
+                anyQueued = true;
+                continue;
+            }
+
+            await _logger.ErrorAsync($"[Approvals] Order {order.Id}: the approval e-mail to {approver.Email} could not be queued.", failure);
+            await AddOrderNoteAsync(order, string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Note.EmailFailed"), approver.Email));
         }
 
-        return string.Join(", ", approvers.Select(approver => approver.Name));
+        return (requests, anyQueued);
     }
+
+    /// <summary>
+    /// The approvers' names of some links, comma separated
+    /// </summary>
+    protected static string Names(IEnumerable<OrderApprovalRequest> requests) => string.Join(", ", requests.Select(request => request.ApproverName));
 
     /// <summary>
     /// Sends a customer e-mail of the approvals; one that could not be queued is logged, the decision stands
@@ -218,6 +248,53 @@ public class OrderApprovalService : IOrderApprovalService
             .Where(approver => approverIds.Contains(approver.Id) && !approver.Deleted)
             .OrderBy(approver => approver.Name)
             .ToListAsync();
+    }
+
+    /// <summary>
+    /// Whom to remind: each address with a link that works, at that address, as it is the one waited for. An approver
+    /// removed since is not reminded. A held order whose first links were never sent asks the approvers its rules name now.
+    /// </summary>
+    protected virtual async Task<IList<Approver>> GetReminderTargetsAsync(Order order, OrderApproval approval)
+    {
+        var live = (await GetLiveRequestsAsync(approval.Id)).DistinctBy(request => request.ApproverEmail, StringComparer.InvariantCultureIgnoreCase).ToList();
+
+        if (live.Count == 0)
+            return await GetRequestedApproversAsync(order, approval, liveLinksOnly: true);
+
+        var approverIds = live.Select(request => request.ApproverId).ToArray();
+
+        var approvers = (await _approverRepository.Table.Where(approver => approverIds.Contains(approver.Id) && !approver.Deleted).ToListAsync())
+            .ToDictionary(approver => approver.Id);
+
+        return live
+            .Where(request => approvers.ContainsKey(request.ApproverId))
+            .Select(request => new Approver
+            {
+                Id = request.ApproverId,
+                Name = PresentName(request, approvers[request.ApproverId]),
+                Email = request.ApproverEmail
+            })
+            .OrderBy(approver => approver.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>
+    /// The name of the approver a link was sent to: the present one while the link's address is still the approver's,
+    /// otherwise the name it was sent with
+    /// </summary>
+    protected static string PresentName(OrderApprovalRequest request, Approver approver)
+        => approver != null && string.Equals(approver.Email, request.ApproverEmail, StringComparison.InvariantCultureIgnoreCase)
+            ? approver.Name
+            : request.ApproverName;
+
+    /// <summary>
+    /// Who decides with a link, as shown to staff and the customer
+    /// </summary>
+    protected virtual async Task<string> DecidedByAsync(OrderApprovalRequest request)
+    {
+        var approver = await _approverRepository.Table.FirstOrDefaultAsync(item => item.Id == request.ApproverId);
+
+        return OrderApprovalEmailHelper.NameAndEmail(PresentName(request, approver), request.ApproverEmail);
     }
 
     /// <summary>
@@ -411,13 +488,13 @@ public class OrderApprovalService : IOrderApprovalService
             if (order == null)
                 return OrderApprovalResult.NotFound;
 
-            var approvers = await GetRequestedApproversAsync(order, approval, liveLinksOnly: true);
+            var approvers = await GetReminderTargetsAsync(order, approval);
 
             //the reminder stays due: an admin has to change the approver or decide
             if (approvers.Count == 0)
             {
                 await _logger.WarningAsync($"[Approvals] Order {orderId} is waiting for approval and has nobody to remind. Change its approver or decide it on its Approval card.");
-                return OrderApprovalResult.InvalidApprover;
+                return OrderApprovalResult.NobodyToAsk;
             }
 
             approval.LastReminderNumber = reminderNumber;
@@ -468,6 +545,34 @@ public class OrderApprovalService : IOrderApprovalService
             .OrderByDescending(request => request.SentOnUtc)
             .ThenByDescending(request => request.Id)
             .ToListAsync();
+    }
+
+    public virtual async Task<IList<string>> GetWaitingApproverNamesAsync(int orderApprovalId)
+    {
+        //each approver once, by the latest link
+        var requests = (await GetLiveRequestsAsync(orderApprovalId))
+            .DistinctBy(request => request.ApproverId)
+            .ToList();
+
+        var approverIds = requests.Select(request => request.ApproverId).ToArray();
+
+        var approvers = (await _approverRepository.Table.Where(approver => approverIds.Contains(approver.Id)).ToListAsync())
+            .ToDictionary(approver => approver.Id);
+
+        return requests
+            .Select(request => PresentName(request, approvers.GetValueOrDefault(request.ApproverId)))
+            .Distinct(StringComparer.InvariantCultureIgnoreCase)
+            .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
+    public virtual async Task<IList<string>> GetWaitingEmailsAsync(int orderApprovalId)
+    {
+        return (await GetLiveRequestsAsync(orderApprovalId))
+            .Select(request => request.ApproverEmail)
+            .Distinct(StringComparer.InvariantCultureIgnoreCase)
+            .OrderBy(email => email, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
     }
 
     public virtual async Task<(OrderApproval approval, OrderApprovalRequest request)> GetByTokenAsync(string token)
@@ -527,7 +632,8 @@ public class OrderApprovalService : IOrderApprovalService
 
         var approvers = await GetApproversAsync(requirement);
 
-        var approverNames = await SendRequestsAsync(order, approval, approvers, reminder: false);
+        var (requests, _) = await SendRequestsAsync(order, approval, approvers, reminder: false);
+        var approverNames = Names(requests);
 
         await AddOrderNoteAsync(order, string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Note.Held"),
             approverNames, string.Join(", ", requirement.RuleIds)));
@@ -561,7 +667,7 @@ public class OrderApprovalService : IOrderApprovalService
             return OrderApprovalResult.NotFound;
 
         return await DecideAsync(approval.OrderId, OrderApprovalStatus.Approved,
-            OrderApprovalEmailHelper.NameAndEmail(request.ApproverName, request.ApproverEmail), request.ApproverId, null, null, request.Id);
+            await DecidedByAsync(request), request.ApproverId, null, null, request.Id);
     }
 
     public virtual async Task<OrderApprovalResult> DeclineByTokenAsync(string token, string reason)
@@ -577,7 +683,7 @@ public class OrderApprovalService : IOrderApprovalService
             return OrderApprovalResult.NotFound;
 
         return await DecideAsync(approval.OrderId, OrderApprovalStatus.Declined,
-            OrderApprovalEmailHelper.NameAndEmail(request.ApproverName, request.ApproverEmail), request.ApproverId, null, reason, request.Id);
+            await DecidedByAsync(request), request.ApproverId, null, reason, request.Id);
     }
 
     public virtual async Task<OrderApprovalResult> AcceptByAdminAsync(int orderId, Customer admin)
@@ -613,35 +719,52 @@ public class OrderApprovalService : IOrderApprovalService
                 return OrderApprovalResult.AlreadyDecided;
 
             var order = await _orderService.GetOrderByIdAsync(orderId);
-            if (order == null)
-                return OrderApprovalResult.NotFound;
 
-            var approvers = await GetRequestedApproversAsync(order, approval, liveLinksOnly: false);
+            if (order == null || order.Deleted || order.OrderStatus == OrderStatus.Cancelled)
+            {
+                await EndAsCancelledAsync(approval);
+                return OrderApprovalResult.AlreadyDecided;
+            }
+
+            //those it waits for now: an approver it was changed from is not asked again
+            var approvers = await GetRequestedApproversAsync(order, approval, liveLinksOnly: true);
+
+            //no link works (a change or a resend stopped half way): whoever was ever asked
             if (approvers.Count == 0)
-                return OrderApprovalResult.InvalidApprover;
+                approvers = await GetRequestedApproversAsync(order, approval, liveLinksOnly: false);
 
-            await RevokeRequestsAsync(approval);
+            if (approvers.Count == 0)
+                return OrderApprovalResult.NobodyToAsk;
+
+            var live = await GetLiveRequestsAsync(approval.Id);
+            var (requests, anyQueued) = await SendRequestsAsync(order, approval, approvers, reminder: false);
+
+            //nobody got a new link: the old ones go on working
+            if (!anyQueued)
+            {
+                await RevokeRequestsAsync(requests);
+                return OrderApprovalResult.Failed;
+            }
+
+            await RevokeRequestsAsync(live);
 
             approval.RequestedOnUtc = DateTime.UtcNow;
             approval.LastReminderNumber = 0;
             await _orderApprovalRepository.UpdateAsync(approval);
 
-            var approverNames = await SendRequestsAsync(order, approval, approvers, reminder: false);
-
-            await AddOrderNoteAsync(order, string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Note.Resent"), approverNames, admin.Email));
+            await AddOrderNoteAsync(order, string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Note.Resent"), Names(requests), admin.Email));
 
             return OrderApprovalResult.Done;
         });
     }
 
-    public virtual async Task<OrderApprovalResult> ChangeApproverAsync(int orderId, Customer admin, string name, string email)
+    public virtual async Task<OrderApprovalResult> ChangeApproversAsync(int orderId, Customer admin, string emails, string startedFrom)
     {
         ArgumentNullException.ThrowIfNull(admin);
 
-        name = name?.Trim();
-        email = email?.Trim();
+        var wanted = OrderApprovalEmailHelper.Parse(emails);
 
-        if (string.IsNullOrEmpty(name) || name.Length > OrderApprovalEmailHelper.MaxNameLength || !OrderApprovalEmailHelper.IsValid(email))
+        if (wanted.Count == 0 || !wanted.All(OrderApprovalEmailHelper.IsValid))
             return OrderApprovalResult.InvalidApprover;
 
         return await RunLockedAsync(orderId, async () =>
@@ -654,20 +777,52 @@ public class OrderApprovalService : IOrderApprovalService
                 return OrderApprovalResult.AlreadyDecided;
 
             var order = await _orderService.GetOrderByIdAsync(orderId);
-            if (order == null)
-                return OrderApprovalResult.NotFound;
 
-            var approver = await _approvalRuleService.GetOrCreateApproverAsync(order.StoreId, email, name);
+            if (order == null || order.Deleted || order.OrderStatus == OrderStatus.Cancelled)
+            {
+                await EndAsCancelledAsync(approval);
+                return OrderApprovalResult.AlreadyDecided;
+            }
 
-            await RevokeRequestsAsync(approval);
+            var live = await GetLiveRequestsAsync(approval.Id);
 
-            approval.RequestedOnUtc = DateTime.UtcNow;
-            approval.LastReminderNumber = 0;
-            await _orderApprovalRepository.UpdateAsync(approval);
+            if (!OrderApprovalEmailHelper.Parse(startedFrom)
+                    .ToHashSet(StringComparer.InvariantCultureIgnoreCase)
+                    .SetEquals(live.Select(request => request.ApproverEmail)))
+                return OrderApprovalResult.ChangedMeanwhile;
 
-            var approverNames = await SendRequestsAsync(order, approval, [approver], reminder: false);
+            var added = wanted.Except(live.Select(request => request.ApproverEmail), StringComparer.InvariantCultureIgnoreCase).ToList();
+            var removed = live.Where(request => !wanted.Contains(request.ApproverEmail, StringComparer.InvariantCultureIgnoreCase)).ToList();
 
-            await AddOrderNoteAsync(order, string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Note.ApproverChanged"), approverNames, admin.Email));
+            if (added.Count == 0 && removed.Count == 0)
+                return OrderApprovalResult.Done;
+
+            //the new links before the old ones stop: there is always somebody who can answer
+            if (added.Count > 0)
+            {
+                var approvers = new List<Approver>();
+
+                foreach (var email in added)
+                    approvers.Add(await _approvalRuleService.GetOrCreateApproverAsync(order.StoreId, email));
+
+                var (requests, anyQueued) = await SendRequestsAsync(order, approval, approvers, reminder: false);
+
+                //none of the new ones got a link: nothing is changed
+                if (!anyQueued)
+                {
+                    await RevokeRequestsAsync(requests);
+                    return OrderApprovalResult.Failed;
+                }
+
+                approval.RequestedOnUtc = DateTime.UtcNow;
+                approval.LastReminderNumber = 0;
+                await _orderApprovalRepository.UpdateAsync(approval);
+            }
+
+            await RevokeRequestsAsync(removed);
+
+            await AddOrderNoteAsync(order, string.Format(await _localizationService.GetResourceAsync("Plugins.CW.Core.OrderApproval.Note.ApproverChanged"),
+                string.Join(", ", await GetWaitingApproverNamesAsync(approval.Id)), admin.Email));
 
             return OrderApprovalResult.Done;
         });

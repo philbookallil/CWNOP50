@@ -1,6 +1,7 @@
 using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Moq;
+using Nop.Core;
 using Nop.Plugin.CW.Core.Areas.Admin.Factories;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Approvals;
 using Nop.Plugin.CW.Core.Domain.Approvals;
@@ -41,7 +42,13 @@ public class ApprovalRuleModelFactoryTests
         var featureService = new Mock<ICWFeatureService>();
         featureService.Setup(mock => mock.IsEnabledAsync(CWFeature.Approvals, StoreId)).ReturnsAsync(() => _featureOn);
 
-        _factory = new ApprovalRuleModelFactory(ruleService.Object, featureService.Object);
+        var approverService = new Mock<IApproverService>();
+        approverService.Setup(mock => mock.SearchApproversAsync(StoreId, It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(() => new PagedList<Approver>([
+                new Approver { Id = 7, StoreId = StoreId, Name = "Ann", Email = "ann@x.com", Active = true },
+                new Approver { Id = 8, StoreId = StoreId, Name = "Off", Email = "off@x.com" }], 0, 10));
+
+        _factory = new ApprovalRuleModelFactory(ruleService.Object, approverService.Object, featureService.Object);
     }
 
     private Task PrepareAsync(ApprovalRuleModel model, bool keepValues)
@@ -72,6 +79,15 @@ public class ApprovalRuleModelFactoryTests
         model.Available.Should().BeTrue();
         model.Threshold.Should().Be(-1m);
         model.Emails.Should().Be("bob");
+    }
+
+    [Test]
+    public async Task The_box_suggests_the_approvers_in_use_after_a_refused_post_too([Values] bool keepValues)
+    {
+        var model = new ApprovalRuleModel { Available = true };
+        await PrepareAsync(model, keepValues);
+
+        model.Suggestions.Should().Equal(new ApproverSuggestionModel(StoreId, "Ann", "ann@x.com"));
     }
 
     [Test]

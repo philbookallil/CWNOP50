@@ -5,6 +5,7 @@ using Nop.Plugin.CW.Core.Domain.Subsidies.DTOs;
 using Nop.Plugin.CW.Core.Domain.Subsidies.Views;
 using Nop.Plugin.CW.Core.Helpers;
 using Nop.Plugin.CW.Core.Models.Subsidies;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.Branches;
 using Nop.Plugin.CW.Core.Services.MultiStores;
 using Nop.Plugin.CW.Core.Services.PackNames;
@@ -35,6 +36,7 @@ public class CustomerSubsidiesModelFactory : ICustomerSubsidiesModelFactory
     protected readonly ILocalizationService _localizationService;
     protected readonly IOrderService _orderService;
     protected readonly ICurrencyService _currencyService;
+    protected readonly IOrderApprovalService _orderApprovalService;
 
     #endregion
 
@@ -49,7 +51,8 @@ public class CustomerSubsidiesModelFactory : ICustomerSubsidiesModelFactory
         IDateTimeHelper dateTimeHelper,
         ILocalizationService localizationService,
         IOrderService orderService,
-        ICurrencyService currencyService)
+        ICurrencyService currencyService,
+        IOrderApprovalService orderApprovalService)
     {
         _subsidyReportingService = subsidyReportingService;
         _packNameService = packNameService;
@@ -61,6 +64,7 @@ public class CustomerSubsidiesModelFactory : ICustomerSubsidiesModelFactory
         _localizationService = localizationService;
         _orderService = orderService;
         _currencyService = currencyService;
+        _orderApprovalService = orderApprovalService;
     }
 
     #endregion
@@ -369,8 +373,19 @@ public class CustomerSubsidiesModelFactory : ICustomerSubsidiesModelFactory
                 .Select(order => order.Id)
                 .ToHashSet();
 
+            //not gated by the Approvals switch: an order already held waits whatever the switch says now
+            var heldOrderIds = await _orderApprovalService.GetHeldOrderIdsAsync(orderIds);
+
             foreach (var item in historyModels)
+            {
                 item.CanOpenOrder = ownOrderIds.Contains(item.OrderId);
+                item.WaitingForApproval = heldOrderIds.Contains(item.OrderId);
+            }
+
+            var (waitingCredit, waitingUnits) = CustomerSubsidyHelper.WaitingForApproval(historyBySeason[^1], heldOrderIds);
+
+            model.WaitingCreditFormatted = waitingCredit == decimal.Zero ? string.Empty : await FormatAsync(waitingCredit);
+            model.WaitingUnits = waitingUnits;
         }
 
         return model;

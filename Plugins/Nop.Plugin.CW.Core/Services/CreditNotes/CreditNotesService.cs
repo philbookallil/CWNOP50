@@ -25,6 +25,7 @@ public class CreditNotesService : ICreditNotesService
     protected readonly IRepository<CreditNoteBalance> _creditNoteBalanceRepository;
     protected readonly IRepository<CreditNoteHistory> _creditNoteHistoriesRepository;
     protected readonly IRepository<CreditNoteHistoryBalance> _creditNoteHistoryBalanceRepository;
+    protected readonly IRepository<Order> _orderRepository;
     protected readonly ICustomerActivityService _customerActivityService;
     protected readonly ICustomerService _customerService;
     protected readonly IOrderService _orderService;
@@ -44,6 +45,7 @@ public class CreditNotesService : ICreditNotesService
         IRepository<CreditNoteBalance> creditNoteBalanceRepository,
         IRepository<CreditNoteHistory> creditNoteHistoriesRepository,
         IRepository<CreditNoteHistoryBalance> creditNoteHistoryBalanceRepository,
+        IRepository<Order> orderRepository,
         ICustomerActivityService customerActivityService,
         ICustomerService customerService,
         IOrderService orderService,
@@ -58,6 +60,7 @@ public class CreditNotesService : ICreditNotesService
         _creditNoteBalanceRepository = creditNoteBalanceRepository;
         _creditNoteHistoriesRepository = creditNoteHistoriesRepository;
         _creditNoteHistoryBalanceRepository = creditNoteHistoryBalanceRepository;
+        _orderRepository = orderRepository;
         _customerActivityService = customerActivityService;
         _customerService = customerService;
         _orderService = orderService;
@@ -162,6 +165,19 @@ public class CreditNotesService : ICreditNotesService
     {
         var query = _creditNoteHistoryBalanceRepository.Table.Where(c => c.CreditNoteId == creditNoteId);
         return (await query.ToListAsync()).Select(MapToCreditNoteHistory).ToList();
+    }
+
+    public async Task<IList<int>> GetGivenBackOrderIdsAsync(int[] orderIds)
+    {
+        if (orderIds == null || orderIds.Length == 0)
+            return new List<int>();
+
+        var countedIds = await _orderRepository.Table
+            .Where(order => orderIds.Contains(order.Id) && order.OrderStatusId != (int)OrderStatus.Cancelled)
+            .Select(order => order.Id)
+            .ToListAsync();
+
+        return orderIds.Except(countedIds).ToList();
     }
 
     public async Task<(IDictionary<int, decimal> Applied, decimal AppliedTotal)> CalculateAppliedCreditNotesAsync(int customerId, decimal orderTotal, bool bypassCache = false)

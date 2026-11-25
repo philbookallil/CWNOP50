@@ -33,6 +33,16 @@ public record OrderApprovalAdminModel : BaseNopModel
 
     public string DecisionComment { get; set; }
 
+    /// <summary>
+    /// The addresses the order waits for, as the box that changes them shows them
+    /// </summary>
+    public string WaitingEmails { get; set; }
+
+    /// <summary>
+    /// The approvers of the order's store, suggested while an address is typed
+    /// </summary>
+    public IList<ApproverSuggestionModel> Suggestions { get; set; } = [];
+
     public IList<OrderApprovalRequestAdminModel> Requests { get; set; } = [];
 }
 

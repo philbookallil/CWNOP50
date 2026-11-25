@@ -36,6 +36,17 @@ public interface ICreditNotesService
 
     Task<IList<CreditNoteHistory>> GetCreditNoteHistoriesByCreditNoteAsync(int creditNoteId);
 
+    /// <summary>
+    /// Of some orders, those whose store credit counts as given back: the cancelled ones, and any that no longer exist.
+    /// The same orders the balance views leave out.
+    /// </summary>
+    /// <param name="orderIds">Order identifiers</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the identifiers of those orders
+    /// </returns>
+    Task<IList<int>> GetGivenBackOrderIdsAsync(int[] orderIds);
+
     Task<IList<CreditNoteHistory>> GetCreditNoteHistoriesByCustomerIdAsync(int customerId);
 
     Task<IList<CreditNoteHistory>> GetCreditNoteHistoriesByOrderIdAsync(int orderId);

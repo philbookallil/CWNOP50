@@ -137,6 +137,34 @@ public static class CustomerSubsidyHelper
     }
 
     /// <summary>
+    /// What the orders waiting for approval hold of an assignment: the money of every kind, and the product group units
+    /// </summary>
+    /// <param name="history">The history</param>
+    /// <param name="heldOrderIds">The orders waiting for approval</param>
+    public static (decimal Credit, int Units) WaitingForApproval(IEnumerable<SubsidyHistory> history, ICollection<int> heldOrderIds)
+    {
+        var credit = decimal.Zero;
+        var units = 0;
+
+        foreach (var item in history.Where(item => heldOrderIds.Contains(item.OrderId)))
+        {
+            switch (item.HistoryType)
+            {
+                case HistoryType.SubsidyUsed:
+                case HistoryType.SubsidyUsedForShipping:
+                    credit += item.Credit + item.CreditTopup;
+                    break;
+                case HistoryType.ProductGroupUsed:
+                    credit += item.ProductGroupCredit + item.ProductGroupCreditTopup;
+                    units += item.Quantity + item.QuantityTopup;
+                    break;
+            }
+        }
+
+        return (credit, units);
+    }
+
+    /// <summary>
     /// The share of a total that has been used, as a whole percentage between 0 and 100; 0 when there is
     /// nothing to measure against.
     /// </summary>

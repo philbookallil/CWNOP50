@@ -1,12 +1,14 @@
 using Nop.Core.Domain.Directory;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.Approvals;
 using Nop.Plugin.CW.Core.Domain.Approvals;
+using Nop.Plugin.CW.Core.Helpers;
 using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.Security;
 using Nop.Services.Catalog;
 using Nop.Services.Directory;
 using Nop.Services.Helpers;
 using Nop.Services.Localization;
+using Nop.Services.Orders;
 using Nop.Services.Security;
 
 namespace Nop.Plugin.CW.Core.Areas.Admin.Factories;
@@ -19,10 +21,12 @@ public class OrderApprovalAdminModelFactory : IOrderApprovalAdminModelFactory
     #region Fields
 
     protected readonly CurrencySettings _currencySettings;
+    protected readonly IApproverService _approverService;
     protected readonly ICurrencyService _currencyService;
     protected readonly IDateTimeHelper _dateTimeHelper;
     protected readonly ILocalizationService _localizationService;
     protected readonly IOrderApprovalService _orderApprovalService;
+    protected readonly IOrderService _orderService;
     protected readonly IPermissionService _permissionService;
     protected readonly IPriceFormatter _priceFormatter;
 
@@ -31,18 +35,22 @@ public class OrderApprovalAdminModelFactory : IOrderApprovalAdminModelFactory
     #region Ctor
 
     public OrderApprovalAdminModelFactory(CurrencySettings currencySettings,
+        IApproverService approverService,
         ICurrencyService currencyService,
         IDateTimeHelper dateTimeHelper,
         ILocalizationService localizationService,
         IOrderApprovalService orderApprovalService,
+        IOrderService orderService,
         IPermissionService permissionService,
         IPriceFormatter priceFormatter)
     {
         _currencySettings = currencySettings;
+        _approverService = approverService;
         _currencyService = currencyService;
         _dateTimeHelper = dateTimeHelper;
         _localizationService = localizationService;
         _orderApprovalService = orderApprovalService;
+        _orderService = orderService;
         _permissionService = permissionService;
         _priceFormatter = priceFormatter;
     }
@@ -79,8 +87,17 @@ public class OrderApprovalAdminModelFactory : IOrderApprovalAdminModelFactory
             LastReminderNumber = approval.LastReminderNumber,
             DecidedBy = approval.DecidedBy,
             DecidedOn = await FormatDateAsync(approval.DecidedOnUtc),
-            DecisionComment = approval.DecisionComment
+            DecisionComment = approval.DecisionComment,
+            WaitingEmails = OrderApprovalEmailHelper.Format(await _orderApprovalService.GetWaitingEmailsAsync(approval.Id))
         };
+
+        if (model.IsPending && model.CanManage)
+        {
+            var storeId = (await _orderService.GetOrderByIdAsync(orderId))?.StoreId ?? 0;
+
+            if (storeId > 0)
+                model.Suggestions = ApproverSuggestionModel.From(await _approverService.SearchApproversAsync(storeId));
+        }
 
         foreach (var request in await _orderApprovalService.GetRequestsAsync(approval.Id))
         {

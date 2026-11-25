@@ -16,15 +16,19 @@ public class ApprovalRuleModelFactory : IApprovalRuleModelFactory
     #region Fields
 
     protected readonly IApprovalRuleService _approvalRuleService;
+    protected readonly IApproverService _approverService;
     protected readonly ICWFeatureService _cwFeatureService;
 
     #endregion
 
     #region Ctor
 
-    public ApprovalRuleModelFactory(IApprovalRuleService approvalRuleService, ICWFeatureService cwFeatureService)
+    public ApprovalRuleModelFactory(IApprovalRuleService approvalRuleService,
+        IApproverService approverService,
+        ICWFeatureService cwFeatureService)
     {
         _approvalRuleService = approvalRuleService;
+        _approverService = approverService;
         _cwFeatureService = cwFeatureService;
     }
 
@@ -41,7 +45,12 @@ public class ApprovalRuleModelFactory : IApprovalRuleModelFactory
 
         model.Available = await _cwFeatureService.IsEnabledAsync(CWFeature.Approvals, storeId);
 
-        if (!model.Available || hasPostedValues)
+        if (!model.Available)
+            return;
+
+        model.Suggestions = ApproverSuggestionModel.From(await _approverService.SearchApproversAsync(storeId));
+
+        if (hasPostedValues)
             return;
 
         var setup = await _approvalRuleService.GetSetupAsync(scopeType, scopeId);

@@ -3,6 +3,7 @@ using Nop.Core;
 using Nop.Core.Http;
 using Nop.Plugin.CW.Core.Domain.Settings;
 using Nop.Plugin.CW.Core.Models.CreditNotes;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.CreditNotes;
 using Nop.Plugin.CW.Core.Services.Settings;
 using Nop.Services.Catalog;
@@ -25,6 +26,7 @@ namespace Nop.Plugin.CW.Core.Controllers
         protected readonly IDateTimeHelper _dateTimeHelper;
         protected readonly ICWFeatureService _cwFeatureService;
         protected readonly ICurrencyService _currencyService;
+        protected readonly IOrderApprovalService _orderApprovalService;
 
         #endregion
 
@@ -37,7 +39,8 @@ namespace Nop.Plugin.CW.Core.Controllers
             ICustomerService customerService,
             IDateTimeHelper dateTimeHelper,
             ICWFeatureService cwFeatureService,
-            ICurrencyService currencyService)
+            ICurrencyService currencyService,
+            IOrderApprovalService orderApprovalService)
         {
             _workContext = workContext;
             _priceFormatter = priceFormatter;
@@ -46,6 +49,7 @@ namespace Nop.Plugin.CW.Core.Controllers
             _dateTimeHelper = dateTimeHelper;
             _cwFeatureService = cwFeatureService;
             _currencyService = currencyService;
+            _orderApprovalService = orderApprovalService;
         }
 
         #endregion
@@ -87,6 +91,11 @@ namespace Nop.Plugin.CW.Core.Controllers
                 ? new Dictionary<int, string>()
                 : (await _creditNotesService.SearchCreditNotesByCustomerIdAsync(customerId)).ToDictionary(note => note.Id, note => note.Name);
 
+            //not gated by the Approvals switch: an order already held waits whatever the switch says now
+            var orderIds = histories.Select(history => history.OrderId).Distinct().ToArray();
+            var heldOrderIds = await _orderApprovalService.GetHeldOrderIdsAsync(orderIds);
+            var givenBackOrderIds = await _creditNotesService.GetGivenBackOrderIdsAsync(orderIds);
+
             foreach (var history in histories.OrderByDescending(history => history.CreatedOnUtc).ThenByDescending(history => history.Id))
             {
                 section.Ledger.Add(new StoreCreditsModel.CreditLedgerEntryModel
@@ -94,7 +103,9 @@ namespace Nop.Plugin.CW.Core.Controllers
                     Name = creditNoteNames.GetValueOrDefault(history.CreditNoteId),
                     OrderId = history.OrderId,
                     CreatedOn = (await _dateTimeHelper.ConvertToUserTimeAsync(history.CreatedOnUtc, DateTimeKind.Utc)).ToString("g"),
-                    AmountApplied = await formatAsync(history.Amount)
+                    AmountApplied = await formatAsync(history.Amount),
+                    WaitingForApproval = heldOrderIds.Contains(history.OrderId),
+                    GivenBack = givenBackOrderIds.Contains(history.OrderId)
                 });
             }
 

@@ -985,7 +985,9 @@ per live assignment whose subsidy and assignment are both active (`SubsidyPackNa
   `CustomerSubsidyHelper.SeasonsUpTo` / `SeasonIndexFor`): the current season's rows sit under the figures, the earlier
   seasons under *Earlier seasons (n)*, each with its dates, what was topped up and used, and its rows. A movement
   belongs to a season by its store date (a top-up between seasons goes to the next one, a refund to its order's
-  season); the assignment, the allocations and the variations stand in every season from their own. The 4.9 page
+  season); the assignment, the allocations and the variations stand in every season from their own. A use by an order
+  waiting for approval says so, and a line under the figures sums what the season's held orders hold
+  (`Order_Approval_Analysis.md` §13.4); the admin history says it in the reason. The 4.9 page
   showed the latest 100 rows. An order row is a **link only when the order belongs to the viewing customer** (`CanOpenOrder`, one
   `GetOrdersByIdsAsync` per card): nop's order page opens only the customer's own orders, so a manager reading an
   employee's page sees the employee's own orders as sentences, and an employee sees the orders his manager placed

@@ -154,6 +154,8 @@ public class NopStartup : INopStartup
         //order approvals; the placement context keeps a held plain order's e-mails until the order is settled
         services.AddScoped<IApprovalRuleService, ApprovalRuleService>();
         services.AddScoped<IOrderApprovalRuleService, OrderApprovalRuleService>();
+        services.AddScoped<IApproverService, ApproverService>();
+        services.AddScoped<IOrderApprovalReportService, OrderApprovalReportService>();
         services.AddScoped<IOrderApprovalService, OrderApprovalService>();
         services.AddScoped<IOrderApprovalWorkflowMessageService, OrderApprovalWorkflowMessageService>();
         services.AddScoped<IOrderApprovalInstallService, OrderApprovalInstallService>();
@@ -184,6 +186,7 @@ public class NopStartup : INopStartup
         services.AddScoped<IReturnRequestExchangeModelFactory, ReturnRequestExchangeModelFactory>();
         services.AddScoped<IApprovalRuleModelFactory, ApprovalRuleModelFactory>();
         services.AddScoped<IOrderApprovalAdminModelFactory, OrderApprovalAdminModelFactory>();
+        services.AddScoped<IOrderApprovalListModelFactory, OrderApprovalListModelFactory>();
 
         //public store factories
         services.AddScoped<Factories.IPackNameModelFactory, Factories.PackNameModelFactory>();

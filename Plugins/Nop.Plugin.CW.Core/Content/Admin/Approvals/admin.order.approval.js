@@ -1,5 +1,5 @@
 /*
- * The approval card of the admin order page: approve, decline, resend and change approver.
+ * The approval card of the admin order page: approve, decline, resend and change approvers.
  *
  * The card sits inside nop's order form, so its buttons post by AJAX instead of with forms of their own. The
  * actions answer an anonymous object, so its members arrive lowercase: { success, message }. On success the page
@@ -59,8 +59,8 @@
 
         $card.on('click.cwapproval', '.cw-approval-change', function () {
             post($cfg.data('changeUrl'), {
-                name: $('#cw-approval-name').val(),
-                email: $('#cw-approval-email').val()
+                emails: $('#cw-approval-emails').val(),
+                startedFrom: $('#cw-approval-emails').prop('defaultValue')
             }, $cfg.data('confirmChange'));
         });
     });

@@ -2,7 +2,7 @@
   "Group": "CW",
   "FriendlyName": "CW Core Plugin",
   "SystemName": "CW.Core",
-  "Version": "2026_11_24_DATA_0.2",
+  "Version": "2026_11_25_DATA_0.4",
   "SupportedVersions": [ "5.00" ],
   "Author": "CW Team",
   "DisplayOrder": 1,

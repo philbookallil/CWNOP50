@@ -36,5 +36,11 @@ public record StoreCreditsModel : BaseNopModel
         public int OrderId { get; set; }
         public string CreatedOn { get; set; }
         public string AmountApplied { get; set; }
+
+        /// <summary>The order is waiting for approval: the credit comes back if it is not approved</summary>
+        public bool WaitingForApproval { get; set; }
+
+        /// <summary>The order was cancelled: the credit came back</summary>
+        public bool GivenBack { get; set; }
     }
 }

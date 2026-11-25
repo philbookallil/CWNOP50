@@ -1,0 +1,9 @@
+@*What a page needs for its boxes of approvers (class cw-approver-picker): rendered by the page that holds them, as a
+  fragment loaded by AJAX cannot register a stylesheet or a script*@
+@{
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/lib/tom-select/tom-select.css");
+    NopHtml.AddCssFileParts("~/Plugins/CW.Core/Content/Admin/Approvals/admin.approver.picker.css");
+
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/lib/tom-select/tom-select.complete.min.js");
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Approvals/admin.approver.picker.js");
+}

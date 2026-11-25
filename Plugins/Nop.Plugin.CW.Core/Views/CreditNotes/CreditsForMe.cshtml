@@ -90,8 +90,18 @@
                             <tbody>
                                 @foreach (var entry in credit.Ledger)
                                 {
-                                    <tr>
-                                        <td class="store-credit-description">@entry.Name</td>
+                                    <tr class="@(entry.GivenBack ? "store-credit-given-back" : "")">
+                                        <td class="store-credit-description">
+                                            @entry.Name
+                                            @if (entry.GivenBack)
+                                            {
+                                                <span class="store-credit-label">@T("Plugins.CW.Core.StoreCredit.GivenBack")</span>
+                                            }
+                                            else if (entry.WaitingForApproval)
+                                            {
+                                                <span class="store-credit-label store-credit-label-waiting">@T("Plugins.CW.Core.OrderApproval.Status.Pending")</span>
+                                            }
+                                        </td>
                                         <td>
                                             @if (entry.OrderId > 0)
                                             {
@@ -103,7 +113,7 @@
                                             }
                                         </td>
                                         <td>@entry.CreatedOn</td>
-                                        <td>@entry.AmountApplied</td>
+                                        <td class="store-credit-applied">@entry.AmountApplied</td>
                                     </tr>
                                 }
                             </tbody>

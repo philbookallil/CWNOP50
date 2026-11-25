@@ -21,7 +21,9 @@
     <InternalsVisibleTo Include="CW.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="Content\Admin\Approvals\admin.approval.lists.js" />
     <None Remove="Content\Admin\Approvals\admin.approval.rule.js" />
+    <None Remove="Content\Admin\Approvals\admin.approver.picker.js" />
     <None Remove="Content\Admin\Approvals\admin.order.approval.js" />
     <None Remove="Content\Admin\MultiStore\admin.packname.bulk.js" />
     <None Remove="Content\Admin\MultiStore\admin.store.navigation.js" />
@@ -33,7 +35,13 @@
     <None Remove="plugin.json" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Admin\Approvals\admin.approval.lists.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Content\Admin\Approvals\admin.approval.rule.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Content\Admin\Approvals\admin.approver.picker.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Content\Admin\Approvals\admin.order.approval.js">
@@ -331,6 +339,12 @@
     <None Update="Areas\Admin\Views\Shared\Components\FeeConcept\ReShippingFee.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Areas\Admin\Views\OrderApprovalAdmin\Approvers.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\OrderApprovalAdmin\List.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Areas\Admin\Views\Shared\Components\OrderApprovalAdmin\Default.cshtml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -458,6 +472,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Content\MyAccount\store-credit.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Areas\Admin\Views\Shared\_ApproverPickerAssets.cshtml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\Admin\Approvals\admin.approver.picker.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Content\Approvals\order-approval.css">

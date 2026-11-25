@@ -24,4 +24,9 @@ public record ApprovalRuleModel : BaseNopModel
 
     [NopResourceDisplayName("Plugins.CW.Core.Admin.ApprovalRule.Emails")]
     public string Emails { get; set; }
+
+    /// <summary>
+    /// Gets or sets the store's approvers, suggested while an address is typed; not posted
+    /// </summary>
+    public IList<ApproverSuggestionModel> Suggestions { get; set; } = new List<ApproverSuggestionModel>();
 }

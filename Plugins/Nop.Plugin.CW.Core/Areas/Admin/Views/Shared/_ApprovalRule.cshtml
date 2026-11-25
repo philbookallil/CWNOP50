@@ -1,7 +1,7 @@
 @model Nop.Plugin.CW.Core.Areas.Admin.Models.Approvals.ApprovalRuleModel
 
 @*The caller sets HtmlFieldPrefix to the panel's property. The form that holds the panel registers
-  admin.approval.rule.js, which hides the details while approval is not required.*@
+  admin.approval.rule.js, which hides the details while approval is not required, and _ApproverPickerAssets.*@
 <div class="cw-approval-rule">
     <input asp-for="Available" type="hidden" />
     <div class="form-group row">
@@ -28,9 +28,19 @@
                 <nop-label asp-for="Emails" />
             </div>
             <div class="col-md-9">
-                <nop-editor asp-for="Emails" />
+                <input asp-for="Emails" class="form-control cw-approver-picker" autocomplete="off"
+                       data-approvers="@System.Text.Json.JsonSerializer.Serialize(Model.Suggestions)"
+                       data-add-text="@T("Plugins.CW.Core.Admin.ApproverPicker.Add")" />
                 <span asp-validation-for="Emails"></span>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    //the panel is loaded by AJAX on some pages; on the others the picker's own script starts it
+    (function () {
+        if (window.CW && CW.ApproverPicker)
+            CW.ApproverPicker.startAll();
+    })();
+</script>

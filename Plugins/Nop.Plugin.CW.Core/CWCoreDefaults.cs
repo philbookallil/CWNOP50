@@ -18,6 +18,21 @@ public class CWCoreDefaults
     public static string MultiStoreAdminMenuSystemName => "CW.Core.MultiStoresAdminMenu";
 
     /// <summary>
+    /// Gets the order approvals administration menu system name
+    /// </summary>
+    public static string OrderApprovalsAdminMenuSystemName => "CW.Core.OrderApprovalsAdminMenu";
+
+    /// <summary>
+    /// Gets the list of order approvals administration menu system name
+    /// </summary>
+    public static string OrderApprovalsListAdminMenuSystemName => "CW.Core.OrderApprovals.List";
+
+    /// <summary>
+    /// Gets the approvers administration menu system name
+    /// </summary>
+    public static string ApproversAdminMenuSystemName => "CW.Core.OrderApprovals.Approvers";
+
+    /// <summary>
     /// Gets the exchanges administration menu system name
     /// </summary>
     public static string ExchangesAdminMenuSystemName => "CW.Core.ExchangesAdminMenu";

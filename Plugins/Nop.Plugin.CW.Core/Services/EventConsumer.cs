@@ -13,6 +13,7 @@ using Nop.Plugin.CW.Core.BusinessLogic;
 using Nop.Plugin.CW.Core.Domain.PackNames;
 using Nop.Plugin.CW.Core.Domain.Settings;
 using Nop.Plugin.CW.Core.Domain.Subsidies;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.BulkOrder;
 using Nop.Plugin.CW.Core.Services.CreditNotes;
 using Nop.Plugin.CW.Core.Services.Exchanges;
@@ -85,6 +86,7 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
     protected readonly BulkOrderProductPageContext _bulkOrderProductPageContext;
     protected readonly IGenericAttributeService _genericAttributeService;
     protected readonly IShoppingCartOverrideService _shoppingCartService;
+    protected readonly IOrderApprovalReportService _orderApprovalReportService;
 
     #endregion
 
@@ -112,7 +114,8 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
         IBulkOrderProductPageService bulkOrderProductPageService,
         BulkOrderProductPageContext bulkOrderProductPageContext,
         IGenericAttributeService genericAttributeService,
-        IShoppingCartOverrideService shoppingCartService) : base(pluginManager)
+        IShoppingCartOverrideService shoppingCartService,
+        IOrderApprovalReportService orderApprovalReportService) : base(pluginManager)
     {
         _permissionService = permissionService;
         _localizationService = localizationService;
@@ -136,6 +139,7 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
         _bulkOrderProductPageContext = bulkOrderProductPageContext;
         _genericAttributeService = genericAttributeService;
         _shoppingCartService = shoppingCartService;
+        _orderApprovalReportService = orderApprovalReportService;
     }
 
     #endregion
@@ -166,6 +170,9 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
         var anywhere = await _cwFeatureService.GetFeaturesForAnyStoreAsync();
         var exchangesAnywhere = anywhere.Exchanges;
         var creditNotesAnywhere = anywhere.CreditNotes;
+
+        //an order already held still has to be decided, so its pages stay after the last switch goes off
+        var approvalsAnywhere = anywhere.Approvals || await _orderApprovalReportService.HasApprovalsAsync();
 
         return new AdminMenuItem
         {
@@ -201,6 +208,35 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
                     Url = _adminMenu.GetMenuItemUrl("Branch", "Index"),
                     IconClass = "far fa-circle",
                     PermissionNames = new List<string> { CWPermissionConfigManager.ADMIN_ACCESS_BRANCH }
+                },
+                new()
+                {
+                    Visible = approvalsAnywhere,
+                    SystemName = CWCoreDefaults.OrderApprovalsAdminMenuSystemName,
+                    Title = await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.OrderApprovals"),
+                    IconClass = "fas fa-user-check",
+                    PermissionNames = new List<string> { CWPermissionConfigManager.ADMIN_MANAGE_ORDER_APPROVALS },
+                    ChildNodes = new List<AdminMenuItem>
+                    {
+                        new()
+                        {
+                            Visible = true,
+                            Title = await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.OrderApprovals.Menu.Orders"),
+                            Url = _adminMenu.GetMenuItemUrl("OrderApprovalAdmin", "List"),
+                            SystemName = CWCoreDefaults.OrderApprovalsListAdminMenuSystemName,
+                            IconClass = "far fa-circle",
+                            PermissionNames = new List<string> { CWPermissionConfigManager.ADMIN_MANAGE_ORDER_APPROVALS }
+                        },
+                        new()
+                        {
+                            Visible = true,
+                            Title = await _localizationService.GetResourceAsync("Plugins.CW.Core.Admin.Approvers"),
+                            Url = _adminMenu.GetMenuItemUrl("OrderApprovalAdmin", "Approvers"),
+                            SystemName = CWCoreDefaults.ApproversAdminMenuSystemName,
+                            IconClass = "far fa-circle",
+                            PermissionNames = new List<string> { CWPermissionConfigManager.ADMIN_MANAGE_ORDER_APPROVALS }
+                        }
+                    }
                 },
                 new()
                 {

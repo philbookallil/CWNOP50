@@ -52,6 +52,28 @@ public interface IOrderApprovalService
     Task<IList<OrderApprovalRequest>> GetRequestsAsync(int orderApprovalId);
 
     /// <summary>
+    /// Gets the names of the approvers an approval waits for: those with a link that works, each once, by name. An
+    /// approver renamed since has the present name; one whose address changed keeps the name the link was sent with,
+    /// as the link is at the old address.
+    /// </summary>
+    /// <param name="orderApprovalId">Order approval identifier</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the names
+    /// </returns>
+    Task<IList<string>> GetWaitingApproverNamesAsync(int orderApprovalId);
+
+    /// <summary>
+    /// Gets the e-mail addresses with a link that works, each once: what a change of approvers starts from
+    /// </summary>
+    /// <param name="orderApprovalId">Order approval identifier</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation
+    /// The task result contains the addresses the links were sent to
+    /// </returns>
+    Task<IList<string>> GetWaitingEmailsAsync(int orderApprovalId);
+
+    /// <summary>
     /// Gets the approval and the request an approval link belongs to
     /// </summary>
     /// <param name="token">The token from the link</param>
@@ -142,8 +164,8 @@ public interface IOrderApprovalService
     Task<OrderApprovalResult> DeclineByAdminAsync(int orderId, Customer admin, string reason);
 
     /// <summary>
-    /// Sends the order's approvers new links and revokes the old ones; reminders and expiry count again from now. An
-    /// order whose first links were never sent asks the approvers its rules name now.
+    /// Sends the approvers the order waits for new links and revokes the old ones; reminders and expiry count again from
+    /// now. An order whose first links were never sent asks the approvers its rules name now.
     /// </summary>
     /// <param name="orderId">Order identifier</param>
     /// <param name="admin">The admin asking</param>
@@ -154,18 +176,19 @@ public interface IOrderApprovalService
     Task<OrderApprovalResult> ResendAsync(int orderId, Customer admin);
 
     /// <summary>
-    /// Replaces the order's approvers with one approver, found by e-mail address in the order's store or created,
-    /// and sends them a link; the old links are revoked and reminders and expiry count again from now
+    /// Makes the order wait for exactly these addresses. One that has a link that works keeps it and is not e-mailed
+    /// again; one left out loses its links; a new one is sent a link, to the approver found by the address in the order's
+    /// store or created, and reminders and expiry then count again from now.
     /// </summary>
     /// <param name="orderId">Order identifier</param>
     /// <param name="admin">The admin asking</param>
-    /// <param name="name">The approver's name</param>
-    /// <param name="email">The approver's e-mail address</param>
+    /// <param name="emails">The addresses, as typed: separated by commas, semicolons, bars or new lines</param>
+    /// <param name="startedFrom">The addresses the admin started from; refused when they are no longer the ones waited for</param>
     /// <returns>
     /// A task that represents the asynchronous operation
     /// The task result contains what happened
     /// </returns>
-    Task<OrderApprovalResult> ChangeApproverAsync(int orderId, Customer admin, string name, string email);
+    Task<OrderApprovalResult> ChangeApproversAsync(int orderId, Customer admin, string emails, string startedFrom);
 
     #endregion
 

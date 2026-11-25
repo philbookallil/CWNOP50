@@ -7,10 +7,12 @@ using Nop.Core.Domain.Stores;
 using Nop.Plugin.CW.Core.Areas.Admin.Factories;
 using Nop.Plugin.CW.Core.Areas.Admin.Models.CreditNotes;
 using Nop.Plugin.CW.Core.Domain.CreditNotes;
+using Nop.Plugin.CW.Core.Services.Approvals;
 using Nop.Plugin.CW.Core.Services.CreditNotes;
 using Nop.Services.Catalog;
 using Nop.Services.Customers;
 using Nop.Services.Helpers;
+using Nop.Services.Localization;
 using Nop.Services.Orders;
 using Nop.Services.Stores;
 using NUnit.Framework;
@@ -28,6 +30,7 @@ public class CreditNotesModelFactoryTests
     private Mock<IOrderService> _orderService = null!;
     private Mock<IStoreService> _storeService = null!;
     private Mock<ICustomerService> _customerService = null!;
+    private Mock<IOrderApprovalService> _orderApprovalService = null!;
     private CreditNotesModelFactory _factory = null!;
 
     [SetUp]
@@ -42,13 +45,38 @@ public class CreditNotesModelFactoryTests
         priceFormatter.Setup(formatter => formatter.FormatPriceAsync(It.IsAny<decimal>(), true, false))
             .ReturnsAsync((decimal price, bool _, bool _) => $"${price:0.00}");
 
+        var localizationService = new Mock<ILocalizationService>();
+        localizationService.Setup(service => service.GetResourceAsync(It.IsAny<string>())).ReturnsAsync((string key) => key.Split('.')[^1]);
+
+        _orderApprovalService = new Mock<IOrderApprovalService>();
+        _orderApprovalService.Setup(service => service.GetHeldOrderIdsAsync(It.IsAny<int[]>())).ReturnsAsync(new List<int>());
+
         _factory = new CreditNotesModelFactory(_creditNotesService.Object,
             Mock.Of<IWorkContext>(),
             priceFormatter.Object,
             Mock.Of<IDateTimeHelper>(),
             _orderService.Object,
             _storeService.Object,
-            _customerService.Object);
+            _customerService.Object,
+            localizationService.Object,
+            _orderApprovalService.Object);
+    }
+
+    [Test]
+    public async Task A_use_of_credit_says_when_its_order_waits_for_approval_or_gave_it_back()
+    {
+        _creditNotesService.Setup(service => service.GetCreditNoteHistoriesByCreditNoteAsync(9)).ReturnsAsync(
+        [
+            new CreditNoteHistory { Id = 1, OrderId = 5029, Amount = 60 },
+            new CreditNoteHistory { Id = 2, OrderId = 5031, Amount = 60 },
+            new CreditNoteHistory { Id = 3, OrderId = 5040, Amount = 10 }
+        ]);
+        _creditNotesService.Setup(service => service.GetGivenBackOrderIdsAsync(It.IsAny<int[]>())).ReturnsAsync(new List<int> { 5029 });
+        _orderApprovalService.Setup(service => service.GetHeldOrderIdsAsync(It.IsAny<int[]>())).ReturnsAsync(new List<int> { 5040 });
+
+        var model = await _factory.PrepareCreditNoteHistoryListModelAsync(new CreditNoteHistorySearchModel { CreditNoteId = 9, Start = 0, Length = 10 });
+
+        model.Data.Select(row => row.Status).Should().Equal("GivenBack", string.Empty, "Pending");
     }
 
     private static CreditNote Note(int customerId, decimal amount, decimal remain) =>

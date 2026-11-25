@@ -24,6 +24,10 @@
                         {
                             @item.What
                         }
+                        @if (item.WaitingForApproval)
+                        {
+                            <span class="subsidy-waiting">@T("Plugins.CW.Core.OrderApproval.Status.Pending")</span>
+                        }
                         @if (item.AssignmentRemoved)
                         {
                             <span class="subsidy-dim">@T("Plugins.CW.Core.CustomerSubsidies.History.AssignmentRemoved")</span>

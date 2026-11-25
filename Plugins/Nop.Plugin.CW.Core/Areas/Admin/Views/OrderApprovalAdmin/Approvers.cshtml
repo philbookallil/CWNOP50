@@ -1,0 +1,193 @@
+@model ApproverSearchModel
+
+@using Nop.Plugin.CW.Core.Areas.Admin.Models.Approvals
+
+@{
+    //page title
+    ViewBag.PageTitle = T("Plugins.CW.Core.Admin.Approvers").Text;
+    //active menu item (system name)
+    NopHtml.SetActiveMenuItemSystemName(CWCoreDefaults.ApproversAdminMenuSystemName);
+
+    await Html.RenderPartialAsync("_ApproverPickerAssets");
+    NopHtml.AddScriptParts(ResourceLocation.Footer, "~/Plugins/CW.Core/Content/Admin/Approvals/admin.approval.lists.js");
+
+    const string hideSearchBlockAttributeName = "ApproversPage.HideSearchBlock";
+    var hideSearchBlock = await genericAttributeService.GetAttributeAsync<bool>(await workContext.GetCurrentCustomerAsync(), hideSearchBlockAttributeName);
+}
+
+<div class="content-header clearfix">
+    <h1 class="float-left">
+        @T("Plugins.CW.Core.Admin.Approvers")
+    </h1>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="form-horizontal" id="cw-approvers">
+            <div class="cards-group">
+                <div class="card card-default card-search">
+                    <div class="card-body">
+                        <div class="row search-row @(!hideSearchBlock ? "opened" : "")" data-hideAttribute="@hideSearchBlockAttributeName">
+                            <div class="search-text">@T("Admin.Common.Search")</div>
+                            <div class="icon-search"><i class="fas fa-magnifying-glass" aria-hidden="true"></i></div>
+                            <div class="icon-collapse"><i class="far fa-angle-@(!hideSearchBlock ? "up" : "down")" aria-hidden="true"></i></div>
+                        </div>
+
+                        <div class="search-body @(hideSearchBlock ? "closed" : "")">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group row">
+                                        <div class="col-md-4"><nop-label asp-for="SearchText" /></div>
+                                        <div class="col-md-8"><nop-editor asp-for="SearchText" /></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group row" @(Model.ShowStores ? null : Html.Raw("style=\"display: none;\""))>
+                                        <div class="col-md-4"><nop-label asp-for="SearchStoreId" /></div>
+                                        <div class="col-md-8"><nop-select asp-for="SearchStoreId" asp-items="Model.AvailableStores" /></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="text-center col-12">
+                                    <button type="button" id="search-approvers" class="btn btn-primary btn-search">
+                                        <i class="fas fa-magnifying-glass"></i>
+                                        @T("Admin.Common.Search")
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-default">
+                    <div class="card-body">
+                        <p class="text-muted">@T("Plugins.CW.Core.Admin.Approvers.Note")</p>
+                        @await Html.PartialAsync("Table", new DataTablesModel
+                        {
+                            Name = "approvers-grid",
+                            UrlRead = new DataUrl("ApproverList", "OrderApprovalAdmin", null),
+                            SearchButtonId = "search-approvers",
+                            Length = Model.PageSize,
+                            LengthMenu = Model.AvailablePageSizes,
+                            Filters = new List<FilterParameter>
+                            {
+                                new FilterParameter(nameof(Model.SearchText)),
+                                new FilterParameter(nameof(Model.SearchStoreId))
+                            },
+                            ColumnCollection = new List<ColumnProperty>
+                            {
+                                new ColumnProperty(nameof(ApproverModel.Name))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Approvers.Fields.Name").Text
+                                },
+                                new ColumnProperty(nameof(ApproverModel.Email))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Approvers.Fields.Email").Text
+                                },
+                                new ColumnProperty(nameof(ApproverModel.StoreName))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Store").Text,
+                                    Visible = Model.ShowStores
+                                },
+                                new ColumnProperty(nameof(ApproverModel.ApprovesFor))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Approvers.Fields.ApprovesFor").Text
+                                },
+                                new ColumnProperty(nameof(ApproverModel.Waiting))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Approvers.Fields.Waiting").Text,
+                                    Width = "80",
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                new ColumnProperty(nameof(ApproverModel.Approved))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Approvers.Fields.Approved").Text,
+                                    Width = "80",
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                new ColumnProperty(nameof(ApproverModel.Declined))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.Approvers.Fields.Declined").Text,
+                                    Width = "80",
+                                    ClassName = NopColumnClassDefaults.CenterAll
+                                },
+                                new ColumnProperty(nameof(ApproverModel.Id))
+                                {
+                                    Title = T("Plugins.CW.Core.Admin.OrderApprovals.Fields.Actions").Text,
+                                    Width = "240",
+                                    Render = new RenderCustom("CW.ApprovalLists.renderApproverActions")
+                                }
+                            }
+                        })
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="cw-approver-edit-modal" tabindex="-1" role="dialog" aria-labelledby="cw-approver-edit-title">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title" id="cw-approver-edit-title">@T("Plugins.CW.Core.Admin.Approvers.Edit")</h4>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="@T("Admin.Common.Cancel")"><span aria-hidden="true">&times;</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="cw-approver-edit-name">@T("Plugins.CW.Core.Admin.Approvers.Fields.Name")</label>
+                                <input type="text" id="cw-approver-edit-name" class="form-control" maxlength="200" autocomplete="off" />
+                            </div>
+                            <div class="form-group">
+                                <label for="cw-approver-edit-email">@T("Plugins.CW.Core.Admin.Approvers.Fields.Email")</label>
+                                <input type="email" id="cw-approver-edit-email" class="form-control" maxlength="255" autocomplete="off" />
+                            </div>
+                            <p class="text-muted">@T("Plugins.CW.Core.Admin.Approvers.Edit.Note")</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">@T("Admin.Common.Cancel")</button>
+                            <button type="button" class="btn btn-primary" id="cw-approver-edit-save">@T("Admin.Common.Save")</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="cw-approver-replace-modal" tabindex="-1" role="dialog" aria-labelledby="cw-approver-replace-title">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title" id="cw-approver-replace-title">@T("Plugins.CW.Core.Admin.Approvers.Replace")</h4>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="@T("Admin.Common.Cancel")"><span aria-hidden="true">&times;</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong id="cw-approver-replace-who"></strong></p>
+                            <div class="form-group">
+                                <label for="cw-approver-replace-email">@T("Plugins.CW.Core.Admin.Approvers.Replace.Email")</label>
+                                <input type="text" id="cw-approver-replace-email" class="form-control cw-approver-picker" autocomplete="off" data-max-items="1"
+                                       data-add-text="@T("Plugins.CW.Core.Admin.ApproverPicker.Add")" />
+                            </div>
+                            <div class="form-group">
+                                <label for="cw-approver-replace-name">@T("Plugins.CW.Core.Admin.Approvers.Replace.Name")</label>
+                                <input type="text" id="cw-approver-replace-name" class="form-control" maxlength="200" autocomplete="off" />
+                            </div>
+                            <p class="text-muted">@T("Plugins.CW.Core.Admin.Approvers.Replace.Note")</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">@T("Admin.Common.Cancel")</button>
+                            <button type="button" class="btn btn-primary" id="cw-approver-replace-save">@T("Plugins.CW.Core.Admin.Approvers.Replace.Button")</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cw-approval-lists-config"
+                 data-update-url="@Url.Action("UpdateApprover", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-replace-url="@Url.Action("ReplaceApprover", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-delete-url="@Url.Action("DeleteApprover", "OrderApprovalAdmin", new { area = AreaNames.ADMIN })"
+                 data-edit-text="@T("Admin.Common.Edit")"
+                 data-replace-text="@T("Plugins.CW.Core.Admin.Approvers.Replace.Button")"
+                 data-delete-text="@T("Plugins.CW.Core.Admin.Approvers.Delete")"
+                 data-confirm-delete="@T("Plugins.CW.Core.Admin.Approvers.Delete.Confirm")"
+                 data-error-text="@T("Plugins.CW.Core.Admin.Approvers.Result.Failed")"
+                 style="display: none;"></div>
+        </div>
+    </div>
+</section>
