@@ -605,17 +605,17 @@ public class OdooProductResponse
     [JsonPropertyName("service_upsell_threshold_ratio")]
     public bool? ServiceUpsellThresholdRatio { get; set; }
 
-    // ── CW custom Studio fields ──────────────────────────────────────────────
+    // ── eStore addon fields ──────────────────────────────────────────────
 
-    /// <summary>Many-to-many ids of the stores this product is limited to (→ x_store).</summary>
-    [JsonPropertyName("x_studio_stores")]
-    public List<int> XStudioStores { get; set; } = new();
+    /// <summary>Many-to-many ids of the stores this product is limited to (→ estore.store).</summary>
+    [JsonPropertyName("estore_ids")]
+    public List<int> StoreIds { get; set; } = new();
 
-    /// <summary>Many-to-many ids of the departments this product belongs to (→ x_department).</summary>
-    [JsonPropertyName("x_studio_departments")]
-    public List<int> XStudioDepartments { get; set; } = new();
+    /// <summary>Many-to-many ids of the departments this product belongs to (→ estore.department).</summary>
+    [JsonPropertyName("estore_department_ids")]
+    public List<int> DepartmentIds { get; set; } = new();
 
     /// <summary>Change counter — used for incremental sync (stored per product as a generic attribute).</summary>
-    [JsonPropertyName("x_studio_sync_revision")]
-    public int XStudioSyncRevision { get; set; }
+    [JsonPropertyName("estore_sync_revision")]
+    public int SyncRevision { get; set; }
 }

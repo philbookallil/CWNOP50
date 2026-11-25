@@ -11,6 +11,15 @@ namespace CW.Tests.Integration.Odoo;
 public class OdooApiErrorTests
 {
     [Test]
+    public void The_access_check_names_the_fields_Odoo_does_not_list()
+    {
+        using var answer = System.Text.Json.JsonDocument.Parse("""{"name": {"type": "char"}, "active": {"type": "boolean"}}""");
+
+        OdooApiService.MissingFields(new[] { "name", "is_published", "active" }, answer.RootElement)
+            .Should().Equal("is_published");
+    }
+
+    [Test]
     public void A_JSON2_error_gives_its_top_level_message()
     {
         const string body = """

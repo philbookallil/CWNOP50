@@ -3,13 +3,13 @@ using Nop.Core;
 namespace Nop.Plugin.Integration.Odoo.Domain;
 
 /// <summary>
-/// Maps an Odoo <c>x_store</c> record to its nopCommerce <see cref="Nop.Core.Domain.Stores.Store"/>,
+/// Maps an Odoo <c>estore.store</c> record to its nopCommerce <see cref="Nop.Core.Domain.Stores.Store"/>,
 /// and tracks the last synced revision for incremental sync.
 /// </summary>
 public class OdooStoreMapping : BaseEntity
 {
     /// <summary>
-    /// Gets or sets the Odoo x_store id.
+    /// Gets or sets the Odoo estore.store id.
     /// </summary>
     public int OdooStoreId { get; set; }
 
@@ -19,7 +19,7 @@ public class OdooStoreMapping : BaseEntity
     public int NopStoreId { get; set; }
 
     /// <summary>
-    /// Gets or sets the last processed Odoo <c>x_studio_sync_revision</c>.
+    /// Gets or sets the last processed Odoo <c>estore_sync_revision</c>.
     /// </summary>
     public int LastSyncedRevision { get; set; }
 

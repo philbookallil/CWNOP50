@@ -5,7 +5,7 @@ using Nop.Services.Stores;
 namespace Nop.Plugin.Integration.Odoo.Services;
 
 /// <summary>
-/// Creates/updates a nopCommerce <see cref="Store"/> for each active Odoo <c>x_store</c>.
+/// Creates/updates a nopCommerce <see cref="Store"/> for each active Odoo <c>estore.store</c>.
 ///
 /// Rules (see spec §5):
 ///   - only active stores are synced; archived ones are logged, NOP stores are never deleted,
@@ -101,13 +101,13 @@ public class StoreSyncService : IStoreSyncService
     /// <inheritdoc/>
     public async Task<StoreSyncResult> SyncStoresAsync(int logEventId)
     {
-        // Every retrieved x_store is counted exactly once (see SyncTally).
+        // Every retrieved estore.store is counted exactly once (see SyncTally).
         var tally = new SyncTally();
 
         var odooStores = await _odooApiService.FetchStoresAsync();
         if (odooStores.Count == 0)
         {
-            await _odooLogService.WarningAsync("No Odoo stores (x_store) found. Store sync skipped.", logEventId, entityType: "Store");
+            await _odooLogService.WarningAsync("No Odoo stores (estore.store) found. Store sync skipped.", logEventId, entityType: "Store");
             return new StoreSyncResult(0, 0, 0);
         }
 
@@ -125,9 +125,9 @@ public class StoreSyncService : IStoreSyncService
             var outcome = SyncOutcome.Skipped;
             try
             {
-                if (!odooStore.XActive)
+                if (!odooStore.Active)
                 {                    await _odooLogService.InformationAsync(
-                        $"Odoo store '{odooStore.XName}' (ID {odooStore.Id}) is archived — NOP stores are never deleted; left unchanged.",
+                        $"Odoo store '{odooStore.Name}' (ID {odooStore.Id}) is archived — NOP stores are never deleted; left unchanged.",
                         logEventId, entityType: "Store", odooEntityId: odooStore.Id);
                     continue;
                 }
@@ -141,21 +141,21 @@ public class StoreSyncService : IStoreSyncService
                     : null;
 
                 // Incremental: skip only when BOTH the revision and write_date are unchanged. What bumps
-                // x_studio_sync_revision is configured in Odoo and not guaranteed to cover every edit;
+                // estore_sync_revision is configured in Odoo and not guaranteed to cover every edit;
                 // write_date is maintained by the ORM on every write. A mapping with no recorded
                 // write_date (written before the column existed) is never skipped.
                 if (mapping != null && nopStore != null
-                    && mapping.LastSyncedRevision == odooStore.XStudioSyncRevision
+                    && mapping.LastSyncedRevision == odooStore.SyncRevision
                     && mapping.LastSyncedWriteDate != null
                     && string.Equals(mapping.LastSyncedWriteDate, odooStore.WriteDate, StringComparison.Ordinal))
                 {                    await _odooLogService.InformationAsync(
-                        $"Odoo store '{odooStore.XName}' (ID {odooStore.Id}) unchanged (revision {odooStore.XStudioSyncRevision}, written {odooStore.WriteDate}). Skipped.",
+                        $"Odoo store '{odooStore.Name}' (ID {odooStore.Id}) unchanged (revision {odooStore.SyncRevision}, written {odooStore.WriteDate}). Skipped.",
                         logEventId, entityType: "Store", odooEntityId: odooStore.Id);
                     continue;
                 }
 
-                var storeName = (odooStore.XName ?? odooStore.DisplayName)?.Trim() ?? string.Empty;
-                var url = NormaliseUrl(odooStore.XStudioStoreUrl);
+                var storeName = (odooStore.Name ?? odooStore.DisplayName)?.Trim() ?? string.Empty;
+                var url = NormaliseUrl(odooStore.Url);
                 var host = ParseHost(url);
 
                 // No mapping yet (first run): reconcile to an existing nop store by Host, then Name.
@@ -196,7 +196,7 @@ public class StoreSyncService : IStoreSyncService
                         Url = url,
                         Hosts = host,
                         SslEnabled = url.StartsWith("https://", StringComparison.OrdinalIgnoreCase),
-                        DisplayOrder = Math.Max(odooStore.XStudioSequence, minDisplayOrder),
+                        DisplayOrder = Math.Max(odooStore.Sequence, minDisplayOrder),
                         DefaultLanguageId = 0
                     };
                     await _storeService.InsertStoreAsync(nopStore);
@@ -232,7 +232,7 @@ public class StoreSyncService : IStoreSyncService
                         logEventId, entityType: "Store", odooEntityId: odooStore.Id, nopEntityId: nopStore.Id);
                 }
 
-                await _storeMapService.UpsertAsync(odooStore.Id, nopStore.Id, odooStore.XStudioSyncRevision, odooStore.WriteDate);
+                await _storeMapService.UpsertAsync(odooStore.Id, nopStore.Id, odooStore.SyncRevision, odooStore.WriteDate);
                 odooStoreIdByNopStoreId[nopStore.Id] = odooStore.Id;
 
                 outcome = isNewStore ? SyncOutcome.Created : SyncOutcome.Updated;
@@ -240,7 +240,7 @@ public class StoreSyncService : IStoreSyncService
             catch (Exception ex)
             {
                 await _odooLogService.ErrorAsync(
-                    $"Error syncing Odoo store {odooStore.Id} ('{odooStore.XName}'): {ex.Message}",
+                    $"Error syncing Odoo store {odooStore.Id} ('{odooStore.Name}'): {ex.Message}",
                     logEventId, fullMessage: ex.ToString(), entityType: "Store", odooEntityId: odooStore.Id);
             }
             finally

@@ -33,7 +33,7 @@ public static class OdooLocaleResources
         [$"{Prefix}.Fields.DatabaseName"] = "Database Name",
         [$"{Prefix}.Fields.DatabaseName.Hint"] = "The Odoo database name. For SaaS this is the subdomain, e.g. mycompany",
         [$"{Prefix}.Fields.Username"] = "Username",
-        [$"{Prefix}.Fields.Username.Hint"] = "The email address of the Odoo API user",
+        [$"{Prefix}.Fields.Username.Hint"] = "The login of the Odoo API user, a username or an email address.",
         [$"{Prefix}.Fields.ApiKey"] = "API Key",
         [$"{Prefix}.Fields.ApiKey.Hint"] = "Generate an API key in Odoo: Settings → Technical → API Keys",
         [$"{Prefix}.Fields.DeliveryProductCode"] = "Odoo delivery product",

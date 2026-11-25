@@ -79,7 +79,7 @@
                                     <nop-label asp-for="Username" />
                                 </div>
                                 <div class="col-md-9">
-                                    <input asp-for="Username" type="text" class="form-control" placeholder="user@example.com" />
+                                    <input asp-for="Username" type="text" class="form-control" placeholder="Odoo login" />
                                     <span asp-validation-for="Username"></span>
                                 </div>
                             </div>
@@ -158,6 +158,11 @@
 
                                 <dt class="col-sm-3">Details:</dt>
                                 <dd class="col-sm-9" id="diagnosticsTestResultMessage"></dd>
+
+                                <dt class="col-sm-3">Access Check:</dt>
+                                <dd class="col-sm-9">
+                                    <ul class="list-unstyled mb-0" id="diagnosticsAccessChecks"></ul>
+                                </dd>
                             </dl>
                         </div>
                     </nop-card>

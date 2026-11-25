@@ -7,7 +7,7 @@
   Every order is a copy of @SourceOrderId's header (customer, billing address, payment method), with its own lines,
   shipping, totals, payment status and store. Numbers are TEST-nn after the test case they serve:
 
-    TEST-07   plain, A&L store, Beanie x2 + STKS 420, shipping to the A&L Site's address, paid          T7, T8, T16, T22
+    TEST-07   plain, store 2, Beanie x2 + STKS 420, shipping to the branch's address, paid          T7, T8, T16, T22
     TEST-12A  plain, home address (12 Home Street), paid                                                 T12
     TEST-12B  plain, the same home address in a second address row, paid                                 T12, T22a
     TEST-13   plain, ordered by a customer in no branch                                                  T13
@@ -15,11 +15,11 @@
     TEST-15   plain, with shipping, payment authorised (kept out of "Paid")                              T15
     TEST-22C  plain, store 3 (PackName, Subsidy, Exchanges switched off there), STKS 420 x3 at 10.00   T20, T22c, T23
     TEST-22D  plain, store 3, STKS 420 x6 at 10.00 (Odoo 6 x 1.67 = 10.02: two cents, a warning)      T22c
-    TEST-09   packname, two destinations (Alice: A&L Site; Bob: home), PO-100 on both, print name on a
+    TEST-09   packname, two destinations (Alice: the branch; Bob: home), PO-100 on both, print name on a
               line, settlement row (subsidy 30.00, store credit 5.00)                                     T9, T10, T11, T19
     TEST-10   packname, one destination, Alice (PO-100) and Carol (PO-200)                               T10
 
-  The ordering customer of every order but TEST-13 is linked here to the branch 'CW Test A&L Site' (head office card
+  The ordering customer of every order but TEST-13 is linked here to the branch @BranchId (head office card
   code 57 = the Odoo company), and the packnames are created in a list of that branch.
 
   Clean-up only: run the block marked CLEAN-UP on its own. It does not touch Odoo: cancel the Odoo orders there.
@@ -30,7 +30,7 @@ SET NOCOUNT ON;
 DECLARE @SourceOrderId int = 1;
 DECLARE @CustomerId int = 28;          -- the ordering customer, linked to @BranchId
 DECLARE @NoBranchCustomerId int = 1;   -- a customer in no branch (TEST-13)
-DECLARE @BranchId int = 2;             -- CW Test A&L Site (store 2), under head office card code 57
+DECLARE @BranchId int = 2;             -- a branch of store 2, under head office card code 57
 DECLARE @BranchAddressId int = 4;      -- the branch's address: 5 Test Lane, Brisbane 4000
 
 IF NOT EXISTS (SELECT 1 FROM [Order] WHERE Id = @SourceOrderId)

@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 namespace Nop.Plugin.Integration.Odoo.Models.Responses;
 
 /// <summary>
-/// Maps the fields returned by Odoo's custom Studio <c>x_department</c> model
-/// (endpoint <c>/json/2/x_department/search_read</c>).
+/// Maps the fields returned by the eStore addon's <c>estore.department</c> model
+/// (endpoint <c>/json/2/estore.department/search_read</c>).
 /// </summary>
 public class OdooDepartmentResponse
 {
@@ -14,22 +14,22 @@ public class OdooDepartmentResponse
     [JsonPropertyName("display_name")]
     public string DisplayName { get; set; }
 
-    [JsonPropertyName("x_name")]
-    public string XName { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 
-    [JsonPropertyName("x_active")]
-    public bool XActive { get; set; }
+    [JsonPropertyName("active")]
+    public bool Active { get; set; }
 
-    [JsonPropertyName("x_studio_sequence")]
-    public int XStudioSequence { get; set; }
+    [JsonPropertyName("sequence")]
+    public int Sequence { get; set; }
 
     /// <summary>
-    /// The parent store as a Many2One [id, name] pair (→ x_store). Authoritative parent link.
+    /// The parent store as a Many2One [id, name] pair (→ estore.store). Authoritative parent link.
     /// False (→ null) when not set.
     /// </summary>
-    [JsonPropertyName("x_studio_store")]
-    public Many2One XStudioStore { get; set; }
+    [JsonPropertyName("store_id")]
+    public Many2One Store { get; set; }
 
-    [JsonPropertyName("x_studio_sync_revision")]
-    public int XStudioSyncRevision { get; set; }
+    [JsonPropertyName("estore_sync_revision")]
+    public int SyncRevision { get; set; }
 }

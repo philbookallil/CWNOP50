@@ -59,12 +59,17 @@ public class ProductSyncService : IProductSyncService
     /// </summary>
     private Dictionary<int, int> _nopStoreIdByOdooStoreId = new();
 
+    /// <summary>
+    /// The ids of the active Odoo stores, loaded at the start of each run.
+    /// </summary>
+    private HashSet<int> _activeOdooStoreIds = new();
+
     /// <summary>Per-run cache: Odoo department id → resolved nop department id (null = unresolved).</summary>
     private readonly Dictionary<int, int?> _nopDeptIdCache = new();
 
     /// <summary>
     /// Generic-attribute key storing the product's last synced Odoo change marker
-    /// (<c>x_studio_sync_revision|write_date</c>, see <see cref="GetSyncMarker"/>).
+    /// (<c>estore_sync_revision|write_date</c>, see <see cref="GetSyncMarker"/>).
     /// </summary>
     private const string OdooProductSyncMarkerAttribute = "Odoo.ProductSyncMarker";
 
@@ -266,6 +271,34 @@ public class ProductSyncService : IProductSyncService
     }
 
     /// <summary>
+    /// Whether a product is on at least one active Odoo store, which is what publishes it.
+    /// </summary>
+    internal static bool IsOnActiveStore(IEnumerable<int> productStoreIds, ICollection<int> activeStoreIds) =>
+        productStoreIds?.Any(activeStoreIds.Contains) ?? false;
+
+    /// <summary>
+    /// Unpublishes a product that is on no active Odoo store, and clears its sync marker so that it is fully synced
+    /// again when it is put back on one or its store is reactivated. A product not in NOP yet is not created.
+    /// </summary>
+    private async Task<SyncOutcome> UnpublishProductOnNoStoreAsync(int logEventId, Product product, OdooProductResponse odooProduct)
+    {
+        if (product == null)
+            return SyncOutcome.Skipped;
+
+        await _genericAttributeService.SaveAttributeAsync<string>(product, OdooProductSyncMarkerAttribute, null);
+        if (!product.Published)
+            return SyncOutcome.Skipped;
+
+        product.Published = false;
+        await _productService.UpdateProductAsync(product);
+        await _odooLog.InformationAsync(
+            $"Unpublished product '{product.Name}' (ID {product.Id}): it is on no active Odoo store.",
+            logEventId, entityType: "Product", odooEntityId: odooProduct.Id, nopEntityId: product.Id);
+
+        return SyncOutcome.Updated;
+    }
+
+    /// <summary>
     /// Synchronizes an Odoo product with the local product database, updating or creating records as needed.
     /// </summary>
     /// <param name="odooProduct">The Odoo product data to synchronize.</param>
@@ -296,6 +329,10 @@ public class ProductSyncService : IProductSyncService
                     $"SKU {odooSku} is already used by a product linked to another Odoo template ({skuTakenBy}); creating a separate product for Odoo template {odooProduct.Id}.",
                     logEventId, entityType: "Product", odooEntityId: odooProduct.Id);
 
+            // A product is published while it is on an active store; on none, nobody may see it.
+            if (!IsOnActiveStore(odooProduct.StoreIds, _activeOdooStoreIds))
+                return await UnpublishProductOnNoStoreAsync(logEventId, existingProduct, odooProduct);
+
             if (existingProduct != null)
             {
                 // Incremental: skip only when BOTH the revision and write_date match the last sync.
@@ -305,6 +342,17 @@ public class ProductSyncService : IProductSyncService
                 {
                     // A product synced before the variant id was recorded gets it without a full resync.
                     await SaveSingleVariantIdAsync(existingProduct, odooProduct);
+
+                    // Odoo decides what is published, so one unpublished in NOP is published again.
+                    if (!existingProduct.Published)
+                    {
+                        existingProduct.Published = true;
+                        await _productService.UpdateProductAsync(existingProduct);
+                        await _odooLog.InformationAsync($"Product SKU {odooSku} unchanged ({currentMarker}), published again: it is on an active Odoo store.",
+                            logEventId, entityType: "Product", odooEntityId: odooProduct.Id, nopEntityId: existingProduct.Id);
+                        return SyncOutcome.Updated;
+                    }
+
                     await _odooLog.InformationAsync($"Product SKU {odooSku} unchanged ({currentMarker}). Skipped.",
                         logEventId, entityType: "Product", odooEntityId: odooProduct.Id, nopEntityId: existingProduct.Id);
                     return SyncOutcome.Skipped;
@@ -345,7 +393,7 @@ public class ProductSyncService : IProductSyncService
             // Sync category
             await SyncProductCategory(logEventId, product, odooProduct);
 
-            // Sync store mapping (x_studio_stores) and department ACL (x_studio_departments)
+            // Sync store mapping (estore_ids) and department ACL (estore_department_ids)
             await SyncVisibilityAndMarkSyncedAsync(logEventId, product, odooProduct, attributesCreated);
 
             return SyncOutcome.Created;
@@ -379,11 +427,11 @@ public class ProductSyncService : IProductSyncService
     }
 
     /// <summary>
-    /// Maps the product to nopCommerce store(s) from Odoo's <c>x_studio_stores</c> (m2m → x_store).
+    /// Maps the product to nopCommerce store(s) from Odoo's <c>estore_ids</c> (m2m → estore.store).
     /// Each Odoo store id is resolved to a nop store id via <see cref="IOdooStoreMapService"/>, then
     /// <see cref="IStoreMappingService.SaveStoreMappingsAsync{TEntity}"/> sets <c>LimitedToStores</c>,
-    /// inserts new mappings, and removes stale ones. An empty Odoo list leaves the product
-    /// unrestricted (visible in all stores, D10).
+    /// inserts new mappings, and removes stale ones. A product on no Odoo
+    /// store never gets here: it is unpublished instead.
     ///
     /// Fails closed: when some Odoo stores do not resolve, the product is limited to the ones that
     /// did — to none if none did — and is never opened up by the failure.
@@ -394,7 +442,7 @@ public class ProductSyncService : IProductSyncService
     {
         try
         {
-            var odooStoreIds = odooProduct.XStudioStores ?? new List<int>();
+            var odooStoreIds = odooProduct.StoreIds ?? new List<int>();
             var matchedStoreIds = new List<int>();
 
             foreach (var odooStoreId in odooStoreIds)
@@ -445,8 +493,8 @@ public class ProductSyncService : IProductSyncService
     }
 
     /// <summary>
-    /// Maps the product to CW.Core department(s) from Odoo's <c>x_studio_departments</c> (m2m →
-    /// x_department). Each Odoo department id is resolved to a nop department id, then CW.Core's
+    /// Maps the product to CW.Core department(s) from Odoo's <c>estore_department_ids</c> (m2m →
+    /// estore.department). Each Odoo department id is resolved to a nop department id, then CW.Core's
     /// <see cref="IAclOverrideService.SaveAclDepartmentAsync{TEntity}"/> sets <c>SubjectToAcl</c>,
     /// inserts new department ACL records, and removes stale ones. An empty Odoo list clears the
     /// department ACL (product not department-restricted).
@@ -460,7 +508,7 @@ public class ProductSyncService : IProductSyncService
     {
         try
         {
-            var odooDeptIds = odooProduct.XStudioDepartments ?? new List<int>();
+            var odooDeptIds = odooProduct.DepartmentIds ?? new List<int>();
             var nopDeptIds = new List<int>();
 
             foreach (var odooDeptId in odooDeptIds)
@@ -516,11 +564,11 @@ public class ProductSyncService : IProductSyncService
 
         int? resolved = null;
 
-        if (_odooDeptById.TryGetValue(odooDeptId, out var odooDept) && odooDept.XStudioStore != null)
+        if (_odooDeptById.TryGetValue(odooDeptId, out var odooDept) && odooDept.Store != null)
         {
-            var name = (odooDept.XName ?? odooDept.DisplayName)?.Trim();
+            var name = (odooDept.Name ?? odooDept.DisplayName)?.Trim();
 
-            if (_nopStoreIdByOdooStoreId.TryGetValue(odooDept.XStudioStore.Id, out var nopStoreId)
+            if (_nopStoreIdByOdooStoreId.TryGetValue(odooDept.Store.Id, out var nopStoreId)
                 && !string.IsNullOrWhiteSpace(name))
             {
                 var dept = await _multiStoreService.GetDepartmentByStoreAndNameAsync(nopStoreId, name);
@@ -538,12 +586,12 @@ public class ProductSyncService : IProductSyncService
     }
 
     /// <summary>
-    /// The change marker for an Odoo template: <c>x_studio_sync_revision|write_date</c>. What bumps the
+    /// The change marker for an Odoo template: <c>estore_sync_revision|write_date</c>. What bumps the
     /// revision is configured in Odoo and not guaranteed to cover every edit; write_date is maintained
     /// by the ORM on every write, so the pair only matches when neither has moved.
     /// </summary>
     private static string GetSyncMarker(OdooProductResponse odooProduct) =>
-        $"{odooProduct.XStudioSyncRevision}|{odooProduct.WriteDate}";
+        $"{odooProduct.SyncRevision}|{odooProduct.WriteDate}";
 
     /// <summary>
     /// Records the product's change marker as a generic attribute, so an unchanged product can be
@@ -689,7 +737,6 @@ public class ProductSyncService : IProductSyncService
             Sku = odooSku,
             Price = odooProduct.ListPrice > 0 ? (decimal)odooProduct.ListPrice : decimal.Zero,
             OldPrice = odooProduct.CompareListPrice > 0 ? (decimal)odooProduct.CompareListPrice : 0m,
-            ProductCost = odooProduct.StandardPrice > 0 ? (decimal)odooProduct.StandardPrice : 0m,
             ShortDescription = !string.IsNullOrWhiteSpace(odooProduct.DescriptionSale)
                 ? odooProduct.DescriptionSale : string.Empty,
             FullDescription = !string.IsNullOrWhiteSpace(odooProduct.Description)
@@ -697,7 +744,8 @@ public class ProductSyncService : IProductSyncService
                 : !string.IsNullOrWhiteSpace(odooProduct.DescriptionEcommerce)
                     ? odooProduct.DescriptionEcommerce
                     : odooProduct.WebsiteDescription ?? string.Empty,
-            Published = odooProduct.WebsitePublished || odooProduct.IsPublished,
+            // Only a product on an active store gets this far
+            Published = true,
             Deleted = !odooProduct.Active,
             VisibleIndividually = true,
             ProductType = ProductType.SimpleProduct,
@@ -718,7 +766,7 @@ public class ProductSyncService : IProductSyncService
             // Created restricted: the store and department steps then open it exactly as far as Odoo
             // says, so a failure in between can never leave a new product visible everywhere.
             LimitedToStores = true,
-            SubjectToAcl = odooProduct.XStudioDepartments?.Count > 0,
+            SubjectToAcl = odooProduct.DepartmentIds?.Count > 0,
         };
         product.MarkAsNewStartDateTimeUtc = product.CreatedOnUtc;
         product.MarkAsNewEndDateTimeUtc = product.CreatedOnUtc.AddMonths(1);
@@ -737,12 +785,12 @@ public class ProductSyncService : IProductSyncService
         product.Name = odooProduct.DisplayName?.Trim() ?? odooProduct.Name ?? product.Name;
         product.Price = odooProduct.ListPrice > 0 ? (decimal)odooProduct.ListPrice : product.Price;
         product.OldPrice = odooProduct.CompareListPrice > 0 ? (decimal)odooProduct.CompareListPrice : product.OldPrice;
-        product.ProductCost = odooProduct.StandardPrice > 0 ? (decimal)odooProduct.StandardPrice : product.ProductCost;
         product.ShortDescription = !string.IsNullOrWhiteSpace(odooProduct.DescriptionSale)
             ? odooProduct.DescriptionSale : product.ShortDescription;
         product.FullDescription = !string.IsNullOrWhiteSpace(odooProduct.WebsiteDescription)
             ? odooProduct.WebsiteDescription : product.FullDescription;
-        product.Published = odooProduct.WebsitePublished || odooProduct.IsPublished;
+        // Only a product on an active store gets this far
+        product.Published = true;
         product.Deleted = !odooProduct.Active;
         product.DisableBuyButton = !odooProduct.SaleOk;
         product.DisableWishlistButton = !odooProduct.SaleOk;
@@ -870,6 +918,14 @@ public class ProductSyncService : IProductSyncService
                         ShowOnProductPage = true,
                         DisplayOrder = nopSpecificationAttribute.DisplayOrder
                     };
+                    // Replace the product's row for this attribute instead of adding another on every update
+                    foreach (var existing in await _specificationAttributeService.GetProductSpecificationAttributesAsync(nopProduct.Id))
+                    {
+                        var option = await _specificationAttributeService.GetSpecificationAttributeOptionByIdAsync(existing.SpecificationAttributeOptionId);
+                        if (option?.SpecificationAttributeId == nopSpecificationAttribute.Id)
+                            await _specificationAttributeService.DeleteProductSpecificationAttributeAsync(existing);
+                    }
+
                     await _specificationAttributeService.InsertProductSpecificationAttributeAsync(psa);
 
                 }
@@ -1462,6 +1518,10 @@ public class ProductSyncService : IProductSyncService
         var odooDepartments = await _odooApiService.FetchDepartmentsAsync();
         _odooDeptById = odooDepartments.ToDictionary(d => d.Id);
         _nopStoreIdByOdooStoreId = await _storeMapService.GetNopStoreIdLookupAsync();
+        _activeOdooStoreIds = (await _odooApiService.FetchStoresAsync())
+            .Where(store => store.Active)
+            .Select(store => store.Id)
+            .ToHashSet();
         _productIdByOdooLink = await LoadOdooLinkedProductsAsync();
 
         // Every Odoo template the run looks at is counted exactly once (see SyncTally).

@@ -289,17 +289,16 @@ public class OdooApiService : IOdooApiService
         //domain = Array.Empty<object>()   // empty = count all accessible products
         };*/
         endpoint = $"{_settings.OdooUrl}/json/2/product.template/search_read";
-        var fields = new[] { "id", "name", "display_name", "default_code", "is_published", "active", "sale_ok",
-            "categ_id","weight","barcode", "create_date", "write_date",
-            "description_sale", "description", "description_ecommerce", "website_description", "website_published",
-            "list_price","compare_list_price", "standard_price", "image_1920",
-            "attribute_line_ids", "product_variant_count", "product_variant_ids",
-            "x_studio_stores", "x_studio_departments", "x_studio_sync_revision" };
+        var fields = CoreProductFields
+            .Concat(new[] { "estore_ids", "estore_department_ids", "estore_sync_revision" })
+            .ToArray();
 
         var domain = new object[]
         {
             new object[] { "active", "=", true },
-            new object[] { "sale_ok", "=", true }
+            new object[] { "sale_ok", "=", true },
+            // Only a product tagged to a store, now or before, carries a revision
+            new object[] { "estore_sync_revision", ">", 0 }
         };
 
         if (odooProductId > 0)
@@ -318,6 +317,8 @@ public class OdooApiService : IOdooApiService
             limit = limit,
             offset = offset,
             domain = domain,
+            // A fixed order, so that no product is missed or read twice between pages
+            order = "id"
         };
 
         var json = JsonSerializer.Serialize(bodyObj, _jsonOptions);
@@ -506,17 +507,17 @@ public class OdooApiService : IOdooApiService
     #region Partner / Branch endpoints
 
     /// <summary>
-    /// Fetches all Odoo stores (x_store), including their linked companies and departments.
+    /// Fetches all Odoo stores (estore.store), including their linked companies and departments.
     /// </summary>
     public async Task<List<OdooStoreResponse>> FetchStoresAsync()
     {
-        var endpoint = $"{_settings.OdooUrl}/json/2/x_store/search_read";
+        var endpoint = $"{_settings.OdooUrl}/json/2/estore.store/search_read";
 
         var fields = new[]
         {
-            "id", "display_name", "x_name", "x_active", "x_studio_sequence",
-            "x_studio_sync_revision", "x_studio_store_url",
-            "x_studio_departments", "x_studio_companies", "write_date"
+            "id", "display_name", "name", "active", "sequence",
+            "estore_sync_revision", "url",
+            "department_ids", "partner_link_ids", "write_date"
         };
 
         var bodyObj = new
@@ -524,7 +525,7 @@ public class OdooApiService : IOdooApiService
             fields,
             // Naming the active field explicitly disables Odoo's implicit "hide archived" filter,
             // so archived stores are returned too (and can be recognised as archived).
-            domain = new object[] { new object[] { "x_active", "in", new[] { true, false } } }
+            domain = new object[] { new object[] { "active", "in", new[] { true, false } } }
         };
 
         var json = JsonSerializer.Serialize(bodyObj, _jsonOptions);
@@ -539,23 +540,23 @@ public class OdooApiService : IOdooApiService
     }
 
     /// <summary>
-    /// Fetches all Odoo departments (x_department), including their parent store.
+    /// Fetches all Odoo departments (estore.department), including their parent store.
     /// </summary>
     public async Task<List<OdooDepartmentResponse>> FetchDepartmentsAsync()
     {
-        var endpoint = $"{_settings.OdooUrl}/json/2/x_department/search_read";
+        var endpoint = $"{_settings.OdooUrl}/json/2/estore.department/search_read";
 
         var fields = new[]
         {
-            "id", "display_name", "x_name", "x_active", "x_studio_sequence",
-            "x_studio_sync_revision", "x_studio_store"
+            "id", "display_name", "name", "active", "sequence",
+            "estore_sync_revision", "store_id"
         };
 
         var bodyObj = new
         {
             fields,
             // Include archived departments so they can be deactivated in NOP (see FetchStoresAsync).
-            domain = new object[] { new object[] { "x_active", "in", new[] { true, false } } }
+            domain = new object[] { new object[] { "active", "in", new[] { true, false } } }
         };
 
         var json = JsonSerializer.Serialize(bodyObj, _jsonOptions);
@@ -897,6 +898,124 @@ public class OdooApiService : IOdooApiService
                 ErrorMessage: $"Unexpected error: {ex.Message}"
             );
         }
+    }
+
+    #endregion
+
+    #region Access check
+
+    /// <summary>
+    /// The product.template fields the product sync reads that come from Odoo's own apps. Odoo refuses the whole
+    /// request when one of them does not exist (the Website / eCommerce ones need that app).
+    /// </summary>
+    private static readonly string[] CoreProductFields =
+    {
+        "id", "name", "display_name", "default_code", "is_published", "active", "sale_ok",
+        "categ_id", "weight", "barcode", "create_date", "write_date",
+        "description_sale", "description", "description_ecommerce", "website_description", "website_published",
+        "list_price", "compare_list_price", "image_1920",
+        "attribute_line_ids", "product_variant_count", "product_variant_ids"
+    };
+
+    /// <summary>
+    /// What the API user needs, per model: the operations the plugin runs on it and the fields it names.
+    /// </summary>
+    private static readonly (string Name, string Model, string[] Operations, string[] Fields)[] AccessRequirements =
+    {
+        ("sale.order", "sale.order", new[] { "read", "create", "write" }, SaleOrderFields),
+        ("sale.order.line", "sale.order.line", new[] { "read", "create", "write" }, Array.Empty<string>()),
+        ("res.partner", "res.partner", new[] { "read", "create", "write" }, PartnerFields),
+        ("res.country", "res.country", new[] { "read" }, Array.Empty<string>()),
+        ("res.country.state", "res.country.state", new[] { "read" }, Array.Empty<string>()),
+        ("estore.store", "estore.store", new[] { "read" }, new[] { "name", "active", "sequence", "url", "logo", "pricelist_id",
+            "warehouse_ids", "department_ids", "partner_ids", "partner_link_ids", "estore_sync_revision", "write_date" }),
+        ("estore.department", "estore.department", new[] { "read" },
+            new[] { "name", "active", "sequence", "store_id", "estore_sync_revision" }),
+        ("product.template", "product.template", new[] { "read" }, CoreProductFields),
+        ("product.template (eStore fields)", "product.template", new[] { "read" },
+            new[] { "estore_ids", "estore_department_ids", "estore_sync_revision", "estore_style_code" }),
+        ("product.product", "product.product", new[] { "read" }, new[] { "default_code", "barcode", "lst_price",
+            "qty_available", "free_qty", "product_template_attribute_value_ids", "image_variant_1920", "image_1920" }),
+        ("product.template.attribute.line", "product.template.attribute.line", new[] { "read" }, Array.Empty<string>()),
+        ("product.template.attribute.value", "product.template.attribute.value", new[] { "read" }, Array.Empty<string>()),
+        ("product.attribute", "product.attribute", new[] { "read" }, Array.Empty<string>()),
+        ("product.pricelist.item", "product.pricelist.item", new[] { "read" }, Array.Empty<string>())
+    };
+
+    /// <summary>
+    /// The fields of <paramref name="required"/> that a <c>fields_get</c> answer does not list: they do not exist,
+    /// or the user may not see them.
+    /// </summary>
+    internal static List<string> MissingFields(IEnumerable<string> required, JsonElement fieldsGet) =>
+        required.Where(field => !fieldsGet.TryGetProperty(field, out _)).ToList();
+
+    /// <summary>
+    /// Checks one model: the operations first, then the fields.
+    /// </summary>
+    private async Task<OdooAccessCheck> CheckModelAsync(string name, string model, string[] operations, string[] fields)
+    {
+        try
+        {
+            var refused = new List<string>();
+            foreach (var operation in operations)
+            {
+                // On no records this asks about the user's rights on the model, and changes nothing.
+                if (!await CallAsync<bool>(model, "has_access", new { ids = Array.Empty<int>(), operation }))
+                    refused.Add(operation);
+            }
+
+            if (refused.Count > 0)
+                return new(name, false, $"Not allowed: {string.Join(", ", refused)}");
+
+            if (fields.Length > 0)
+            {
+                var existing = await CallAsync<JsonElement>(model, "fields_get",
+                    new { allfields = fields, attributes = new[] { "type" } });
+                var missing = MissingFields(fields, existing);
+                if (missing.Count > 0)
+                    return new(name, false, $"Missing fields: {string.Join(", ", missing)}");
+            }
+
+            return new(name, true, $"Allowed: {string.Join(", ", operations)}");
+        }
+        catch (Exception ex)
+        {
+            return new(name, false, $"Could not be checked: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Checks that a configured product code finds an Odoo product.
+    /// </summary>
+    private async Task<OdooAccessCheck> CheckProductCodeAsync(string name, string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return new(name, false, "Not set on this page");
+
+        try
+        {
+            return await GetProductVariantIdByCodeAsync(code) is int id
+                ? new(name, true, $"{code}: Odoo id {id}")
+                : new(name, false, $"No Odoo product has the internal reference {code}");
+        }
+        catch (Exception ex)
+        {
+            return new(name, false, $"Could not be checked: {ex.Message}");
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<IList<OdooAccessCheck>> CheckAccessAsync()
+    {
+        var checks = new List<OdooAccessCheck>();
+
+        foreach (var (name, model, operations, fields) in AccessRequirements)
+            checks.Add(await CheckModelAsync(name, model, operations, fields));
+
+        checks.Add(await CheckProductCodeAsync("Delivery product", _settings.DeliveryProductCode));
+        checks.Add(await CheckProductCodeAsync("Exchange fee product", _settings.ExchangeFeeProductCode));
+
+        return checks;
     }
 
     #endregion

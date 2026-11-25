@@ -289,6 +289,9 @@ public class OdooAdminController : BasePluginController
                 ? $"Odoo Version: {result.OdooVersion}, Products: {result.ProductCount}, User: {result.LoggedInUser}"
                 : result.ErrorMessage;
 
+            if (result.Success)
+                model.AccessChecks = await _odooApiService.CheckAccessAsync();
+
             if (result.ProductCount != null)
                 await UpdateLastSyncDateTimeAsync();
         }

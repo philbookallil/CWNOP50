@@ -29,7 +29,6 @@ public record ConfigurationModel : BaseNopModel
     /// </summary>
     [NopResourceDisplayName("Integration.Odoo.Fields.Username")]
     [Required(ErrorMessage = "Username is required")]
-    [EmailAddress(ErrorMessage = "Please enter a valid email address")]
     public string Username { get; init; } = string.Empty;
 
     /// <summary>

@@ -2,10 +2,10 @@ namespace Nop.Plugin.Integration.Odoo.Services;
 
 /// <summary>
 /// Synchronises Odoo companies and their delivery addresses (res.partner) into a two-level CW.Core
-/// Branch hierarchy, driven by the new <c>x_store</c> model.
+/// Branch hierarchy, driven by the <c>estore.store</c> model.
 ///
 /// Sync strategy:
-///   1. Fetch all Odoo stores (x_store), each carrying its linked companies (x_studio_companies).
+///   1. Fetch all Odoo stores (estore.store), each carrying its linked companies (partner_link_ids).
 ///   2. For each active store, resolve the mapped nopCommerce store.
 ///   3. Upsert each company (type company) as a Head Office — a top-level Branch.
 ///   4. Upsert each of its delivery addresses (type delivery) as a Branch under that Head Office.

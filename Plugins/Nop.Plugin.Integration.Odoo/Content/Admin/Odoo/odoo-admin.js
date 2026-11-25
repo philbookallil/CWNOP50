@@ -68,6 +68,7 @@ function renderOdooSyncStatus(data, type, row) {
 
         $('#btnRunDiagnostics').on('click', function () {
             $card.show();
+            var $access = $('#diagnosticsAccessChecks').empty();
             $.each(fields, function (i, name) { $('#diagnostics' + name).text('Loading...'); });
             $('#diagnosticsConnectionStatus').removeClass('badge-success badge-danger').text('Loading...');
 
@@ -82,6 +83,11 @@ function renderOdooSyncStatus(data, type, row) {
                     setBadge($('#diagnosticsConnectionStatus'), data.ConnectionStatus || data.error || 'N/A',
                         data.ConnectionStatus === 'Connected');
                     $('#diagnosticsTestResultMessage').text(data.TestResultMessage || data.error || 'N/A');
+                    $.each(data.AccessChecks || [], function (i, check) {
+                        var $badge = $('<span class="badge mr-2">');
+                        setBadge($badge, check.Ok ? 'OK' : 'Problem', check.Ok);
+                        $access.append($('<li>').append($badge, $('<strong>').text(check.Name + ': '), $('<span>').text(check.Detail)));
+                    });
                 },
                 error: function (xhr, status, error) {
                     $.each(fields, function (i, name) { $('#diagnostics' + name).text('N/A'); });

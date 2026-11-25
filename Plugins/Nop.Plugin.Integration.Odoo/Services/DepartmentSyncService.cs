@@ -6,10 +6,10 @@ namespace Nop.Plugin.Integration.Odoo.Services;
 
 /// <summary>
 /// Creates/updates a CW.Core <see cref="Department"/> (and its <c>DEP_</c> customer role) for each
-/// active Odoo <c>x_department</c>, and deactivates the NOP department of an archived one.
+/// active Odoo <c>estore.department</c>, and deactivates the NOP department of an archived one.
 ///
 /// Rules (see spec §6):
-///   - resolve the parent nop store from <c>x_studio_store</c> via <see cref="IOdooStoreMapService"/>
+///   - resolve the parent nop store from <c>store_id</c> via <see cref="IOdooStoreMapService"/>
 ///     (run store sync first); skip store-less departments,
 ///   - archived in Odoo → deactivate the matching NOP department (never create one),
 ///   - match an existing department by (StoreId, Name); rename in Odoo creates a new one,
@@ -52,13 +52,13 @@ public class DepartmentSyncService : IDepartmentSyncService
     /// <inheritdoc/>
     public async Task<DepartmentSyncResult> SyncDepartmentsAsync(int logEventId)
     {
-        // Every retrieved x_department is counted exactly once (see SyncTally).
+        // Every retrieved estore.department is counted exactly once (see SyncTally).
         var tally = new SyncTally();
 
         var odooDepartments = await _odooApiService.FetchDepartmentsAsync();
         if (odooDepartments.Count == 0)
         {
-            await _odooLogService.WarningAsync("No Odoo departments (x_department) found. Department sync skipped.", logEventId, entityType: "Department");
+            await _odooLogService.WarningAsync("No Odoo departments (estore.department) found. Department sync skipped.", logEventId, entityType: "Department");
             return new DepartmentSyncResult(0, 0, 0);
         }
 
@@ -70,24 +70,24 @@ public class DepartmentSyncService : IDepartmentSyncService
             try
             {
                 // The parent store many2one is authoritative (the dept name is NOT a routing key).
-                if (odooDept.XStudioStore is null)
+                if (odooDept.Store is null)
                 {
                     await _odooLogService.WarningAsync(
-                        $"Odoo department '{odooDept.XName}' (ID {odooDept.Id}) has no store set. Skipping.",
+                        $"Odoo department '{odooDept.Name}' (ID {odooDept.Id}) has no store set. Skipping.",
                         logEventId, entityType: "Department", odooEntityId: odooDept.Id);
                     continue;
                 }
 
-                var nopStoreId = await _storeMapService.GetNopStoreIdAsync(odooDept.XStudioStore.Id);
+                var nopStoreId = await _storeMapService.GetNopStoreIdAsync(odooDept.Store.Id);
                 if (nopStoreId is null)
                 {
                     await _odooLogService.WarningAsync(
-                        $"Odoo department '{odooDept.XName}' (ID {odooDept.Id}) → Odoo store {odooDept.XStudioStore.Id} is not mapped to a nopCommerce store (run store sync first). Skipping.",
+                        $"Odoo department '{odooDept.Name}' (ID {odooDept.Id}) → Odoo store {odooDept.Store.Id} is not mapped to a nopCommerce store (run store sync first). Skipping.",
                         logEventId, entityType: "Department", odooEntityId: odooDept.Id);
                     continue;
                 }
 
-                var name = (odooDept.XName ?? odooDept.DisplayName)?.Trim();
+                var name = (odooDept.Name ?? odooDept.DisplayName)?.Trim();
                 if (string.IsNullOrWhiteSpace(name))
                 {
                     await _odooLogService.WarningAsync(
@@ -100,7 +100,7 @@ public class DepartmentSyncService : IDepartmentSyncService
                 var existing = await _multiStoreService.GetDepartmentByStoreAndNameAsync(nopStoreId.Value, name);
 
                 // Archived in Odoo: deactivate the matching NOP department; never create one.
-                if (!odooDept.XActive)
+                if (!odooDept.Active)
                 {
                     if (existing is { Active: true })
                     {
@@ -124,7 +124,7 @@ public class DepartmentSyncService : IDepartmentSyncService
                 if (existing != null)
                 {
                     existing.Name = name;
-                    existing.Active = odooDept.XActive;
+                    existing.Active = odooDept.Active;
 
                     // Keeps the DEP_{storeId}_{name} role in sync (CW.Core owns this logic).
                     await _customerOverrideService.SaveDepartmentCustomerRole(existing);
@@ -141,7 +141,7 @@ public class DepartmentSyncService : IDepartmentSyncService
                     {
                         StoreId = nopStoreId.Value,
                         Name = name,
-                        Active = odooDept.XActive
+                        Active = odooDept.Active
                     };
 
                     // Creates the DEP_ customer role and sets department.CustomerRoleId (CW.Core logic).
@@ -157,7 +157,7 @@ public class DepartmentSyncService : IDepartmentSyncService
             catch (Exception ex)
             {
                 await _odooLogService.ErrorAsync(
-                    $"Error syncing Odoo department {odooDept.Id} ('{odooDept.XName}'): {ex.Message}",
+                    $"Error syncing Odoo department {odooDept.Id} ('{odooDept.Name}'): {ex.Message}",
                     logEventId, fullMessage: ex.ToString(), entityType: "Department", odooEntityId: odooDept.Id);
             }
             finally

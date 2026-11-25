@@ -22,6 +22,13 @@ public interface IOdooApiService
     Task<OdooConnectionResult> TestConnectionAsync(string odooUrl, string databaseName, string apiKey);
 
     /// <summary>
+    /// Checks what the saved API user may do, which of the fields the plugin names exist, and that the configured
+    /// product codes find a product. Read-only: nothing is created or changed in Odoo. It covers the rights on each
+    /// model, not the record rules that may hide single records.
+    /// </summary>
+    Task<IList<OdooAccessCheck>> CheckAccessAsync();
+
+    /// <summary>
     /// Fetches a page of active, sellable product templates, read product by product: a product Odoo
     /// returns in an unexpected shape is reported in the page's errors instead of failing the page.
     /// </summary>
@@ -35,13 +42,13 @@ public interface IOdooApiService
     // ?? Partner / Branch endpoints ????????????????????????????????????????????
 
     /// <summary>
-    /// Fetches all Odoo stores (x_store), including their linked companies and departments.
+    /// Fetches all Odoo stores (estore.store), including their linked companies and departments.
     /// </summary>
     /// <returns>List of Odoo store records.</returns>
     Task<List<OdooStoreResponse>> FetchStoresAsync();
 
     /// <summary>
-    /// Fetches all Odoo departments (x_department), including archived ones and their parent store.
+    /// Fetches all Odoo departments (estore.department), including archived ones and their parent store.
     /// </summary>
     /// <returns>List of Odoo department records.</returns>
     Task<List<OdooDepartmentResponse>> FetchDepartmentsAsync();
@@ -123,6 +130,14 @@ public interface IOdooApiService
     /// </summary>
     Task<int?> GetStateIdByCodeAsync(int countryId, string code);
 }
+
+/// <summary>
+/// One line of the access check.
+/// </summary>
+/// <param name="Name">What was checked: an Odoo model or a configured product.</param>
+/// <param name="Ok">Whether everything needed is there.</param>
+/// <param name="Detail">What is allowed, or what is missing.</param>
+public record OdooAccessCheck(string Name, bool Ok, string Detail);
 
 /// <summary>
 /// Result returned from a connection test.

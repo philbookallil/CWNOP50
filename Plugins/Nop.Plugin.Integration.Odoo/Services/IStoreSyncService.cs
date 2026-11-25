@@ -1,7 +1,7 @@
 namespace Nop.Plugin.Integration.Odoo.Services;
 
 /// <summary>
-/// Synchronises Odoo stores (<c>x_store</c>) into nopCommerce core Stores, tracked in
+/// Synchronises Odoo stores (<c>estore.store</c>) into nopCommerce core Stores, tracked in
 /// <see cref="Nop.Plugin.Integration.Odoo.Domain.OdooStoreMapping"/>.
 /// </summary>
 public interface IStoreSyncService
@@ -13,7 +13,7 @@ public interface IStoreSyncService
 }
 
 /// <summary>
-/// Aggregated result of a store sync run. Every x_store the run retrieved is counted exactly once
+/// Aggregated result of a store sync run. Every estore.store the run retrieved is counted exactly once
 /// (Skipped = archived, unchanged, duplicate-in-Odoo or failed), so Processed is their sum by construction.
 /// </summary>
 public record StoreSyncResult(int Created, int Updated, int Skipped)

@@ -2,7 +2,7 @@
   "Group": "Integration",
   "FriendlyName": "Odoo Integration",
   "SystemName": "Integration.Odoo",
-  "Version": "2026_11_18_DATA_1.4",
+  "Version": "2026_11_25_DATA_1.7",
   "SupportedVersions": [ "5.00" ],
   "Author": "Total Image Group",
   "DisplayOrder": 1,

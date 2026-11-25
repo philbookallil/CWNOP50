@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 namespace Nop.Plugin.Integration.Odoo.Models.Responses;
 
 /// <summary>
-/// Maps the fields returned by Odoo's custom Studio <c>x_store</c> model
-/// (endpoint <c>/json/2/x_store/search_read</c>).
+/// Maps the fields returned by the eStore addon's <c>estore.store</c> model
+/// (endpoint <c>/json/2/estore.store/search_read</c>).
 /// </summary>
 public class OdooStoreResponse
 {
@@ -14,20 +14,20 @@ public class OdooStoreResponse
     [JsonPropertyName("display_name")]
     public string DisplayName { get; set; }
 
-    [JsonPropertyName("x_name")]
-    public string XName { get; set; }
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
 
-    [JsonPropertyName("x_active")]
-    public bool XActive { get; set; }
+    [JsonPropertyName("active")]
+    public bool Active { get; set; }
 
-    [JsonPropertyName("x_studio_sequence")]
-    public int XStudioSequence { get; set; }
+    [JsonPropertyName("sequence")]
+    public int Sequence { get; set; }
 
     /// <summary>
     /// Change counter — used for incremental sync (skip when unchanged).
     /// </summary>
-    [JsonPropertyName("x_studio_sync_revision")]
-    public int XStudioSyncRevision { get; set; }
+    [JsonPropertyName("estore_sync_revision")]
+    public int SyncRevision { get; set; }
 
     /// <summary>
     /// Odoo's last-modified timestamp (UTC, "yyyy-MM-dd HH:mm:ss"), updated by the ORM on every write.
@@ -40,19 +40,19 @@ public class OdooStoreResponse
     /// <summary>
     /// Store URL. May be false when not yet set.
     /// </summary>
-    [JsonPropertyName("x_studio_store_url")]
+    [JsonPropertyName("url")]
     [JsonConverter(typeof(StringOrFalseJsonConverter))]
-    public string XStudioStoreUrl { get; set; }
+    public string Url { get; set; }
 
     /// <summary>
-    /// Many-to-many ids of this store's departments (x_department).
+    /// Many-to-many ids of this store's departments (estore.department).
     /// </summary>
-    [JsonPropertyName("x_studio_departments")]
-    public List<int> XStudioDepartments { get; set; } = new();
+    [JsonPropertyName("department_ids")]
+    public List<int> DepartmentIds { get; set; } = new();
 
     /// <summary>
-    /// Many-to-many ids of this store's companies (res.partner). Branch sync source.
+    /// Ids of the customers linked directly to this store (res.partner), not the people under them. Branch sync source.
     /// </summary>
-    [JsonPropertyName("x_studio_companies")]
-    public List<int> XStudioCompanies { get; set; } = new();
+    [JsonPropertyName("partner_link_ids")]
+    public List<int> CompanyIds { get; set; } = new();
 }

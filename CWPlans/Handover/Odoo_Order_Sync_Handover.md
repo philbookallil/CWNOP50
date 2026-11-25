@@ -1,12 +1,43 @@
 # Odoo Order Sync Handover
 
-2026-11-18
+2026-11-18, updated 2026-11-25 for the client's new eStore addon
 
-The basic send of nop orders to Odoo 20 is built and tested (20 test cases pass): an admin sends orders by hand from *Odoo › Orders*. You take over two things: CW.Core's own data on the Odoo order, and the events that start a send automatically.
+The basic send of nop orders to Odoo 20 is built and was tested on the client's first Odoo (20 test cases pass): an admin sends orders by hand from *Odoo › Orders*. You take over two things: CW.Core's own data on the Odoo order, and the events that start a send automatically.
+
+
+> **The client replaced the Odoo Studio eStore app with a real addon (`cityweb_estore`) on a new Odoo database.** The
+> plugin now works against the addon only. The order send itself did not change, but **one plain order has been sent
+> and cancelled on the new Odoo**; the 20 cases below passed on the old one.
+
+## The new eStore addon
+
+What changed and what is still open is in `CWPlans/Odoo_eStore_Addon_Changeover_Spec.md`; the client's own document is
+`Plugins/Nop.Plugin.Integration.Odoo/NopCommerce_eStore_Odoo_Changeover.md`.
+
+| Done | How it works now |
+| --- | --- |
+| Names | `estore.store`, `estore.department` and the `estore_*` product fields replace `x_store`, `x_department` and `x_studio_*` |
+| Access check | *Odoo › Settings › Run Diagnostics* lists what the API user may do, which fields exist and whether the product codes are found. Read-only. On the new Odoo everything is OK except the exchange fee product, which is not set |
+| Sync | Stores, departments, products and branches run on the new Odoo without errors; a second run with no change skips stores and products |
+| Publishing | A product is published while it is on at least one active Odoo store, by every sync, and unpublished on none. The Website flags are no longer read for it |
+| Products on no store | Not created; unpublished if already in nop |
+| Cost | Odoo's cost is no longer copied to nop |
+| Branches | From the companies linked directly to a store (`partner_link_ids`) |
+
+| Not done | Waiting on |
+| --- | --- |
+| Price from the store's pricelist (nop still uses `list_price`) | The client: a price method in the addon, or rules computed in nop |
+| Stock from the store's warehouses (nop still uses all stock on hand) | The client: do stores selling the same product use different warehouses? |
+| One revision number for the whole sync; hard deletes | A decision on failed records and a full sync button |
+| More live tests: a product on two stores, packname orders, hard deletes | Test data; the change, archive, untag, order send and cancel tests passed on 2026-11-25 |
+
+**Odoo ids are new.** The ids kept in nop (store mappings, product links, branch card codes, order mappings) are only
+valid for the Odoo they came from. Before pointing a database with data from the old Odoo at the new one, clear them:
+otherwise a store sync can overwrite the wrong store, and a send or cancel can reach the wrong Odoo record.
 
 ## What is built and where
 
-Everything is in `Plugins/Nop.Plugin.Integration.Odoo`, version `2026_11_18_DATA_1.4`. The full design, decisions and test results are in `CWPlans/Odoo_Order_Sync_Spec.md`.
+Everything is in `Plugins/Nop.Plugin.Integration.Odoo`, version `2026_11_25_DATA_1.7`. The full design, decisions and test results are in `CWPlans/Odoo_Order_Sync_Spec.md`.
 
 | Part | What it does | Where |
 | --- | --- | --- |
@@ -20,7 +51,7 @@ Everything is in `Plugins/Nop.Plugin.Integration.Odoo`, version `2026_11_18_DATA
 | Settings | Odoo delivery product and exchange fee product codes | Configure page, `Domain/OdooSettings.cs` |
 | Permission | *Send orders to Odoo* (`Integration.Odoo.SendOrders`), Administrators by default; Settings and Sync Log keep *Manage plugins* | `Infrastructure/OdooPermissionConfigManager.cs` |
 | Product sync addition | Saves the Odoo variant id of single-variant products (`Odoo.ProductVariantId`) | `Services/ProductSyncService.cs` |
-| Tests | 41 Odoo cases | `Tests/CW.Tests/Integration.Odoo/` |
+| Tests | 47 Odoo cases | `Tests/CW.Tests/Integration.Odoo/` |
 
 ## How one order is sent
 
@@ -29,7 +60,7 @@ One nop order becomes one confirmed Odoo sale order **per delivery destination**
 1. **Destinations.** A packname order: one per CW.Core destination (`ICWOrderService.GetOrderShippingDestinationsAsync`). A plain order: one, key 0, from the order's own address and shipping.
 2. **Customer.** The ordering customer's branch (`IBranchService.GetBranchByCustomerIdAsync`), walked up to the top branch; its `CardCode` is the Odoo company id. No branch, or a card code that is not a number: the order is **held**.
 3. **Lines.** Each item's Odoo variant (the combination's `ODOO_{id}`, else `Odoo.ProductVariantId`), quantity, unit price = `PriceExclTax` ÷ quantity to cents. The text adds nop's attribute description (print name included), the packname line "For / Branch / Dept / CC" from `PackNameOrderItem`, and the PO when it is not on the order. An unlinked product holds that destination.
-4. **Shipping.** One delivery line on the configured delivery product (`Delivery_007` on the test instance), named after the nop method. No delivery product set and shipping charged: held.
+4. **Shipping.** One delivery line on the configured delivery product (`Delivery_007`, on both Odoo instances), named after the nop method. No delivery product set and shipping charged: held.
 5. **First destination only.** Exchange fee lines (one per fee type) and the order note: nop number and UTC date, "Exchange replacement order", subsidy and store credit from the settlement row, "Paid in nop". Other destinations' notes point to the first.
 6. **Send.** A `Pending` mapping row is written first. Then: find by `origin` (`nop {number}`, plus `/ {key}` with several destinations), else create; save the Odoo id; confirm; read back. `Confirmed` only when Odoo says *sale*. Odoo's untaxed total is compared with nop's; more than one cent apart is kept as a warning. An Odoo error sets `Failed` with Odoo's own message.
 7. **Delivery address.** Matched in Odoo by street, postcode and city under the company; a `delivery` contact is created when none matches.
@@ -78,7 +109,8 @@ A re-send is safe: an order already confirmed is skipped, and one created but no
 | --- | --- | --- |
 | A9: how Odoo carries subsidy and store credit | The client's accountant | Open; the note carries the amounts until then |
 | A14: the exchange fee service product in Odoo | Odoo admin, then its code on Configure | Not created; T18 waits on it |
-| A dedicated Odoo API user for the integration | Odoo admin | The test instance uses a personal admin account (V5) |
+| A dedicated Odoo API user for the integration | Odoo admin | Open on the new Odoo too. The client's document describes a read-only integration user; the order send needs create and write on `sale.order`, `sale.order.line` and `res.partner`, so the production user must have them |
+| *Print Name* as a text box customers can fill in | You | Open. The product sync turns an Odoo attribute that does not always create variants into a read-only specification, so *Print Name* arrives as the fixed text "Add Name" (`ProductSyncService.FindOrCreateProductAttributeAsync`). As a nop text box attribute, what the customer types would reach the Odoo order line through the attribute description (A12), and `MultiStoreSettings.PrintNameProductAttributeId` could pre-fill it |
 | A17: one Odoo company or one per store | Client | One company today; revisit if production differs |
 | B1: order-level discounts, gift cards, reward points, payment fee | Second phase | Not sent |
 | B5: tax on exchange fees, tax-exempt customers | Second phase | Not handled |
@@ -88,7 +120,7 @@ Not in this version at all: editing an order already sent, reading anything back
 
 ## Testing
 
-The test plan is section 8 of the spec and the 2026-11-18 run is section 8.1: 20 cases pass, each checked on the Odoo order form as well. Four were not run:
+The test plan is section 8 of the spec and the 2026-11-18 run, on the old Odoo, is section 8.1: 20 cases pass, each checked on the Odoo order form as well. **Run them again on the new Odoo.** Four were never run:
 
 | Case | What it needs |
 | --- | --- |
@@ -102,11 +134,13 @@ The test plan is section 8 of the spec and the 2026-11-18 run is section 8.1: 20
 - [`Odoo_Order_Sync_TestOrders.sql`](TestData/Odoo_Order_Sync_TestOrders.sql): TEST-07 … TEST-22D, orders meant to be **sent** (plain, home address, no branch, unlinked product, packname with two destinations, POs, print name, subsidy settlement). Pressing *Sync* on them creates real sale orders on the Odoo test instance.
 - [`Odoo_Order_Sync_Demo.sql`](TestData/Odoo_Order_Sync_Demo.sql): DEMO-01 … DEMO-13 in every sync state with made-up Odoo ids, for looking at the page only. *Sync* on a demo row does reach Odoo.
 
+**Both were written for data from the old Odoo.** The test-order script names that data's products, stores, branch and addresses by id, so it needs new ids before it runs on data from the new Odoo.
+
 Both copy an existing order (`@SourceOrderId`, order 1). The test-order script also needs, in its `DECLARE` block at the top, ids that exist on your database: the ordering customer (`@CustomerId`), a customer in no branch (`@NoBranchCustomerId`), a branch whose top branch has the Odoo company id as card code (`@BranchId`) and that branch's address (`@BranchAddressId`). The orders use stores 1 to 3, and the lines use product ids from the `@Lines` table. The script links `@CustomerId` to the branch and switches PackName, Subsidy and Exchanges off on store 3 (T23); the clean-up deletes those three store-3 settings again. Set them before you run it, then build sending orders on a local development database only (`sqlcmd` needs `-I`: the CW tables have filtered indexes).
 
 Each script starts with a CLEAN-UP block that removes what it made in nop; nothing removes what was sent to Odoo, so cancel those orders in Odoo. The test instance's address and access are not in the repository; ask for them.
 
-Unit tests: `dotnet test Tests/CW.Tests -p:SolutionDir=<repo root> --filter "FullyQualifiedName~Odoo"` (41 cases).
+Unit tests: `dotnet test Tests/CW.Tests -p:SolutionDir=<repo root> --filter "FullyQualifiedName~Odoo"` (47 cases).
 
 ## Traps
 
@@ -115,5 +149,6 @@ Unit tests: `dotnet test Tests/CW.Tests -p:SolutionDir=<repo root> --filter "Ful
 - **The totals check allows one cent** (`> 0.01m` in `SendDraftAsync`), decided 2026-11-18: 3 × 3.33 against 10.00 passes, 6 × 1.67 against 10.00 warns.
 - **Locale keys are `Integration.Odoo.*`**, not `Plugins.Integration.Odoo.*`. A new or renamed key needs a DATA version bump in `plugin.json` and the plugin update to install.
 - **A JS change needs the bundle cache emptied** (`Presentation/Nop.Web/wwwroot/bundles`, keep `Index.htm`) and a site restart; the minifier also renames local function names.
-- **A field the plugin requests must exist in Odoo.** Odoo refuses the whole `search_read` on one unknown field.
+- **A field the plugin requests must exist in Odoo.** Odoo refuses the whole `search_read` on one unknown field. *Run Diagnostics* lists the missing ones.
+- **The client's document names a read-only API.** It does not mention orders: confirm with the client that the send is expected in production.
 - **The Orders page's buttons are disabled while a request runs**, and *Cancel in Odoo* asks first. An event-driven trigger bypasses both, so it needs its own guard against double sends (the queue's one-run limit is it today).

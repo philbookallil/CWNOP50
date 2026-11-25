@@ -11,11 +11,11 @@ namespace Nop.Plugin.Integration.Odoo.Services;
 
 /// <summary>
 /// Synchronises Odoo delivery addresses (res.partner, type=delivery) into CW.Core Branches,
-/// driven by the new <c>x_store</c> model.
+/// driven by the <c>estore.store</c> model.
 ///
-/// For each active Odoo store (x_store):
+/// For each active Odoo store (estore.store):
 ///   - resolve the mapped nopCommerce store (via <see cref="IOdooStoreMapService"/>; run store sync first),
-///   - upsert every company in x_studio_companies (res.partner, type company) as an invoiceable Head
+///   - upsert every company in partner_link_ids (res.partner, type company) as an invoiceable Head
 ///     Office: a top-level CW.Core <see cref="Branch"/> with the company's address,
 ///   - upsert each of that company's delivery addresses (res.partner, type delivery) as a Branch whose
 ///     parent is the Head Office.
@@ -230,11 +230,11 @@ public class BranchSyncService : IBranchSyncService
             var allCountries = await _countryService.GetAllCountriesAsync(showHidden: true);
             var statesByCountryId = new Dictionary<int, IList<StateProvince>>();
 
-            // Fetch all Odoo stores (x_store) with their linked companies.
+            // Fetch all Odoo stores (estore.store) with their linked companies.
             var odooStores = await _odooApiService.FetchStoresAsync();
             if (odooStores.Count == 0)
             {
-                const string msg = "No Odoo stores (x_store) found. Branch sync skipped.";
+                const string msg = "No Odoo stores (estore.store) found. Branch sync skipped.";
                 await LogWarningAsync(msg, logEventId, "Branch", null, null);
                 return new BranchSyncResult(false, 0, 0, 0, msg);
             }
@@ -246,7 +246,7 @@ public class BranchSyncService : IBranchSyncService
                 try
                 {
                     // Only active stores are synced (matches store sync policy).
-                    if (!odooStore.XActive)
+                    if (!odooStore.Active)
                         continue;
 
                     // Resolve the mapped nopCommerce store id (populated by store sync).
@@ -254,23 +254,23 @@ public class BranchSyncService : IBranchSyncService
                     if (nopStoreId is null)
                     {
                         await LogInfoAsync(
-                            $"Odoo store '{odooStore.XName}' (ID {odooStore.Id}) is not mapped to a nopCommerce store (run store sync first). Skipping its branches.",
+                            $"Odoo store '{odooStore.Name}' (ID {odooStore.Id}) is not mapped to a nopCommerce store (run store sync first). Skipping its branches.",
                             logEventId, "Branch", odooStore.Id, null);
                         continue;
                     }
 
-                    var companyIds = odooStore.XStudioCompanies ?? new List<int>();
+                    var companyIds = odooStore.CompanyIds ?? new List<int>();
                     if (companyIds.Count == 0)
                     {
                         await LogInfoAsync(
-                            $"Odoo store '{odooStore.XName}' (ID {odooStore.Id}) has no linked companies.",
+                            $"Odoo store '{odooStore.Name}' (ID {odooStore.Id}) has no linked companies.",
                             logEventId, "Branch", odooStore.Id, null);
                         storesProcessed++;
                         continue;
                     }
 
                     await LogInfoAsync(
-                        $"Processing Odoo store '{odooStore.XName}' (ID {odooStore.Id}) → nop store ID {nopStoreId.Value}; {companyIds.Count} company/companies.",
+                        $"Processing Odoo store '{odooStore.Name}' (ID {odooStore.Id}) → nop store ID {nopStoreId.Value}; {companyIds.Count} company/companies.",
                         logEventId, "Branch", odooStore.Id, null);
 
                     // Existing branches for this store, keyed by CardCode (= Odoo partner id).
@@ -286,7 +286,7 @@ public class BranchSyncService : IBranchSyncService
 
                     foreach (var missingId in companyIds.Except(companies.Select(c => c.Id)))
                         await LogWarningAsync(
-                            $"Odoo store '{odooStore.XName}' lists company {missingId}, which no longer exists in Odoo. Skipped.",
+                            $"Odoo store '{odooStore.Name}' lists company {missingId}, which no longer exists in Odoo. Skipped.",
                             logEventId, "Branch", missingId, null);
 
                     foreach (var company in companies)
@@ -389,7 +389,7 @@ public class BranchSyncService : IBranchSyncService
                 catch (Exception ex)
                 {
                     await LogErrorAsync(
-                        $"Failed to process Odoo store '{odooStore.XName}' (ID {odooStore.Id}): {ex.Message}",
+                        $"Failed to process Odoo store '{odooStore.Name}' (ID {odooStore.Id}): {ex.Message}",
                         logEventId, "Branch", odooStore.Id, null);
                 }
             }
