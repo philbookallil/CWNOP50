@@ -54,7 +54,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
     IConsumer<AdminMenuCreatedEvent>,
     IConsumer<AdditionalTokensAddedEvent>,
     IConsumer<EntityDeletedEvent<PackName>>,
-    IConsumer<EntityDeletedEvent<Customer>>,
     IConsumer<EntityDeletedEvent<ProductGroup>>,
     IConsumer<EntityDeletedEvent<Subsidy>>,
     IConsumer<ModelPreparedEvent<BaseNopModel>>,
@@ -854,38 +853,6 @@ public class EventConsumer : BaseAdminMenuCreatedEventConsumer,
         //customer's selection needs nothing here: the packname context drops a deleted packname the next
         //time it is read.
         await _shoppingCartService.DeletePackNameCartItemsAsync(eventMessage.Entity.Id);
-    }
-
-    /// <summary>
-    /// Breaks the packname → customer link when the customer is deleted.
-    /// </summary>
-    /// <remarks>
-    /// A consumer rather than a patch in the delete action, because <c>DeleteCustomerAsync</c> has
-    /// several callers (the admin action, imports, GDPR erasure) and the event covers all of them — the
-    /// same reasoning as the existing <c>EntityDeletedEvent&lt;PackName&gt;</c> handler. NOT a query
-    /// filter: <c>!customer.Deleted</c> would have to be added to five queries and two SQL views, which
-    /// is five definitions of one rule, and it would leave the stale id in the data for the next reader
-    /// to trip over.
-    /// <para>
-    /// The packname, its orders and its <c>PackNameOrderItem</c> history are deliberately untouched:
-    /// <c>PackNameOrderItem.PackNameCustomerId</c> is a snapshot of who ordered and must not be
-    /// rewritten.
-    /// </para>
-    /// </remarks>
-    public async Task HandleEventAsync(EntityDeletedEvent<Customer> eventMessage)
-    {
-        if (eventMessage.Entity == null)
-            return;
-
-        var packName = await _packNameService.GetPackNameByCustomerIdAsync(eventMessage.Entity.Id);
-
-        if (packName == null)
-            return;
-
-        packName.CustomerId = null;
-        packName.Manager = false;
-
-        await _packNameService.UpdatePackNameAsync(packName);
     }
 
     /// <summary>

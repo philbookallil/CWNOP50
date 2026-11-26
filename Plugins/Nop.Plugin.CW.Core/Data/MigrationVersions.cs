@@ -29,4 +29,9 @@ public static class MigrationVersions
     /// The unique index of the approval rules, on a database installed before the index was in the schema
     /// </summary>
     public const string ApprovalRuleUniqueScope = "2026/11/24 12:00:00";
+
+    /// <summary>
+    /// The packname → customer key that clears the link, on a database installed when the key refused the customer's delete
+    /// </summary>
+    public const string PackNameCustomerForeignKey = "2026/11/25 12:00:00";
 }

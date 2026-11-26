@@ -1426,7 +1426,7 @@ Plugins/Nop.Plugin.CW.<Feature>/
 | SystemName | `CW.Core` |
 | Group | `CW` |
 | FriendlyName | `CW Core Plugin` |
-| Supported NOP Version | `5.00` (`plugin.json` `SupportedVersions`; version `2026_10_31_DATA_0.2` at the end of the port, `2026_11_09_DATA_0.2` with the subsidy expiry reminders, `2026_11_25_DATA_0.4` with order approvals) |
+| Supported NOP Version | `5.00` (`plugin.json` `SupportedVersions`; version `2026_10_31_DATA_0.2` at the end of the port, `2026_11_09_DATA_0.2` with the subsidy expiry reminders, `2026_11_25_DATA_0.4` with order approvals, `2026_11_25_DATA_0.5` with the packname customer key) |
 | DLL | `Nop.Plugin.CW.Core.dll` |
 
 ### 13.2 Key Domains
@@ -1457,7 +1457,7 @@ Nop.Plugin.CW.Core/
 │   │                        migrations was not ported, decision D1; the SQL views, functions and procedures are
 │   │                        created by ICWDatabaseService on install and update); a table added since also has
 │   │                        an Update migration for sites already installed (Subsidies/SubsidyReminderMigration)
-│   └── MigrationVersions.cs — InitialSchema, SubsidyReminder, OrderApproval, ApprovalRuleUniqueScope
+│   └── MigrationVersions.cs — InitialSchema, SubsidyReminder, OrderApproval, ApprovalRuleUniqueScope, PackNameCustomerForeignKey
 ├── Background/            — IBackgroundTaskQueue + QueuedHostedService
 ├── Components/            — Public store ViewComponents (selector, info strip, subsidy bar, widgets)
 ├── Constants/             — Widget zones, activity types, message template / token names
@@ -1543,7 +1543,8 @@ validates and saves the subsidy expiry card; acts only on a post that carries th
 refused on an order held for approval).
 
 **Event consumers** are found by nop, not registered here; besides `EventConsumer`, the ones a reader looks for are
-`PackNameCustomerBranchEventConsumer` (customer and packname kept in one branch) and
+`PackNameCustomerBranchEventConsumer` (customer and packname kept in one branch),
+`PackNameCustomerDeletedEventConsumer` (a deleted customer is no packname's customer, GDPR delete included) and
 `CustomerPermanentlyDeletedEventConsumer` (a GDPR delete also deletes the packname cart lines the cart override hides) and
 `ReturnReasonActionDeletedEventConsumer` (a deleted return reason or action takes its CW rules and links with it) and
 `OrderApprovalEventConsumer` (checks and holds an order on `OrderPlacedEvent`, sends a plain order's approval e-mails on
@@ -1678,8 +1679,12 @@ Manager (bool), EmployeeNumber, POEntry, Comments, Deleted
 - `CustomerId != null` → PackName is also a Customer → can order.
 - `Manager = true` → must also have `CustomerId` → can order on behalf of others.
 - `IsCustomer` (computed, `[NotColumn]`): `CustomerId.HasValue && CustomerId > 0`.
-- Deleting the customer clears `CustomerId` and `Manager` (an `EntityDeletedEvent<Customer>` consumer); the packname
-  and its order snapshots stay. A GDPR (permanent) delete also deletes the customer's hidden packname cart lines
+- Deleting the customer clears `CustomerId` and `Manager` (`PackNameCustomerDeletedEventConsumer`), on deleted packnames too;
+  the packname and its order snapshots stay. nop's GDPR (permanent) delete publishes `CustomerPermanentlyDeleted`, never
+  `EntityDeletedEvent<Customer>`, so a handler of customer deletes answers both. Neither delete touches the packname's own
+  data (decided 2026-11-25). The key is SET NULL on delete: nop's *Delete guests* removes guests in one statement without
+  events, and a key that refuses one guest stops it for all (`CustomerForeignKeyTests`; `CWPlans/PackName_Deleted_Customer_Link.md`).
+  A GDPR delete also deletes the customer's hidden packname cart lines
   (`CustomerPermanentlyDeletedEventConsumer`). Deleting the packname (soft) deletes its cart lines and shipping assignment.
 - `Colour` is always a six-digit hex colour (`PackNameColourHelper.Normalize`, on the storefront, the import and every
   admin save; an invalid colour keeps the old one on an edit, a new packname gets a random one).

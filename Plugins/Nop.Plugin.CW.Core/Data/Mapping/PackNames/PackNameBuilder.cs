@@ -24,7 +24,7 @@ public class PackNameBuilder : NopEntityBuilder<PackName>
             .WithColumn(nameof(PackName.Group)).AsBoolean()
             .WithColumn(nameof(PackName.Active)).AsBoolean()
             .WithColumn(nameof(PackName.PackNameListId)).AsInt32().ForeignKey<PackNameList>(onDelete: Rule.None)
-            .WithColumn(nameof(PackName.CustomerId)).AsInt32().ForeignKey<Customer>(onDelete: Rule.None).Nullable()
+            .WithColumn(nameof(PackName.CustomerId)).AsInt32().ForeignKey<Customer>(onDelete: Rule.SetNull).Nullable()
             .WithColumn(nameof(PackName.DepartmentId)).AsInt32().ForeignKey<Department>(onDelete: Rule.None).Nullable()
             .WithColumn(nameof(PackName.CostCenterId)).AsInt32().ForeignKey<CostCenter>(onDelete: Rule.None).Nullable()
             .WithColumn(nameof(PackName.Manager)).AsBoolean().NotNullable()

@@ -1585,6 +1585,9 @@ checked); every referenced asset has a csproj entry; activity-log parity holds f
 
 ### ~~U-11. Customer delete leaves the packname pointing at a deleted customer — Improvement~~ — **closed by phase 2b part 1, 2026-09-21**
 
+> **Correction, 2026-11-25:** phase 2b covered the ordinary delete only. A GDPR delete publishes no `EntityDeletedEvent<Customer>`
+> and still left the link; fixed in 5.00 (`../PackName_Deleted_Customer_Link.md`).
+>
 > **Not done in phase 2a** (its "part 2"). Moves to **phase 2b**.
 - `ExtendedCustomerController.cs:758-805` → `DeleteCustomerAsync` only; no consumer nulls `CustomerId` / `Manager` or removes
   manager mappings; grids keep showing "Customer = yes".

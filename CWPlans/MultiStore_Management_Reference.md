@@ -647,8 +647,8 @@ manager orders on behalf of others and has to sign in.
    validation no longer reports success. The storefront `EditPackName` POST (`EditPackName`) and the three admin
    address popups (`EditBranch`, `EditPackName`, `EditCostCenter`) log too.
 9h. **Deleting a packname** deletes its cart lines (FK cascade on `CORE_PN_PackNameCartItem` from both parents) and its
-   shipping assignment; deleting the **customer** clears `PackName.CustomerId` and `Manager` and leaves the packname
-   (`EntityDeletedEvent<Customer>` consumer). A deactivated packname is dropped from the storefront context on its next
+   shipping assignment; deleting the **customer** (GDPR delete included) clears `PackName.CustomerId` and `Manager` and
+   leaves the packname and its data (`PackNameCustomerDeletedEventConsumer`; `PackName_Deleted_Customer_Link.md`). A deactivated packname is dropped from the storefront context on its next
    read (`subsidy-system.md` §8.6).
 
 ### 8b. Added by phase 2c (2026-09-24) — three that cost days each
