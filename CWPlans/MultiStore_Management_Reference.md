@@ -619,7 +619,9 @@ manager orders on behalf of others and has to sign in.
 7. The **settings tab is cached** by `_rendered.settings`, so it renders once per page load;
    after a save the page reloads anyway.
 8. `#branch-right-col` is rebuilt wholesale by `loadBranchDetail`; sub-panels are re-appended by
-   `ensureSubPanel()`, which also removes orphaned panels left outside the current right column.
+   `ensureSubPanel()`, which also removes orphaned panels left outside the current right column. The branch detail
+   partial has one root, `#branch-detail-panel`: a refused branch save replaces only that element, so the sub-panels
+   below it stay.
 9. Stale AJAX: if a feature is switched off in one browser tab, an already-open MultiStore page
    in another tab can still POST to the now-disabled controller actions. Server-side enforcement
    is required, not just hidden UI.

@@ -1,5 +1,7 @@
 ﻿@model BranchModel
 
+@* One element around the whole partial, so a refused save replaces it and leaves the panels below it in place *@
+<div id="branch-detail-panel">
 <div class="form-horizontal">
     @*THE BRANCH IS THE PAGE, NOT A CARD. It used to carry the same card classes as the
       collections below it, which made it read as one more sibling of the things it contains.
@@ -161,7 +163,6 @@
                     }
 
                 </form>
-            </div>
         </div>
     </div>
 </div>
@@ -235,7 +236,9 @@
                         //the swap replaces this button's markup, and if the server ever returns the
                         //form without it the admin is left with a dead "Saving…" button.
                         $btn.prop('disabled', false).text($cfg.data('saveLabel'));
-                        $('#branch-right-col').html(result);
+                        //Only this partial is replaced: the packname lists, cost centres and addresses
+                        //below it share the column, and the refusal does not bring them back.
+                        $('#branch-detail-panel').replaceWith(result);
                         //AFTER THE SWAP: this partial carries its own script, so inserting it runs
                         //watchForm again and re-baselines to the posted values - which would read as
                         //clean. The rejected edits are real work and must still be asked about.
@@ -310,3 +313,4 @@
         $('#bd-new-root-btn').on('click', () => Admin.StoreNav.selectBranch([]));
     })();
 </script>
+</div>

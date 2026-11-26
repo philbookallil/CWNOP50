@@ -828,8 +828,10 @@ box; only the new ones were e-mailed. D19 was checked with an approver of anothe
 The rules of Test Branch 1, Test Branch 1.1 and Department 1 were edited and put back. Fixed after it (CSS): the space between a tag's name and its
 address, and the size of the text being typed.
 
-Seen, not caused by it: on Manage Store, a branch save that is refused hides the branch's packname lists, cost centres and addresses until the branch is opened
-again.
+Seen, not caused by it: on Manage Store, a branch save that is refused hid the branch's packname lists, cost centres and addresses until the branch was opened
+again. Fixed 2026-11-25: the branch form is one element (`#branch-detail-panel`) and a refused save replaces only that element (the
+view also had one `</div>` too many, removed). Seen on the site: the lists stay, the message shows, nothing is written, and the
+next save works.
 
 Fixed after the run and seen on 2026-11-25: nop's "incl tax" beside every amount of the two lists; the message for a name or address that
 is not valid.
